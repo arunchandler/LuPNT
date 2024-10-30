@@ -28,10 +28,16 @@ namespace lupnt {
     virtual ~ICommDevice() = default;
     std::string txrx = "none";
     std::string name = "none";
-    virtual Ptr<Agent> GetAgent() const = 0;
-    virtual Ptr<SpaceChannel> GetChannel() const = 0;
-    virtual void SetAgent(Ptr<Agent> agent) = 0;
-    virtual void SetChannel(Ptr<SpaceChannel> channel) = 0;
+    inline Ptr<Agent> GetAgent() const { return agent_; };
+    inline Ptr<SpaceChannel> GetChannel() const {
+      return std::static_pointer_cast<SpaceChannel>(channel_);
+    };
+    inline void SetAgent(Ptr<Agent> agent) { agent_ = agent; };
+    virtual void SetChannel(Ptr<SpaceChannel> channel) { channel_ = channel; };
+
+  private:
+    Ptr<Agent> agent_;
+    Ptr<SpaceChannel> channel_;
   };
 
   class Transmitter : public ICommDevice {
@@ -99,7 +105,7 @@ namespace lupnt {
     virtual ~Transponder() = default;
     inline void SetTransmitter(const std::shared_ptr<Transmitter> &tx) { tx_ = tx; };
     inline void SetReceiver(const std::shared_ptr<Receiver> &rx) { rx_ = rx; };
-    inline void SetAgent(Ptr<Agent> agent) override {
+    inline void SetAgent(Ptr<Agent> agent) {
       ICommDevice::SetAgent(agent);
       tx_->SetAgent(agent);
       rx_->SetAgent(agent);
