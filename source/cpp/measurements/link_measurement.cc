@@ -196,23 +196,7 @@ namespace lupnt {
     }
 
     if (with_noise) {
-      double sigma_ow = 0.0;
-
-      if (use_fixed_error_) {
-        sigma_ow = range_sigma_fixed_;
-      } else {
-        // For one-way link, double the range error of the two way link
-        if (linkparams_.is_groundstation_rx) {
-          sigma_ow = 2
-                     * ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
-                                              linkparams_.Tc, linkparams_.modulation_type);
-        } else {
-          sigma_ow = 2
-                     * ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
-                                             linkparams_.Tc, linkparams_.modulation_type);
-        }
-      }
-
+      double sigma_ow = GetOneWayRangeNoise();
       rho_ow += SampleRandNormal(0.0, sigma_ow, seed_);
     }
 
@@ -253,20 +237,69 @@ namespace lupnt {
     }
 
     if (with_noise) {
-      double sigma_ow_rate = 0.0;
-
-      if (use_fixed_error_) {
-        sigma_ow_rate = range_rate_sigma_fixed_;
-      } else {
-        sigma_ow_rate = ComputeRangeRateErrorOneWay(linkparams_.B_L_carrier, linkparams_.freq,
-                                                    linkparams_.Tc, linkparams_.T_I_doppler,
-                                                    trans_ow_.CN0_linear, linkparams_.sigma_y_1s,
-                                                    linkparams_.modulation_type, linkparams_.m_R);
-      }
+      double sigma_ow_rate = GetOneWayRangeRateNoise();
       rho_ow_rate += SampleRandNormal(0.0, sigma_ow_rate, seed_);
     }
 
     return rho_ow_rate;
+  }
+
+  /* Noise models for One-way */
+  VecXd LinkMeasurement::GetOneWayLinkNoise(std::vector<LinkMeasurementType> meas_types) {
+
+    VecXd noise_std_vec(meas_types.size());
+    int idx = 0;
+
+    for (auto meas_type : meas_types) {
+      switch (meas_type) {
+        case LinkMeasurementType::Range:
+          noise_std_vec(idx) = GetOneWayRangeNoise();
+          idx += 1;
+          break;
+        case LinkMeasurementType::RangeRate:
+          noise_std_vec(idx) = GetOneWayRangeRateNoise();
+          idx += 1;
+          break;
+        default: break;
+      }
+    }
+
+    return noise_std_vec;
+  }
+
+
+  double LinkMeasurement::GetOneWayRangeNoise(){
+    double sigma_ow = 0.0;
+
+    if (use_fixed_error_) {
+      sigma_ow = range_sigma_fixed_;
+    } else {
+      // For one-way link, double the range error of the two way link
+      if (linkparams_.is_groundstation_rx) {
+        sigma_ow = 2
+                   * ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
+                                            linkparams_.Tc, linkparams_.modulation_type);
+      } else {
+        sigma_ow = 2
+                   * ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
+                                           linkparams_.Tc, linkparams_.modulation_type);
+      }
+    }
+    return sigma_ow;
+  }
+
+  double LinkMeasurement::GetOneWayRangeRateNoise(){
+    double sigma_ow_rate = 0.0;
+
+    if (use_fixed_error_) {
+      sigma_ow_rate = range_rate_sigma_fixed_;
+    } else {
+      sigma_ow_rate = ComputeRangeRateErrorOneWay(linkparams_.B_L_carrier, linkparams_.freq,
+                                                  linkparams_.Tc, linkparams_.T_I_doppler,
+                                                  trans_ow_.CN0_linear, linkparams_.sigma_y_1s,
+                                                  linkparams_.modulation_type, linkparams_.m_R);
+    }
+    return sigma_ow_rate;
   }
 
   /********************** Two way Link ***************************/
@@ -426,20 +459,7 @@ namespace lupnt {
     }
 
     if (with_noise) {
-      double sigma_tw = 0.0;
-
-      if (use_fixed_error_) {
-        sigma_tw = range_sigma_fixed_;
-      } else {
-        if (linkparams_.is_groundstation_rx) {
-          sigma_tw = ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
-                                            linkparams_.Tc, linkparams_.modulation_type);
-        } else {
-          sigma_tw = ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
-                                           linkparams_.Tc, linkparams_.modulation_type);
-        }
-      }
-
+      double sigma_tw = GetTwoWayRangeNoise();
       rho_tw += SampleRandNormal(0.0, sigma_tw, seed_);
     }
 
@@ -477,20 +497,66 @@ namespace lupnt {
     }
 
     if (with_noise) {
-      double sigma_tw_rate = 0.0;
-
-      if (use_fixed_error_) {
-        sigma_tw_rate = range_rate_sigma_fixed_;
-      } else {
-        sigma_tw_rate = ComputeRangeRateErrorTwoWay(
-            linkparams_.B_L_carrier, linkparams_.freq, linkparams_.Tc, linkparams_.T_I_doppler,
-            linkparams_.CN0_linear, linkparams_.sigma_y_1s, linkparams_.turnaround_ratio,
-            linkparams_.modulation_type, linkparams_.m_R);
-      }
+      double sigma_tw_rate = GetTwoWayRangeRateNoise();
       rho_tw_rate += SampleRandNormal(0.0, sigma_tw_rate, seed_);
     }
 
     return rho_tw_rate;
+  }
+
+  /* Noise models for Two-way */
+  VecXd LinkMeasurement::GetTwoWayLinkNoise(std::vector<LinkMeasurementType> meas_types) {
+
+    VecXd noise_std_vec(meas_types.size());
+    int idx = 0;
+
+    for (auto meas_type : meas_types) {
+      switch (meas_type) {
+        case LinkMeasurementType::Range:
+          noise_std_vec(idx) = GetTwoWayRangeNoise();
+          idx += 1;
+          break;
+        case LinkMeasurementType::RangeRate:
+          noise_std_vec(idx) = GetTwoWayRangeRateNoise();
+          idx += 1;
+          break;
+        default: break;
+      }
+    }
+
+    return noise_std_vec;
+  }
+
+  double LinkMeasurement::GetTwoWayRangeNoise() {
+    double sigma_tw = 0.0;
+
+    if (use_fixed_error_) {
+      sigma_tw = range_sigma_fixed_;
+    } else {
+      if (linkparams_.is_groundstation_rx) {
+        sigma_tw = ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
+                                          linkparams_.Tc, linkparams_.modulation_type);
+      } else {
+        sigma_tw = ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
+                                         linkparams_.Tc, linkparams_.modulation_type);
+      }
+    }
+
+    return sigma_tw;
+  }
+
+  double LinkMeasurement::GetTwoWayRangeRateNoise(){
+    double sigma_tw_rate = 0.0;
+
+    if (use_fixed_error_) {
+      sigma_tw_rate = range_rate_sigma_fixed_;
+    } else {
+      sigma_tw_rate = ComputeRangeRateErrorTwoWay(
+          linkparams_.B_L_carrier, linkparams_.freq, linkparams_.Tc, linkparams_.T_I_doppler,
+          linkparams_.CN0_linear, linkparams_.sigma_y_1s, linkparams_.turnaround_ratio,
+          linkparams_.modulation_type, linkparams_.m_R);
+    }
+    return sigma_tw_rate;
   }
 
 }  // namespace lupnt

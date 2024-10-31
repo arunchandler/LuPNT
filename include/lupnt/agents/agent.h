@@ -91,6 +91,15 @@ namespace lupnt {
       return nullptr;
     }
 
+    Ptr<Transponder> GetTransponder() {
+      for (auto device : devices_) {
+        if (device->txrx == "txrx") {
+          return std::dynamic_pointer_cast<Transponder>(device);
+        }
+      }
+      return nullptr;
+    }
+
     // Cartesian OrbitState at epoch in GCRF frame
     virtual CartesianOrbitState GetCartesianGCRFStateAtEpoch(Real epoch) = 0;
 

@@ -165,6 +165,10 @@ namespace lupnt {
                                        Vec2 clk_rx, MatXd &H_ow_rx, Real hardware_delay,
                                        bool with_noise, bool with_jacobian);
 
+    VecXd GetOneWayLinkNoise(std::vector<LinkMeasurementType> meas_types);
+    double GetOneWayRangeNoise();
+    double GetOneWayRangeRateNoise();
+
     /********************** Two way Link ***************************/
 
     /**
@@ -199,9 +203,14 @@ namespace lupnt {
                                    MatXd &H_tw_range, Real hardware_delay, bool with_noise,
                                    bool with_jacobian);
 
+
     Real GetTwoWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target,
                                        MatXd &H_tw_rr, Real hardware_delay, bool with_noise,
                                        bool with_jacobian);
+
+    VecXd GetTwoWayLinkNoise(std::vector<LinkMeasurementType> meas_types);
+    double GetTwoWayRangeNoise();
+    double GetTwoWayRangeRateNoise();
   };
 
 }  // namespace lupnt

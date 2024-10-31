@@ -204,6 +204,8 @@ int main() {
 
     joint_state.PushBackStateAndDynamics(cart_state.get(), dyn_est.get());
     joint_state.PushBackStateAndDynamics(&clock_state, &dyn_clk_est);
+
+    moon_sats.push_back(moon_sat);
   }
 
   // Initial covariance
@@ -221,18 +223,25 @@ int main() {
    * Define Measurement function
    * *******************************************/
   std::vector<std::pair<int, int>> sat_pairs_idx;
+  std::vector<Ptr<LinkMeasurement>> link_meas_vec;
   bool no_meas = false;
   double epoch_rx = 0;
 
-  LinkMeasurement link_meas = LinkMeasurement(occult_bodies, occult_alt, hardware_delay);
-  if (use_fixed_error) {
-    link_meas.UseFixedError();
-    link_meas.SetFixedRangeError(range_sigma_fixed);
-    link_meas.SetFixedRangeRateError(range_rate_sigma_fixed);
+  for (int i = 0; i < nsat; i++) {
+    for (int j = i + 1; j < nsat; j++) {
+      sat_pairs_idx.push_back(std::make_pair(i, j));
+      Ptr<LinkMeasurement> link_meas = MakePtr<LinkMeasurement>(occult_bodies, occult_alt, hardware_delay);
+      if (use_fixed_error) {
+        link_meas->UseFixedError();
+        link_meas->SetFixedRangeError(range_sigma_fixed);
+        link_meas->SetFixedRangeRateError(range_rate_sigma_fixed);
+      }
+      link_meas_vec.push_back(link_meas);
+    }
   }
 
   FilterMeasurementFunction meas_func_pos_clk
-      = [link_meas, epoch_rx, sat_pairs_idx, state_size, no_meas, meas_types](
+      = [link_meas_vec, epoch_rx, sat_pairs_idx, state_size, no_meas, meas_types, moon_sats](
             const VecX x, MatXd& H, MatXd& R) -> VecX {
     if (no_meas) {
       return VecX::Zero(0);
@@ -243,6 +252,7 @@ int main() {
     H.resize(mtot, x.size());
     R.resize(mtot, mtot);
     VecX z = VecX::Zero(mtot);
+    Real hardware_delay = 0.0;
 
     // Iterate over all ISL pairs
     for (int i = 0; i < sat_pairs_idx.size(); i++) {
@@ -253,16 +263,18 @@ int main() {
       VecX sat_target = ExtractSatState(x, sat_target_idx, state_size);
       VecX sat_rx = ExtractSatState(x, sat_rx_idx, state_size);
 
+      auto tr_rx = moon_sats[sat_rx_idx]->GetTransponder();
+      auto tr_target = moon_sats[sat_target_idx]->GetTransponder();
+
       int mtot = meas_types.size();
 
-      // Predict Measurements
-      // VecX z = link_meas.GetPredictedGnssMeasurement(
-      //     epoch_, x.head(6), x.tail(2), x_N, H, meas_types,
-      //     frame_in);  // Jacobian with autodif
+      link_meas_vec[i]->GenerateTwoWayLinkAtRxEpoch(epoch_rx, tr_rx, tr_target);
+      z = link_meas_vec[i]->GetTwoWayLinkMeasurement(epoch_rx, sat_rx.head(6), sat_target.head(6),
+                                                    H, hardware_delay, meas_types, false, true);
 
-      // // Get the Measurement Noise
-      // VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
-      // R.diagonal().array() = noise_std_vec.array().square();
+      // Get the Measurement Noise
+      VecXd noise_std_vec = link_meas_vec[i]->GetTwoWayLinkNoise(meas_types);
+      R.diagonal().array() = noise_std_vec.array().square();
     }
     return z;
   };
