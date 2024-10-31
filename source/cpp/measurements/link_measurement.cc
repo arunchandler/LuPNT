@@ -66,13 +66,18 @@ namespace lupnt {
     Real delay_tx = hardware_delay_;
     Real delay_rx = hardware_delay_;
 
+    bool compute_cn0 = true;
+    if (use_fixed_error_) {
+      compute_cn0 = false;
+    }
+
     if (txrx == "rx") {
       t_rx_d = epoch;
-      trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_rx_d - delay_rx, "rx");
+      trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_rx_d - delay_rx, "rx", compute_cn0);
       t_tx_d = trans_ow_.t_tx - delay_tx;
     } else if (txrx == "tx") {
       t_tx_d = epoch;
-      trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_tx_d + delay_tx, "tx");
+      trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_tx_d + delay_tx, "tx", compute_cn0);
       t_rx_d = trans_ow_.t_rx + delay_rx;
     }
     one_way_generated_ = true;
@@ -192,23 +197,26 @@ namespace lupnt {
 
     if (with_noise) {
       double sigma_ow = 0.0;
-      // For one-way link, double the range error of the two way link
-      if (linkparams_.is_groundstation_rx) {
-        sigma_ow = 2
-                   * ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
-                                            linkparams_.Tc, linkparams_.modulation_type);
+
+      if (use_fixed_error_) {
+        sigma_ow = range_sigma_fixed_;
       } else {
-        sigma_ow = 2
-                   * ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
-                                           linkparams_.Tc, linkparams_.modulation_type);
+        // For one-way link, double the range error of the two way link
+        if (linkparams_.is_groundstation_rx) {
+          sigma_ow = 2
+                     * ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
+                                              linkparams_.Tc, linkparams_.modulation_type);
+        } else {
+          sigma_ow = 2
+                     * ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
+                                             linkparams_.Tc, linkparams_.modulation_type);
+        }
       }
 
       rho_ow += SampleRandNormal(0.0, sigma_ow, seed_);
-
-      return rho_ow;
     }
-    throw std::runtime_error("Not implemented");
-    return 0.0;
+
+    return rho_ow;
   }
 
   Real LinkMeasurement::GetOneWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx,
@@ -245,11 +253,16 @@ namespace lupnt {
     }
 
     if (with_noise) {
-      double sigma_ow_rate = ComputeRangeRateErrorOneWay(
-          linkparams_.B_L_carrier, linkparams_.freq, linkparams_.Tc, linkparams_.T_I_doppler,
-          trans_ow_.CN0_linear, linkparams_.sigma_y_1s, linkparams_.modulation_type,
-          linkparams_.m_R);
+      double sigma_ow_rate = 0.0;
 
+      if (use_fixed_error_) {
+        sigma_ow_rate = range_rate_sigma_fixed_;
+      } else {
+        sigma_ow_rate = ComputeRangeRateErrorOneWay(linkparams_.B_L_carrier, linkparams_.freq,
+                                                    linkparams_.Tc, linkparams_.T_I_doppler,
+                                                    trans_ow_.CN0_linear, linkparams_.sigma_y_1s,
+                                                    linkparams_.modulation_type, linkparams_.m_R);
+      }
       rho_ow_rate += SampleRandNormal(0.0, sigma_ow_rate, seed_);
     }
 
@@ -280,20 +293,25 @@ namespace lupnt {
     Real delay_tx_target = hardware_delay_;
     Real delay_rx_target = hardware_delay_;
 
+    bool compute_cn0 = true;
+    if (use_fixed_error_) {
+      compute_cn0 = false;
+    }
+
     if (txrx == "rx") {
       t_rx_d = epoch;
-      trans_d = sc.ComputeLinkBudget(tx_d, rx_d, t_rx_d - delay_rx_receiver, "rx");
+      trans_d = sc.ComputeLinkBudget(tx_d, rx_d, t_rx_d - delay_rx_receiver, "rx", compute_cn0);
       t_tx_d = trans_d.t_tx - delay_tx_target;
       t_rx_u = t_tx_d;
-      trans_u = sc.ComputeLinkBudget(tx_u, rx_u, t_rx_u - delay_rx_target, "rx");
+      trans_u = sc.ComputeLinkBudget(tx_u, rx_u, t_rx_u - delay_rx_target, "rx", compute_cn0);
       t_tx_u = trans_u.t_tx - delay_tx_receiver;
 
     } else if (txrx == "tx") {
       t_tx_u = epoch;
-      trans_u = sc.ComputeLinkBudget(tx_u, rx_u, t_tx_u + delay_tx_receiver, "tx");
+      trans_u = sc.ComputeLinkBudget(tx_u, rx_u, t_tx_u + delay_tx_receiver, "tx", compute_cn0);
       t_rx_u = trans_d.t_rx + delay_rx_target;
       t_tx_d = t_rx_u;
-      trans_d = sc.ComputeLinkBudget(tx_d, rx_d, t_tx_d + delay_tx_target, "tx");
+      trans_d = sc.ComputeLinkBudget(tx_d, rx_d, t_tx_d + delay_tx_target, "tx", compute_cn0);
       t_rx_d = trans_d.t_rx + delay_rx_receiver;
     }
 
@@ -409,20 +427,23 @@ namespace lupnt {
 
     if (with_noise) {
       double sigma_tw = 0.0;
-      if (linkparams_.is_groundstation_rx) {
-        sigma_tw = ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
-                                          linkparams_.Tc, linkparams_.modulation_type);
+
+      if (use_fixed_error_) {
+        sigma_tw = range_sigma_fixed_;
       } else {
-        sigma_tw = ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
-                                         linkparams_.Tc, linkparams_.modulation_type);
+        if (linkparams_.is_groundstation_rx) {
+          sigma_tw = ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
+                                            linkparams_.Tc, linkparams_.modulation_type);
+        } else {
+          sigma_tw = ComputePnRangeErrorOL(linkparams_.CN0_linear, linkparams_.T_I_range,
+                                           linkparams_.Tc, linkparams_.modulation_type);
+        }
       }
 
       rho_tw += SampleRandNormal(0.0, sigma_tw, seed_);
-
-      return rho_tw;
     }
-    throw std::runtime_error("Not implemented");
-    return 0.0;
+
+    return rho_tw;
   }
 
   Real LinkMeasurement::GetTwoWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_receiver,
@@ -456,11 +477,16 @@ namespace lupnt {
     }
 
     if (with_noise) {
-      double sigma_tw_rate = ComputeRangeRateErrorTwoWay(
-          linkparams_.B_L_carrier, linkparams_.freq, linkparams_.Tc, linkparams_.T_I_doppler,
-          linkparams_.CN0_linear, linkparams_.sigma_y_1s, linkparams_.turnaround_ratio,
-          linkparams_.modulation_type, linkparams_.m_R);
+      double sigma_tw_rate = 0.0;
 
+      if (use_fixed_error_) {
+        sigma_tw_rate = range_rate_sigma_fixed_;
+      } else {
+        sigma_tw_rate = ComputeRangeRateErrorTwoWay(
+            linkparams_.B_L_carrier, linkparams_.freq, linkparams_.Tc, linkparams_.T_I_doppler,
+            linkparams_.CN0_linear, linkparams_.sigma_y_1s, linkparams_.turnaround_ratio,
+            linkparams_.modulation_type, linkparams_.m_R);
+      }
       rho_tw_rate += SampleRandNormal(0.0, sigma_tw_rate, seed_);
     }
 

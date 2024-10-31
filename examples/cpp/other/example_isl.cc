@@ -14,22 +14,6 @@
 using namespace lupnt;
 namespace sp = spice;
 
-// Util Functions
-MatXd ConstructInitCovariance(double pos_err, double vel_err, double clk_bias_err,
-                              double clk_drift_err) {
-  Mat6d P_rv = Mat6d::Zero();
-  P_rv.block(0, 0, 3, 3) = Mat3d::Identity() * pow(pos_err, 2);
-  P_rv.block(3, 3, 3, 3) = Mat3d::Identity() * pow(vel_err, 2);
-
-  Mat2d P_clk = Mat2d::Zero();
-  P_clk(0, 0) = pow(clk_bias_err, 2);
-  P_clk(1, 1) = pow(clk_drift_err, 2);
-
-  MatXd P0 = BlkDiagD(P_rv, P_clk);
-
-  return P0;
-};
-
 VecX ExtractSatState(const VecX& x, int sat_idx, int state_per_sat) {
   return x.segment(sat_idx * state_per_sat, state_per_sat);
 };
@@ -223,7 +207,7 @@ int main() {
   }
 
   // Initial covariance
-  MatXd P0 = ConstructInitCovariance(pos_err, vel_err, clk_bias_err, clk_drift_err);
+  MatXd P0 = ConstructInitCovarianceRVC(pos_err, vel_err, clk_bias_err, clk_drift_err);
 
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 
@@ -231,27 +215,7 @@ int main() {
    * Define Process Noise function
    * *******************************************/
   FilterProcessNoiseFunction proc_noise_func
-      = [cmodel, state_size, sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
-    int clock_index = 6;
-    double dt = (t_end - t_curr).val();
-
-    MatXd Q = MatXd::Zero(state_size, state_size);
-
-    Mat6d Q_rv = Mat6d::Zero();
-    for (int i = 0; i < 3; i++) {
-      Q_rv(i, i) = pow(dt, 3) / 3.0 * pow(sigma_acc, 2);
-      Q_rv(i + 3, i + 3) = dt * pow(sigma_acc, 2);
-      Q_rv(i, i + 3) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
-      Q_rv(i + 3, i) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
-    }
-
-    Mat2d Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
-
-    Q.block(0, 0, 6, 6) = Q_rv;
-    Q.block(6, 6, 2, 2) = Q_clk;
-
-    return Q;
-  };
+      = ConstructProcessNoiseRVC(cmodel, state_size, sigma_acc);
 
   /*********************************************
    * Define Measurement function

@@ -17,7 +17,8 @@ int main() {
 
   cout << "Exercise 3-2: Lunar Ephemerides " << endl << endl;
   cout << "  Moon position from low precision analytical theory" << endl;
-  cout << "  Date [TT]                 " << " Position [km] " << endl;
+  cout << "  Date [TT]                 "
+       << " Position [km] " << endl;
 
   Real mjd0 = Gregorian2MJD(2006, 03, 14, 00, 00, 0.0);
   Real mjd_tt;
@@ -29,7 +30,8 @@ int main() {
   };
 
   cout << endl << " Moon position from DE405" << endl;
-  cout << " Date [TT]                 " << " Position [km] " << endl;
+  cout << " Date [TT]                 "
+       << " Position [km] " << endl;
 
   for (int i = 0; i <= N_step; i++) {
     mjd_tt = mjd0 + i * dt;

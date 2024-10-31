@@ -53,7 +53,7 @@ namespace lupnt {
      */
     ITransmission ComputeLinkBudget(std::shared_ptr<Transmitter> &txDevice,
                                     std::shared_ptr<Receiver> &rxDevice, Real t,
-                                    std::string time_fixed);
+                                    std::string time_fixed, bool compute_cn0 = true);
 
     /**
      * @brief  Compute the link budget for a given data rate

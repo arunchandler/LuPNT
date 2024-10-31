@@ -17,6 +17,7 @@
 #include "lupnt/core/user_file_path.h"
 
 // data
+#include "lupnt/data/crater_data.h"
 #include "lupnt/data/eop.h"
 #include "lupnt/data/iau_sofa.h"
 #include "lupnt/data/kernels.h"
@@ -42,6 +43,7 @@
 #include "lupnt/measurements/transmission.h"
 
 // numerics
+#include "lupnt/numerics/filter_utils.h"
 #include "lupnt/numerics/filters.h"
 #include "lupnt/numerics/graphs.h"
 #include "lupnt/numerics/integrator.h"

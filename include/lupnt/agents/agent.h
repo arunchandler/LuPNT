@@ -49,7 +49,7 @@ namespace lupnt {
     std::unique_ptr<ClockDynamics> clock_dynamics_;
 
   public:
-    Agent() : id_(id_counter_++), clock_(ClockState(2)) {};
+    Agent() : id_(id_counter_++), clock_(ClockState(2)){};
 
     // Getters
     Real GetEpoch() const { return epoch_; }
