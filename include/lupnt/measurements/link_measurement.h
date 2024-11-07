@@ -36,12 +36,8 @@ namespace lupnt {
     double turnaround_ratio;     // Transponder turnaround ratio
 
     // Agent Parameters
-    BodyData tx_center_body;   // center body of the transmitter (target)
-    BodyData rx_center_body;   // center body of the receiver
-    bool is_bodyfixed_tx;      // is the transmitter (target) body fixed
-    bool is_bodyfixed_rx;      // is the receiver body fixed
-    bool is_groundstation_rx;  // is the receiver a ground station
-    bool is_groundstation_tx;  // is the transmitter (target) a ground station
+    Ptr<Agent> tx_agent;  // Transmitter (target) agent
+    Ptr<Agent> rx_agent;  // Receiver agent
 
     double CN0_linear;  // Carrier-to-noise density [dB-Hz]
   };
@@ -75,7 +71,7 @@ namespace lupnt {
 
     // state size
     int state_size_ow_ = 16;  // One way link state size (target rv + clock,  receiver rv + clock)
-    int state_size_tw_ = 12;  // Two way link state size (target rv + receiver rv)
+    int state_size_tw_ = 16;  // Two way link state size (target rv + receiver rv)
 
     // Occultation bodies
     std::vector<NaifId> occult_bodies_;
@@ -85,6 +81,10 @@ namespace lupnt {
     bool use_fixed_error_ = false;
     double range_sigma_fixed_ = 0.0;
     double range_rate_sigma_fixed_ = 0.0;
+
+    // Visibility
+    bool vis_ow_ = true;
+    bool vis_tw_ = true;
 
     // Hardware delay (same for transmitter and receiver)
     Real hardware_delay_ = 1e-9;  // hardware delay [s]
@@ -115,6 +115,8 @@ namespace lupnt {
     inline LinkParams GetLinkParams() const { return linkparams_; }
     inline Real GetTxEpoch() const { return epoch_tx_true_; }
     inline Real GetRxEpoch() const { return epoch_rx_true_; }
+    inline bool IsOneWayVisible() const { return vis_ow_; }
+    inline bool IsTwoWayVisible() const { return vis_tw_; }
 
     void Reset() {
       one_way_generated_ = false;
@@ -195,16 +197,16 @@ namespace lupnt {
 
     VecX GetTrueTwoWayLinkMeasurement(std::vector<LinkMeasurementType> meas_types);
 
-    VecX GetTwoWayLinkMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, MatXd H_tw_rx,
-                                  Real hardware_delay, std::vector<LinkMeasurementType> meas_types,
+    VecX GetTwoWayLinkMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
+                                  MatXd H_tw_rx, Real hardware_delay, std::vector<LinkMeasurementType> meas_types,
                                   bool with_noise, bool with_jacobian);
 
-    Real GetTwoWayRangeMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target,
+    Real GetTwoWayRangeMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
                                    MatXd &H_tw_range, Real hardware_delay, bool with_noise,
                                    bool with_jacobian);
 
 
-    Real GetTwoWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target,
+    Real GetTwoWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
                                        MatXd &H_tw_rr, Real hardware_delay, bool with_noise,
                                        bool with_jacobian);
 

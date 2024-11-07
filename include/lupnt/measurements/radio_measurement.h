@@ -92,8 +92,7 @@ namespace lupnt {
    * @return Real      One-way pseudorange at t_R (clock offset error included)
    */
   Real ComputeOneWayRangeLTR(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Real dt_tx, Real dt_rx,
-                             BodyData, BodyData rx_center_body, bool is_bodyfixed_tx,
-                             bool is_bodyfixed_rx, Real hardware_delay);
+                             Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real hardware_delay);
 
   /**
    * @brief Compute the two-way range between two points considering light time
@@ -115,8 +114,8 @@ namespace lupnt {
    * @return Real      One-way pseudorange at t_R (clock offset error included)
    */
   Real ComputeTwoWayRangeLTR(Real epoch_rx, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                             BodyData target_center_body, BodyData rx_center_body,
-                             bool is_bodyfixed_target, bool is_bodyfixed_rx, Real hardware_delay,
+                             Ptr<Agent> agent_target, Ptr<Agent> agent_rx,
+                             Real hardware_delay,
                              Real additional_delay = 0.0);
 
   /**
@@ -139,13 +138,11 @@ namespace lupnt {
    * @return Real
    */
   Real ComputeOneWayRangeRateLTR(Real epoch_rx, Vec6 rv_tx_tr, Vec6 rv_rx_tr, Real dt_dot_tx,
-                                 Real dt_dot_rx, BodyData target_center_body,
-                                 BodyData rx_center_body, bool is_bodyfixed_target,
-                                 bool is_bodyfixed_rx, Real hardware_delay, double T_I);
+                                 Real dt_dot_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
+                                 Real hardware_delay, double T_I);
 
   Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                                 BodyData target_center_body, BodyData rx_center_body,
-                                 bool is_bodyfixed_target, bool is_bodyfixed_rx,
+                                 Ptr<Agent> agent_target, Ptr<Agent> agent_receiver,
                                  Real hardware_delay, double T_I);
 
   /**

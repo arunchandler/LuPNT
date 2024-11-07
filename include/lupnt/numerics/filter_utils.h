@@ -14,6 +14,7 @@
 #include "lupnt/core/constants.h"
 #include "lupnt/numerics/filters.h"
 #include "lupnt/physics/clock.h"
+#include "lupnt/agents/agent.h"
 
 namespace lupnt {
 
@@ -26,7 +27,7 @@ namespace lupnt {
    * @param clk_drift_err  initial clock drift error [s/s]
    * @return MatXd  Initial covariance matrix
    */
-  MatXd ConstructInitCovarianceRVC(double pos_err, double vel_err, double clk_bias_err,
+  MatXd ConstructInitCovariancePVC(double pos_err, double vel_err, double clk_bias_err,
                                    double clk_drift_err);
 
   /**
@@ -37,7 +38,33 @@ namespace lupnt {
    * @param sigma_acc   Acceleration noise [km/s^2]
    * @return FilterProcessNoiseFunction
    */
-  FilterProcessNoiseFunction ConstructProcessNoiseRVC(ClockModel cmodel, int state_size,
+  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
                                                       double sigma_acc);
+
+  /**
+   * @brief Print the EKF progress header for the position, velocity, and clock states
+   *
+   */
+  void PrintEKFProgressHeaderPVC();
+
+  /**
+   * @brief Compute the estimation error for the position, velocity, and clock states fpr the filter
+   *
+   * @param sat      Spacecraft
+   * @param filter   Filter
+   * @return VecXd   Estimation error vector (position, velocity, clock bias)
+   */
+  VecXd ComputeEstimationErrorPVC(const Ptr<Spacecraft> sat, IFilter* filter);
+
+  /**
+   * @brief Print the EKF progress for the position, velocity, and clock states
+   *
+   * @param t              Time
+   * @param x_pos_err      Position error
+   * @param x_vel_err      Velocity error
+   * @param x_clk_bias_err Clock bias error
+   */
+  void PrintEKFProgressPVC(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err);
+
 
 }  // namespace lupnt

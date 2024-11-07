@@ -35,12 +35,8 @@ namespace lupnt {
     }
 
     // Link Parameters
-    BodyData tx_center_body = GetBodyData(trans.tx->GetAgent()->GetBodyId());
-    BodyData rx_center_body = GetBodyData(trans.rx->GetAgent()->GetBodyId());
-    linkparams_.tx_center_body = tx_center_body;
-    linkparams_.rx_center_body = rx_center_body;
-    linkparams_.is_bodyfixed_tx = trans.tx->GetAgent()->IsBodyFixed();
-    linkparams_.is_bodyfixed_rx = trans.rx->GetAgent()->IsBodyFixed();
+    Ptr<Agent> tx_agent = trans.tx->GetAgent();
+    Ptr<Agent> rx_agent = trans.rx->GetAgent();
 
     // Signal parameters
     ReceiverParam rx_param = trans.rx->rx_param_;
@@ -82,6 +78,8 @@ namespace lupnt {
     }
     one_way_generated_ = true;
 
+    vis_ow_ = trans_ow_.vis_all;  // set visibility
+
     // Set time
     epoch_tx_true_ = t_tx_d;
     epoch_rx_true_ = t_rx_d;
@@ -97,6 +95,13 @@ namespace lupnt {
   VecX LinkMeasurement::GetTrueOneWayLinkMeasurement(std::vector<LinkMeasurementType> meas_types) {
     if (!one_way_generated_) {
       std::cerr << "Error: One way link not generated" << std::endl;
+      return VecX::Zero(0);
+    }
+    if (meas_types.size() == 0) {
+      std::cerr << "Error: No measurement types provided" << std::endl;
+      return VecX::Zero(0);
+    }
+    if (vis_ow_ == false) {  // No visibility
       return VecX::Zero(0);
     }
 
@@ -118,6 +123,10 @@ namespace lupnt {
     Real rho_ow, rho_ow_rate;
     // double sigma_ow = 0.0;
     // double sigma_ow_rate = 0.0;
+
+    if (vis_ow_ == false) {  // No visibility
+      return VecX::Zero(0);
+    }
 
     int meas_size = meas_types.size();
     int state_size = state_size_ow_;
@@ -166,8 +175,7 @@ namespace lupnt {
     auto func = [epoch_rx, hardware_delay, this](const Vec6 rv_tx_in, const Vec2 clk_tx_in,
                                                  const Vec6 rv_rx_in, const Vec2 clk_rx_in) {
       Real owr = ComputeOneWayRangeLTR(epoch_rx, rv_tx_in, rv_rx_in, clk_tx_in(0), clk_rx_in(0),
-                                       linkparams_.tx_center_body, linkparams_.rx_center_body,
-                                       linkparams_.is_bodyfixed_tx, linkparams_.is_bodyfixed_rx,
+                                       linkparams_.tx_agent, linkparams_.rx_agent,
                                        hardware_delay);
       return owr;
     };
@@ -178,6 +186,10 @@ namespace lupnt {
     //       rv_tx.head(3), rv_rx_in.head(3), clk_tx(0), clk_rx_in(0), 0.0);
     //   return owr;
     // };
+
+    if (vis_ow_ == false) {  // No visibility
+      return 0.0;
+    }
 
     // break the computational graph relations before taking the jacobian
     Vec6 rv_tx_tmp = rv_tx.cast<double>();
@@ -212,11 +224,14 @@ namespace lupnt {
                     const Vec2 clk_rx_in) {
       (void)clk_tx_in;
       Real owrr = ComputeOneWayRangeRateLTR(
-          epoch_rx, rv_tx_in, rv_rx_in, clk_tx(1), clk_rx_in(1), linkparams_.tx_center_body,
-          linkparams_.rx_center_body, linkparams_.is_bodyfixed_tx, linkparams_.is_bodyfixed_rx,
-          hardware_delay, linkparams_.T_I_doppler);
+          epoch_rx, rv_tx_in, rv_rx_in, clk_tx(1), clk_rx_in(1), linkparams_.tx_agent,
+          linkparams_.rx_agent, hardware_delay, linkparams_.T_I_doppler);
       return owrr;
     };
+
+    if (vis_ow_ == false) {  // No visibility
+      return 0.0;
+    }
 
     // break the computational graph relations before taking the jacobian
     Vec6 rv_tx_tmp = rv_rx.cast<double>();
@@ -229,7 +244,7 @@ namespace lupnt {
       VecXd H_ow_rate_vec = gradient(func, wrt(rv_tx_tmp, clk_tx_tmp, rv_rx_tmp, clk_rx_tmp),
                                      at(rv_tx_tmp, clk_tx_tmp, rv_rx_tmp, clk_rx_tmp), rho_ow_rate);
 
-      // Convert to (1, 8) matrix
+      // Convert to (1, nstate) matrix
       H_ow_rx.row(0) = H_ow_rate_vec.transpose();
 
     } else {
@@ -275,7 +290,7 @@ namespace lupnt {
       sigma_ow = range_sigma_fixed_;
     } else {
       // For one-way link, double the range error of the two way link
-      if (linkparams_.is_groundstation_rx) {
+      if (linkparams_.rx_agent->GetName() == "GroundStation") {
         sigma_ow = 2
                    * ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
                                             linkparams_.Tc, linkparams_.modulation_type);
@@ -348,6 +363,9 @@ namespace lupnt {
       t_rx_d = trans_d.t_rx + delay_rx_receiver;
     }
 
+    // Set visibility
+    vis_tw_ = trans_u.vis_all & trans_d.vis_all;
+
     // Set time
     epoch_tx_true_ = t_tx_u;
     epoch_rx_true_ = t_rx_d;
@@ -374,16 +392,28 @@ namespace lupnt {
       return VecX::Zero(0);
     }
 
+    if (meas_types.size() == 0) {
+      std::cerr << "Error: No measurement types provided" << std::endl;
+      return VecX::Zero(0);
+    }
+
+    if (vis_tw_ == false) {  // No visibility
+      return VecX::Zero(0);
+    }
+
     VecX rv_receiver = agents_[0]->GetRvStateAtEpoch(epoch_rx_true_);
     VecX rv_target = agents_[0]->GetRvStateAtEpoch(epoch_rx_true_);
+    Vec2 clk_receiver = agents_[1]->GetClockStateVecAtEpoch(epoch_rx_true_);
+    Vec2 clk_target = agents_[1]->GetClockStateVecAtEpoch(epoch_rx_true_);
 
     MatXd H_tw_rx(2, state_size_tw_);  // temporary, won't be used
 
-    return GetTwoWayLinkMeasurement(epoch_rx_true_, rv_receiver, rv_target, H_tw_rx,
-                                    hardware_delay_, meas_types, true, false);
+    return GetTwoWayLinkMeasurement(epoch_rx_true_, rv_receiver, rv_target, clk_receiver, clk_target,
+                                    H_tw_rx, hardware_delay_, meas_types, true, false);
   }
 
   VecX LinkMeasurement::GetTwoWayLinkMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target,
+                                                 Vec2 clk_receiver, Vec2 clk_target,
                                                  MatXd H_tw_rx, Real hardware_delay,
                                                  std::vector<LinkMeasurementType> meas_types,
                                                  bool with_noise, bool with_jacobian) {
@@ -405,11 +435,15 @@ namespace lupnt {
     if (meas_size == 0) {
       return VecX::Zero(0);
     }
+    if (vis_tw_ == false) {  // No visibility
+      return VecX::Zero(0);
+    }
 
     for (auto meas_type : meas_types) {
       switch (meas_type) {
         case LinkMeasurementType::Range:
-          rho_tw = GetTwoWayRangeMeasurement(epoch_rx, rv_receiver, rv_target, H_tw_range,
+          rho_tw = GetTwoWayRangeMeasurement(epoch_rx, rv_receiver, rv_target,
+                                             clk_receiver, clk_target, H_tw_range,
                                              hardware_delay, with_noise, with_jacobian);
           z(idx) = rho_tw;
           H_tw_rx.row(idx) = H_tw_range;
@@ -417,7 +451,8 @@ namespace lupnt {
 
         case LinkMeasurementType::RangeRate:
           rho_tw_rate
-              = GetTwoWayRangeRateMeasurement(epoch_rx, rv_receiver, rv_target, H_tw_rangerate,
+              = GetTwoWayRangeRateMeasurement(epoch_rx, rv_receiver, rv_target,
+                                              clk_receiver, clk_target, H_tw_rangerate,
                                               hardware_delay, with_noise, with_jacobian);
           z(idx) = rho_tw_rate;
           H_tw_rx.row(idx) = H_tw_rangerate;
@@ -431,31 +466,34 @@ namespace lupnt {
   }
 
   Real LinkMeasurement::GetTwoWayRangeMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target,
+                                                  Vec2 clk_receiver, Vec2 clk_target,
                                                   MatXd &H_tw_range, Real hardware_delay,
                                                   bool with_noise, bool with_jacobian) {
     // return
 
     auto func
-        = [epoch_rx, hardware_delay, this](const Vec6 rv_target_in, const Vec6 rv_receiver_in) {
+        = [epoch_rx, hardware_delay, this](const Vec6 rv_target_in, const Vec2 clk_target_in,
+                                           const Vec6 rv_receiver_in, const Vec2 clk_receiver_in) {
             Real twr = ComputeTwoWayRangeLTR(epoch_rx, rv_target_in, rv_receiver_in,
-                                             linkparams_.tx_center_body, linkparams_.rx_center_body,
-                                             linkparams_.is_bodyfixed_tx,
-                                             linkparams_.is_bodyfixed_rx, hardware_delay, 0.0);
+                                             linkparams_.tx_agent, linkparams_.rx_agent,
+                                              hardware_delay, 0.0);
             return twr;
           };
 
     // break the computational graph relations before taking the jacobian
     Vec6 rv_target_tmp = rv_target.cast<double>();
     Vec6 rv_receiver_tmp = rv_receiver.cast<double>();
+    Vec2 clk_target_tmp = clk_target.cast<double>();
+    Vec2 clk_receiver_tmp = clk_receiver.cast<double>();
     Real rho_tw = 0.0;
 
     if (with_jacobian) {
-      VecXd H_tw_vec = gradient(func, wrt(rv_target_tmp, rv_receiver_tmp),
-                                at(rv_target_tmp, rv_receiver_tmp), rho_tw);
+      VecXd H_tw_vec = gradient(func, wrt(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp),
+                                at(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp), rho_tw);
       // Convert to (1, state) matrix
       H_tw_range.row(0) = H_tw_vec.transpose();
     } else {
-      rho_tw = func(rv_target_tmp, rv_receiver_tmp);
+      rho_tw = func(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp);
     }
 
     if (with_noise) {
@@ -467,33 +505,35 @@ namespace lupnt {
   }
 
   Real LinkMeasurement::GetTwoWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_receiver,
-                                                      Vec6 rv_target, MatXd &H_tw_rr,
+                                                      Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
+                                                      MatXd &H_tw_rr,
                                                       Real hardware_delay, bool with_noise,
                                                       bool with_jacobian) {
     // Function to compute the two way range rate
-    auto func = [epoch_rx, rv_target, hardware_delay, this](const Vec6 rv_target_in,
-                                                            const Vec6 rv_receiver_in) {
+    auto func = [epoch_rx, rv_target, hardware_delay, this](const Vec6 rv_target_in, const Vec2 clk_target_in,
+                                                            const Vec6 rv_receiver_in, const Vec2 clk_receiver_in) {
       Real owrr = ComputeTwoWayRangeRateLTR(
-          epoch_rx, rv_target_in, rv_receiver_in, linkparams_.tx_center_body,
-          linkparams_.rx_center_body, linkparams_.is_bodyfixed_tx, linkparams_.is_bodyfixed_rx,
+          epoch_rx, rv_target_in, rv_receiver_in, linkparams_.tx_agent, linkparams_.rx_agent,
           hardware_delay, linkparams_.T_I_doppler);
       return owrr;
     };
 
     // break the computational graph relations before taking the jacobian
     Vec6 rv_target_tmp = rv_target.cast<double>();
+    Vec2 clk_target_tmp = clk_target.cast<double>();
     Vec6 rv_rx_tmp = rv_receiver.cast<double>();
+    Vec2 clk_rx_tmp = clk_receiver.cast<double>();
     Real rho_tw_rate = 0.0;
 
     if (with_jacobian) {
-      VecXd H_tw_rate_vec = gradient(func, wrt(rv_target_tmp, rv_rx_tmp),
-                                     at(rv_target_tmp, rv_rx_tmp), rho_tw_rate);
+      VecXd H_tw_rate_vec = gradient(func, wrt(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp),
+                                     at(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp), rho_tw_rate);
 
       // Convert to (1, 8) matrix
       H_tw_rr.row(0) = H_tw_rate_vec.transpose();
 
     } else {
-      rho_tw_rate = func(rv_target_tmp, rv_rx_tmp);
+      rho_tw_rate = func(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp);
     }
 
     if (with_noise) {
@@ -533,7 +573,7 @@ namespace lupnt {
     if (use_fixed_error_) {
       sigma_tw = range_sigma_fixed_;
     } else {
-      if (linkparams_.is_groundstation_rx) {
+      if (linkparams_.rx_agent->GetName() == "GroundStation") {
         sigma_tw = ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
                                           linkparams_.Tc, linkparams_.modulation_type);
       } else {

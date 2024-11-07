@@ -137,11 +137,6 @@ namespace lupnt {
     P_ = G * P_ * G.transpose() + K_ * R_ * K_.transpose();  // Joseph form
   }
 
-  void EKF::Step(Real t_end, VecX z_obs, bool debug) {
-    Predict(t_end);
-    Update(z_obs, debug);
-  }
-
   /*****************************************************
    *   EKF Smoother  (Todo)
    *****************************************************/

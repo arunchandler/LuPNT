@@ -1,6 +1,6 @@
 /**
  * @file example_isl.cc
- * @author your name (you@domain.com)
+ * @author Stanford NAV Lab
  * @brief
  * @version 0.1
  * @date 2024-08-21
@@ -10,6 +10,7 @@
  */
 
 #include <lupnt/lupnt.h>
+#include <highfive/H5Easy.hpp>
 
 using namespace lupnt;
 namespace sp = spice;
@@ -208,16 +209,23 @@ int main() {
     moon_sats.push_back(moon_sat);
   }
 
-  // Initial covariance
-  MatXd P0 = ConstructInitCovarianceRVC(pos_err, vel_err, clk_bias_err, clk_drift_err);
+  /********************************************************************************
+   * Define Necessary Functions for the Filter
+   * *****************************************************************************/
 
+  // Initial covariance
+  MatXd P0_sat = ConstructInitCovariancePVC(pos_err, vel_err, clk_bias_err, clk_drift_err);
+  MatXd P0 = MatXd::Zero(state_size * nsat, state_size * nsat);
+  for (int i = 0; i < nsat; i++) {
+    P0.block(i * state_size, i * state_size, state_size, state_size) = P0_sat;
+  }
+
+  // Dynamics Function
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 
-  /*********************************************
-   * Define Process Noise function
-   * *******************************************/
+  // Process Noise Function
   FilterProcessNoiseFunction proc_noise_func
-      = ConstructProcessNoiseRVC(cmodel, state_size, sigma_acc);
+      = ConstructProcessNoisePVC(cmodel, state_size, sigma_acc);
 
   /*********************************************
    * Define Measurement function
@@ -240,19 +248,14 @@ int main() {
     }
   }
 
-  FilterMeasurementFunction meas_func_pos_clk
+  FilterMeasurementFunction meas_func
       = [link_meas_vec, epoch_rx, sat_pairs_idx, state_size, no_meas, meas_types, moon_sats](
-            const VecX x, MatXd& H, MatXd& R) -> VecX {
+            const VecX x, MatXd& H_stack, MatXd& R) -> VecX {
     if (no_meas) {
       return VecX::Zero(0);
     }
 
-    // Total Number of Measurements
-    int mtot = meas_types.size() * sat_pairs_idx.size();
-    H.resize(mtot, x.size());
-    R.resize(mtot, mtot);
-    VecX z = VecX::Zero(mtot);
-    Real hardware_delay = 0.0;
+    VecX z_stack, zi, noise_std_stack;
 
     // Iterate over all ISL pairs
     for (int i = 0; i < sat_pairs_idx.size(); i++) {
@@ -263,19 +266,131 @@ int main() {
       VecX sat_target = ExtractSatState(x, sat_target_idx, state_size);
       VecX sat_rx = ExtractSatState(x, sat_rx_idx, state_size);
 
-      auto tr_rx = moon_sats[sat_rx_idx]->GetTransponder();
-      auto tr_target = moon_sats[sat_target_idx]->GetTransponder();
-
       int mtot = meas_types.size();
+      MatXd Htmp(mtot, 16), H(mtot, state_size);
 
-      link_meas_vec[i]->GenerateTwoWayLinkAtRxEpoch(epoch_rx, tr_rx, tr_target);
-      z = link_meas_vec[i]->GetTwoWayLinkMeasurement(epoch_rx, sat_rx.head(6), sat_target.head(6),
-                                                    H, hardware_delay, meas_types, false, true);
+      zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(epoch_rx, sat_rx.head(6), sat_target.head(6),
+                                                      Htmp, hardware_delay, meas_types, false, true);
+
+      // column index for target and receiver satellite
+      int col_idx_target = sat_target_idx * state_size;
+      int col_idx_rx = sat_rx_idx * state_size;
+      H = MatXd::Zero(mtot, state_size);
+      H.block(0, col_idx_target, mtot, state_size) = Htmp(0, 0, mtot, 8);  // first 8 columns -> target
+      H.block(0, col_idx_rx, mtot, state_size) = Htmp(0, 8, mtot, 8);      // last 8 columns -> rx
 
       // Get the Measurement Noise
       VecXd noise_std_vec = link_meas_vec[i]->GetTwoWayLinkNoise(meas_types);
-      R.diagonal().array() = noise_std_vec.array().square();
+
+      // stack z, H, and noise
+      z_stack.conservativeResize(z_stack.size() + zi.size());
+      z_stack.tail(zi.size()) = zi;
+      H_stack.conservativeResize(H_stack.rows() + H.rows(), H_stack.cols());
+      H_stack.bottomRows(H.rows()) = H;
+      noise_std_stack.conservativeResize(noise_std_stack.size() + noise_std_vec.size());
+      noise_std_stack.tail(noise_std_vec.size()) = noise_std_vec;
     }
-    return z;
+
+    // Construct R matrix
+    R = MatXd::Zero(z_stack.size(), z_stack.size());
+    R.diagonal() = noise_std_stack.array().square();
+
+    return z_stack;
   };
+
+  /*************************************
+  * EKF Setup
+  * ***********************************/
+  EKF ekf;
+  ekf.SetDynamicsFunction(joint_dynamics);
+  ekf.SetMeasurementFunction(meas_func);
+  ekf.SetProcessNoiseFunction(proc_noise_func);
+  std::cout << "Initialized EKF" << std::endl;
+
+  // Storage
+  MatXd error_mat(4, time_step_num);
+  VecXd num_meas(time_step_num);
+
+  // Initilization
+  VecX x_est = SampleMVN(joint_state.GetJointStateValue(), P0, 1, seed);
+  ekf.Initialize(x_est, P0);
+  VecXd est_err = ComputeEstimationErrors(moon_sat, &ekf);
+  error_mat.col(0) = est_err;
+
+  // Print State
+  if (print_debug) {
+    VecX x_init_true = moon_sat->GetStateVec();
+
+    std::cout << "Initial true state: " << moon_sat->GetStateVec().transpose() << std::endl;
+    std::cout << "Initial estimated state: " << x_est.transpose() << std::endl;
+  }
+
+  /*********************************************
+   * Main loop
+   * **********************************************/
+  Real t = t0;
+  double epoch = epoch0;
+  int sat_target_idx = 0;
+  int sat_rx_idx = 0;
+  int time_index = 0;
+
+  // Loggers
+  auto output_path = GetOutputPath("ex_isl");
+  std::cout << "Output Path: " << output_path << std::endl;
+  auto save_path = output_path / "data.h5";
+  auto open_mode = H5Easy::File::OpenOrCreate;
+  H5Easy::File log_file = H5Easy::File("output/ExampleISL.h5", open_mode);
+
+  // Print Header
+  PrintEKFHeaderPVC();
+
+  // Compute Intial estimation error
+  est_err = ComputeEstimationErrorPVC(moon_sat, &ekf);
+  PrintEKFProgressPVC(t.val(), est_err(0), est_err(1), est_err(2));
+  error_mat.col(time_index) = est_err;
+
+  for (t=t0, t<tf; t += Dt) {
+    time_index += 1;
+    epoch += Dt;
+
+    // Propagate True State
+    for (auto& moon_sat : moon_sats) {
+      moon_sat->Propagate(epoch);
+    }
+
+    // Get True Measurement
+    VecX z_true_i;
+    VecX z_true;
+    int n_meas = 0;
+
+    for (int i = 0; i < sat_pairs_idx.size(); i++) {
+      link_meas_vec[i]->Reset();  // reset the measurement
+      sat_target_idx = sat_pairs_idx[i].first;
+      sat_rx_idx = sat_pairs_idx[i].second;
+      auto tr_rx = moon_sats[sat_rx_idx]->GetTransponder();
+      auto tr_target = moon_sats[sat_target_idx]->GetTransponder();
+      link_meas_vec[i]->GenerateTwoWayLinkAtRxEpoch(epoch_rx, tr_rx, tr_target);
+      if (link_meas_vec[i]->GetVisibility()) {
+        z_true_i = link_meas_vec[i]->GetTrueTwoWayLinkMeasurement();
+        z_true.conservativeResize(z_true.size() + z_true_i.size());
+        z_true.tail(z_true_i.size()) = z_true_i;
+        n_meas += 1;
+      }
+      num_meas(time_index) = n_meas;
+    }
+
+    // Update EKF
+    ekf.Predict(t + Dt);
+    ekf.Update(z_true, false);
+
+    // Print Progress
+    est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
+    PrintEKFProgressPVC(t.val(), est_err(0), est_err(1), est_err(2));
+    error_mat.col(time_index) = est_err;
+  }
+
+  PrintEstimationStatistics(num_meas, error_mat, 0.3);  // use last 30%
+
+
+
 }

@@ -52,6 +52,13 @@ namespace lupnt {
 
   class IFilter {
   public:
+
+    Real t_curr_;  // Current time
+    VecX x_;       // Updated state
+    MatXd P_;      // Updated state cov
+    VecX xbar_;    // Predicted state
+    MatXd Pbar_;   // Predicted state cov
+
     virtual ~IFilter() = default;
     FilterDynamicsFunction dynamics_;
     FilterProcessNoiseFunction process_noise_;
@@ -64,6 +71,44 @@ namespace lupnt {
     void SetMeasurementFunction(FilterMeasurementFunction measurement) {
       measurement_ = measurement;
     }
+
+    VecX GetPredictedStateEstimate(MatXd &Pbar) {
+      Pbar = Pbar_;
+      return xbar_;
+    }
+    VecX GetPredictedStateEstimate() { return xbar_; }
+    VecX GetUpdatedStateEstimate(MatXd &Phat) {
+      Phat = P_;
+      return x_;
+    }
+    VecX GetUpdatedStateEstimate() { return x_; }
+
+    /**
+     * @brief Predict the state to a given time
+     *
+     * @param t_end   end time
+     */
+    virtual void Predict(Real t_end) = 0;
+
+    /**
+     * @brief Update the state with a measurement
+     *
+     * @param z_obs   measurement
+     * @param debug   debug flag
+     */
+    virtual void Update(VecX z_obs, bool debug = false) = 0;
+
+    /**
+     * @brief Update the state with a measurement
+     *
+     * @param t_end   end time
+     * @param z_obs   measurement obtained at end time
+     * @param debug   debug flag
+     */
+    void Step(Real t_end, VecX z_obs, bool debug) {
+      Predict(t_end);
+      Update(z_obs, debug);
+    }
   };
 
   /**
@@ -72,17 +117,12 @@ namespace lupnt {
    */
   class EKF : public IFilter {
   public:
-    Real t_curr_;  // Current time
-    VecX x_;       // Updated state
-    VecX xbar_;    // Predicted state
     MatXd Phi_;    // State transition matrix
     VecX dy_;      // Measurement residual
     VecX dx_;      // State update
     VecX z_true_;  // Observed measurement
     VecX z_pred_;  // Predicted measurement
 
-    MatXd P_;     // Updated state cov
-    MatXd Pbar_;  // Predicted state cov
     MatXd Q_;     // Process noise cov
 
     MatXd H_;  // Measurement matrix
@@ -106,16 +146,6 @@ namespace lupnt {
       P_ = P0;
     }
 
-    VecX GetPredictedStateEstimate(MatXd &Pbar) {
-      Pbar = Pbar_;
-      return xbar_;
-    }
-    VecX GetPredictedStateEstimate() { return xbar_; }
-    VecX GetUpdatedStateEstimate(MatXd &Phat) {
-      Phat = P_;
-      return x_;
-    }
-    VecX GetUpdatedStateEstimate() { return x_; }
     VecX GetMeasurementResidual() { return dy_; }
     MatX GetKalmanGain() { return K_; }
     MatX GetMeasurementNoiseCov() { return R_; }
@@ -150,15 +180,6 @@ namespace lupnt {
      * @param debug   debug flag
      */
     void Update(VecX z_obs, bool debug = false);
-
-    /**
-     * @brief Update the state with a measurement
-     *
-     * @param t_end   end time
-     * @param z_obs   measurement obtained at end time
-     * @param debug   debug flag
-     */
-    void Step(Real t_end, VecX z_obs, bool debug = false);
   };
 
 }  // namespace lupnt

@@ -43,11 +43,7 @@ namespace lupnt {
   };
 
   Real ComputeOneWayRangeLTR(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Real dt_tx, Real dt_rx,
-                             BodyData tx_center_body, BodyData rx_center_body, bool is_bodyfixed_tx,
-                             bool is_bodyfixed_rx, Real hardware_delay) {
-    // Get the GM of the central body
-    Real mu_tx = tx_center_body.GM;
-    Real mu_rx = rx_center_body.GM;
+                             const Ptr<Agent> agent_tx, const Ptr<Agent> agent_rx, Real hardware_delay) {
 
     // transmitter and receiver states
     Vec6 xi = rv_tx;
@@ -58,9 +54,6 @@ namespace lupnt {
     Vec3 v0 = x0.segment(3, 3);
     Vec3 ri = xi.segment(0, 3);
     Vec3 vi = xi.segment(3, 3);
-
-    Vec3 a0_r0 = -mu_rx / pow(r0.norm(), 3) * r0;
-    Vec3 ai_ri = -mu_tx / pow(ri.norm(), 3) * ri;
 
     // hardware delays
     Real tau_d_rx = hardware_delay;  // receiver delay for downlink (xi->x0)
@@ -78,18 +71,9 @@ namespace lupnt {
       Real rx_t = epoch_rx - tau_d_rx;
       Real tx_t = epoch_rx - tau_d_rx - tau_d;
 
-      if (!is_bodyfixed_rx) {  // is not ground station
-        r0_p = r0 - v0 * tau_d_rx + 1 / 2 * a0_r0 * pow(tau_d_rx, 2);
-      } else {
-        // Fixed to surface frame -> convert to ITRF frame
-        r0_p = ConvertFrame(rx_t, r0, rx_center_body.fixed_frame, Frame::ITRF);
-      }
-      if (!is_bodyfixed_tx) {  // is not ground station
-        rid_p = ri - vi * (tau_d_rx + tau_d) + 1 / 2 * ai_ri * pow(tau_d_rx + tau_d, 2);
-      } else {
-        // Fixed to surface frame -> convert to ITRF frame
-        rid_p = ConvertFrame(tx_t, ri, tx_center_body.fixed_frame, Frame::ITRF);
-      }
+      // Propagate the agent from the current epoch to the downlink/uplink  epoch
+      r0_p = agent_rx->GetCartesianGCRFStateAtEpoch(rx_t).segment(0, 3);
+      rid_p = agent_tx->GetCartesianGCRFStateAtEpoch(tx_t).segment(0, 3);
       rho_ad = rid_p - r0_p;
 
       // norms
@@ -97,7 +81,7 @@ namespace lupnt {
       rid_p_norm = rid_p.norm();
       rho_ad_norm = rho_ad.norm();
 
-      // Compoensate for relativistic effects (Shapiro time delay)
+      // Compensate for relativistic effects (Shapiro time delay)
       // double shapiro = 2 * mu_rx / C *
       //                  log((r0_p_norm + rid_p_norm + rho_ad_norm) /
       //                      (r0_p_norm + rid_p_norm - rho_ad_norm));
@@ -117,8 +101,7 @@ namespace lupnt {
   };
 
   Real ComputeTwoWayRangeLTR(Real epoch_rx, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                             BodyData target_center_body, BodyData rx_center_body,
-                             bool is_bodyfixed_target, bool is_bodyfixed_rx, Real hardware_delay,
+                             Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay,
                              Real additional_delay) {
     // hardware delays
     Real tau_d_rx = hardware_delay;  // receiver delay for downlink (xi->x0)
@@ -127,15 +110,14 @@ namespace lupnt {
 
     // solve for tau_d (downlink time, target->rx)
     Real rho_d = ComputeOneWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, 0.0, 0.0,
-                                       target_center_body, rx_center_body, is_bodyfixed_target,
-                                       is_bodyfixed_rx, tau_d_rx + additional_delay);
+                                       agent_target, agent_receiver, tau_d_rx + additional_delay);
     Real tau_d = rho_d / C;
 
     // solve for tau_u (uplink time, rx->target)
     Real tau_c_pp = tau_u_rx + tau_d_tx + tau_d_rx;  // total hardware delay
     Real delay_uplink = tau_c_pp + tau_d;            // total delay for uplink w.r.t epoch_rx
-    Real rho_u = ComputeOneWayRangeLTR(epoch_rx, rv_rx_tr, rv_target_tr, 0.0, 0.0, rx_center_body,
-                                       target_center_body, is_bodyfixed_rx, is_bodyfixed_target,
+    Real rho_u = ComputeOneWayRangeLTR(epoch_rx, rv_rx_tr, rv_target_tr, 0.0, 0.0,
+                                       agent_receiver, agent_target,
                                        delay_uplink + additional_delay);
     Real tau_u = rho_u / C;
 
@@ -145,15 +127,11 @@ namespace lupnt {
   };
 
   Real ComputeOneWayRangeRateLTR(Real epoch_rx, Vec6 rv_tx_tr, Vec6 rv_rx_tr, Real dt_dot_tx,
-                                 Real dt_dot_rx, BodyData target_center_body,
-                                 BodyData rx_center_body, bool is_bodyfixed_target,
-                                 bool is_bodyfixed_rx, Real hardware_delay, double T_I) {
-    Real rho_d = ComputeOneWayRangeLTR(epoch_rx, rv_tx_tr, rv_rx_tr, 0.0, 0.0, target_center_body,
-                                       rx_center_body, is_bodyfixed_target, is_bodyfixed_rx,
-                                       hardware_delay);
+                                 Real dt_dot_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real hardware_delay, double T_I) {
+    Real rho_d = ComputeOneWayRangeLTR(epoch_rx, rv_tx_tr, rv_rx_tr, 0.0, 0.0,
+                                       agent_tx, agent_rx, hardware_delay);
     Real rho_d_past = ComputeOneWayRangeLTR(epoch_rx, rv_tx_tr, rv_rx_tr, 0.0, 0.0,
-                                            target_center_body, rx_center_body, is_bodyfixed_target,
-                                            is_bodyfixed_rx, hardware_delay + T_I);
+                                            agent_tx, agent_rx, hardware_delay + T_I);
 
     Real rho_dot = (rho_d - rho_d_past) / T_I + C * (dt_dot_rx - dt_dot_tx);
 
@@ -161,14 +139,10 @@ namespace lupnt {
   }
 
   Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                                 BodyData target_center_body, BodyData rx_center_body,
-                                 bool is_bodyfixed_target, bool is_bodyfixed_rx,
-                                 Real hardware_delay, double T_I) {
-    Real rho_ud = ComputeTwoWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, target_center_body,
-                                        rx_center_body, is_bodyfixed_target, is_bodyfixed_rx,
+                                 Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay, double T_I) {
+    Real rho_ud = ComputeTwoWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, agent_target, agent_receiver,
                                         hardware_delay, 0);
-    Real rho_ud_past = ComputeTwoWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, target_center_body,
-                                             rx_center_body, is_bodyfixed_target, is_bodyfixed_rx,
+    Real rho_ud_past = ComputeTwoWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, agent_target, agent_receiver,
                                              hardware_delay, T_I);
 
     Real rho_dot = (rho_ud - rho_ud_past) / T_I;

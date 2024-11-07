@@ -42,6 +42,8 @@ namespace lupnt {
     Real epoch_;
     Ptr<IState> rv_;
     Ptr<IDynamics> dynamics_;
+    Frame dynamics_frame_ = Frame::NONE;
+
     Ptr<AttitudeState> attitude_;
     std::vector<Ptr<ICommDevice>> devices_;
 
@@ -50,9 +52,11 @@ namespace lupnt {
 
   public:
     Agent() : id_(id_counter_++), clock_(ClockState(2)){};
+    virtual ~Agent() = default;
 
     // Getters
     Real GetEpoch() const { return epoch_; }
+    std::string GetName() const { return name_; }
     NaifId GetBodyId() const { return bodyId_; }
     bool IsBodyFixed() const { return is_bodyfixed_; }
     Ptr<IState> GetRvState() const { return rv_; }
@@ -62,6 +66,8 @@ namespace lupnt {
 
     // Setters
     void SetIsBodyFixed(bool is_bodyfixed) { is_bodyfixed_ = is_bodyfixed; }
+    void SetDynamicsFrame(Frame frame) { dynamics_frame_ = frame; }
+    void GetDynamicsFrame(Frame frame) { dynamics_frame_ = frame; }
     void SetRvState(Ptr<IState> rv) { rv_ = rv; }
     void SetDynamics(Ptr<IDynamics> dyn) { dynamics_ = dyn; }
     void SetEpoch(Real epoch) { epoch_ = epoch; }

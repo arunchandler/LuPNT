@@ -49,6 +49,22 @@ namespace lupnt {
     return xf;
   }
 
+  VecX Agent::PropagateState(const Real epoch0, VecX x, const Real epoch, Frame state_frame) {
+    // Conver the state from GCRF to dynamics frame
+    Vec6 ConvertFrame =
+
+
+    // Get the state at epoch without changing the agent's epoch and state
+    VecX xf = dynamics_->Propagate(x, epoch0, epoch);
+
+    //
+
+
+    return xf;
+  }
+
+
+
   ClockState Agent::GetClockStateAtEpoch(const Real epoch, bool with_noise) {
     if (epoch == epoch_) return clock_;
 
