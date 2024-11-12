@@ -63,9 +63,6 @@ namespace lupnt {
     bool two_way_generated_ = false;
     bool dual_one_way_generated_ = false;
 
-    // Agents
-    std::vector<std::shared_ptr<Agent>> agents_;
-
     // Random seed
     int seed_ = 0;
 
@@ -154,10 +151,10 @@ namespace lupnt {
 
     VecX GetTrueOneWayLinkMeasurement(std::vector<LinkMeasurementType> meas_types);
 
-    VecX GetOneWayLinkMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
-                                  MatXd H_ow_rx, Real hardware_delay,
-                                  std::vector<LinkMeasurementType> meas_types, bool with_noise,
-                                  bool with_jacobian);
+    VecX GetOneWayLinkMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
+                                  Vec2 clk_rx, MatXd& H_ow_rx, Real hardware_delay,
+                                  std::vector<LinkMeasurementType> meas_types,
+                                  bool with_noise, bool with_jacobian);
 
     Real GetOneWayRangeMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
                                    MatXd &H_ow_rx, Real hardware_delay, bool with_noise,
@@ -198,7 +195,7 @@ namespace lupnt {
     VecX GetTrueTwoWayLinkMeasurement(std::vector<LinkMeasurementType> meas_types);
 
     VecX GetTwoWayLinkMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
-                                  MatXd H_tw_rx, Real hardware_delay, std::vector<LinkMeasurementType> meas_types,
+                                  MatXd &H_tw_rx, Real hardware_delay, std::vector<LinkMeasurementType> meas_types,
                                   bool with_noise, bool with_jacobian);
 
     Real GetTwoWayRangeMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,

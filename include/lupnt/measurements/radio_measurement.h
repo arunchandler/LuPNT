@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "lupnt/agents/agent.h"
 #include "lupnt/measurements/comm_device.h"
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/physics/body.h"

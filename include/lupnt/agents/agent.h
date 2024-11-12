@@ -79,6 +79,7 @@ namespace lupnt {
 
     // Comm Device
     void AddDevice(Ptr<ICommDevice> device) { devices_.push_back(device); }
+
     Ptr<Transmitter> GetTransmitter() {
       for (auto device : devices_) {
         if (device->txrx == "tx") {
@@ -126,6 +127,17 @@ namespace lupnt {
     VecX GetRvStateAtEpoch(const Real epoch);
 
     /**
+     * @brief Propagate the state to the given epoch
+     *
+     * @param epoch0    Initial epoch
+     * @param x         Initial state
+     * @param epoch     Final epoch
+     * @param inout_frame   Frame of the input state
+     * @return
+     */
+    VecX PropagateRvState(const Real epoch0, const Vec6& x0, const Real epoch, Frame inout_frame);
+
+    /**
      * @brief Get the Clock State at epoch, wihtout changing the agent's epoch and
      * state
      *
@@ -134,6 +146,16 @@ namespace lupnt {
      * @return ClockState
      */
     ClockState GetClockStateAtEpoch(const Real epoch, bool with_noise = true);
+
+    /**
+     * @brief Propagate the state to the given epoch
+     *
+     * @param epoch0    Initial epoch
+     * @param x         Initial state
+     * @param epoch     Final epoch
+     * @return
+     */
+    VecX PropagateClockState(const Real epoch0, const Vec2& x0, const Real epoch);
 
     /**
      * @brief Get the State Vec object

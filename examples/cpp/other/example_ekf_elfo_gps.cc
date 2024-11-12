@@ -737,7 +737,7 @@ int main() {
 
   // Initilization
   VecX x_est = SampleMVN(joint_state.GetJointStateValue(), P0, 1, seed);
-  ekf.Initialize(x_est, P0);
+  ekf.Initialize(t0, x_est, P0);
   VecXd est_err = ComputeEstimationErrors(moon_sat, &ekf);
   error_mat.col(0) = est_err;
 

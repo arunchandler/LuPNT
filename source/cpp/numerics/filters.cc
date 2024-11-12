@@ -51,14 +51,22 @@ namespace lupnt {
     // Remove outliers
     int m = n_valid;
 
+    if (debug) {
+      VecXd S_sqrt = S_.diagonal().array().sqrt();
+      std::cout << "  " << std::endl;
+      std::cout << "Removing " << m_orig - m << "/" << m_orig << " outliers" << std::endl;
+      std::cout << "  ratio: " << ratio.transpose() << std::endl;
+      std::cout << "  dy: " << dy_.transpose() << std::endl;
+      std::cout << "  R: " << R_.diagonal().transpose() << std::endl;
+      std::cout << "  H: " << H_ << std::endl;
+      std::cout << "  P: " << P_.diagonal().transpose() << std::endl;
+      std::cout << "  S: " << S_sqrt.transpose() << std::endl; 
+      std::cout << "  " << std::endl;
+    }
+
     if (m == m_orig) {
       return m;  // all measurement valid, nothing to change
-    } else {
-      if (debug) {
-        std::cout << "Removing " << m_orig - m << "/" << m_orig
-                  << " outliers - ratio: " << ratio.transpose() << std::endl;
-      }
-    }
+    } 
 
     MatXd H_new(m, n);
     MatXd R_new(m, m);
@@ -123,6 +131,10 @@ namespace lupnt {
 
     // Remove outliers
     m = RemoveOutliers(m, debug);
+
+    if (m == 0) {
+      return;  // all measurements are outliers
+    }
 
     // re-allocate memory
     K_.resize(n, m);

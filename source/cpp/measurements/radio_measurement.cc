@@ -45,16 +45,6 @@ namespace lupnt {
   Real ComputeOneWayRangeLTR(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Real dt_tx, Real dt_rx,
                              const Ptr<Agent> agent_tx, const Ptr<Agent> agent_rx, Real hardware_delay) {
 
-    // transmitter and receiver states
-    Vec6 xi = rv_tx;
-    Vec6 x0 = rv_rx;
-
-    // link xi->x0
-    Vec3 r0 = x0.segment(0, 3);
-    Vec3 v0 = x0.segment(3, 3);
-    Vec3 ri = xi.segment(0, 3);
-    Vec3 vi = xi.segment(3, 3);
-
     // hardware delays
     Real tau_d_rx = hardware_delay;  // receiver delay for downlink (xi->x0)
 
@@ -68,12 +58,12 @@ namespace lupnt {
 
     // Solve for Downlink
     for (int i = 0; i < max_iter; i++) {
-      Real rx_t = epoch_rx - tau_d_rx;
-      Real tx_t = epoch_rx - tau_d_rx - tau_d;
+      Real rx_epoch = epoch_rx - tau_d_rx;
+      Real tx_epoch = epoch_rx - tau_d_rx - tau_d;
 
       // Propagate the agent from the current epoch to the downlink/uplink  epoch
-      r0_p = agent_rx->GetCartesianGCRFStateAtEpoch(rx_t).segment(0, 3);
-      rid_p = agent_tx->GetCartesianGCRFStateAtEpoch(tx_t).segment(0, 3);
+      r0_p = agent_rx->PropagateRvState(epoch_rx, rv_rx, rx_epoch, Frame::GCRF).segment(0, 3);
+      rid_p = agent_tx->PropagateRvState(epoch_rx, rv_tx, tx_epoch, Frame::GCRF).segment(0, 3);
       rho_ad = rid_p - r0_p;
 
       // norms
@@ -86,7 +76,7 @@ namespace lupnt {
       //                  log((r0_p_norm + rid_p_norm + rho_ad_norm) /
       //                      (r0_p_norm + rid_p_norm - rho_ad_norm));
 
-      tau_d = rho_ad.norm();  // + shapiro;
+      tau_d = rho_ad.norm() / C;  // + shapiro;
 
       if (fabs(tau_d.val() - tau_d_prev.val()) < 1e-13) {  // goes under pico-second
         break;
@@ -122,6 +112,7 @@ namespace lupnt {
     Real tau_u = rho_u / C;
 
     Real rho_ud = C / 2 * (tau_u + tau_d);
+
 
     return rho_ud;
   };

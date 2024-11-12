@@ -55,6 +55,14 @@ namespace lupnt {
       std::cerr << "Error: Invalid time_fixed parameter" << std::endl;
     }
 
+    // assign values to trans
+    trans.t_tx = t_tx.val();
+    trans.t_rx = t_rx.val();
+    trans.r_tx = rv_tx_gcrf.r().cast<double>();
+    trans.v_tx = rv_tx_gcrf.v().cast<double>();
+    trans.r_rx = rv_rx_gcrf.r().cast<double>();
+    trans.v_rx = rv_rx_gcrf.v().cast<double>();
+
     // Commpute Occultations
     bool vis_all = true;
     std::map<std::string, bool> vis_occult;
@@ -69,10 +77,8 @@ namespace lupnt {
 
     // Link Budget
     if (compute_cn0) {
-      double At = tx->GetTransmitterAntennaGain(t_tx.val(), rv_tx_gcrf.r().cast<double>(),
-                                                rv_rx_gcrf.r().cast<double>());
-      double Ar = rx->GetReceiverAntennaGain(t_rx.val(), rv_tx_gcrf.r().cast<double>(),
-                                             rv_rx_gcrf.r().cast<double>());
+      double At = tx->GetTransmitterAntennaGain(t_tx.val(), trans.r_tx, trans.r_rx);
+      double Ar = rx->GetReceiverAntennaGain(t_rx.val(), trans.r_tx, trans.r_rx);
 
       double dist = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
       double lambda = C / tx->freq_tx;
@@ -94,10 +100,10 @@ namespace lupnt {
       trans.CN0_linear = pow(10, CN0 / 10.0);
     } else {
       // skip the link budget computation (for fixed noise case)
-      trans.EIRP = 0.;
-      trans.G_T = 0.;
-      trans.CN0 = 0.;
-      trans.CN0_linear = 0.;
+      trans.EIRP = 0.0;
+      trans.G_T = 0.0;
+      trans.CN0 = 0.0;
+      trans.CN0_linear = 0.0;
     }
 
     trans.vis_occult = vis_occult;

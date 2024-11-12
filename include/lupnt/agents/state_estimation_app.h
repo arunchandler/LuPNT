@@ -45,6 +45,16 @@ namespace lupnt {
         state_vec_size += state_vec_[i]->GetSize();
       }
       state_vec_size_ = state_vec_size;
+
+      // update the internal state vector
+      state_vec_value_.resize(state_vec_size_);
+      int cur_idx = 0;
+      for (int i = 0; i < state_types_; i++) {
+        for (int j = 0; j < state_vec_[i]->GetSize(); j++) {
+          state_vec_value_(cur_idx) = state_vec_[i]->GetValue(j);
+          cur_idx++;
+        }
+      }
     };
 
     int GetSize() const { return state_vec_size_; };

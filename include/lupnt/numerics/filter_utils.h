@@ -42,19 +42,59 @@ namespace lupnt {
                                                       double sigma_acc);
 
   /**
+   * @brief Construct a new Filter Process Noise Function P V C object for the EKF
+   * 
+   * @param cmodel 
+   * @param state_size 
+   * @param sigma_acc 
+   * @param n_sat 
+   */
+  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size, double sigma_acc, int n_sat);
+
+
+  /**
    * @brief Print the EKF progress header for the position, velocity, and clock states
    *
    */
   void PrintEKFProgressHeaderPVC();
 
   /**
+   * @brief Print the EKF progress header for the position, velocity, and clock states for N satellites
+   * 
+   * @param n_sat  Number of satellites
+   */
+  void PrintEKFProgressHeaderPVC(int n_sat);
+
+
+  /**
+   * @brief Construct the true state vector from the spacecraft vector
+   * 
+   * @param sats <std::vector<Ptr<Spacecraft>>  Spacecraft vector
+   * @return VecX  True state vector (8xN)
+   */
+  VecX ConstructTrueStateVecFromSats(const std::vector<Ptr<Spacecraft>>& sats);
+
+
+  /**
    * @brief Compute the estimation error for the position, velocity, and clock states fpr the filter
    *
    * @param sat      Spacecraft
    * @param filter   Filter
+   * @param start_idx  Start index for the filter state vector
    * @return VecXd   Estimation error vector (position, velocity, clock bias)
    */
-  VecXd ComputeEstimationErrorPVC(const Ptr<Spacecraft> sat, IFilter* filter);
+  VecXd ComputeEstimationErrorPVC(const Ptr<Spacecraft> sat, IFilter* filter, int start_idx=0);
+
+  /**
+   * @brief Compute the estimation error for the position, velocity, and clock states for the filter
+   *
+   * @param sats    Spacecraft vector
+   * @param filter  Filter
+   * @return VecXd  Estimation error vector (position, velocity, clock bias)
+   */
+  VecXd ComputeEstimationErrorPVC(const std::vector<Ptr<Spacecraft>>& sats, IFilter* filter);
+
+
 
   /**
    * @brief Print the EKF progress for the position, velocity, and clock states
@@ -65,6 +105,29 @@ namespace lupnt {
    * @param x_clk_bias_err Clock bias error
    */
   void PrintEKFProgressPVC(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err);
+
+
+  /**
+   * @brief Print the EKF progress for the position, velocity, and clock states for N satellites
+   * 
+   * @param t              Time
+   * @param est_err        Estimation error vector (position, velocity, clock bias)
+   * @param n_sat          Number of satellites
+   * 
+   */
+  void PrintEKFProgressPVC(double t, const VecXd& est_err, int n_sat);
+
+  /**
+   * @brief Print the State Estimation Error Statistics
+   * 
+   * @param num_meas  Number of GPS measurements
+   * @param error_mat Error matrix (position, velocity, clock bias, clock drift)
+   * @param ratio     Ratio
+   * @param n_sat     Number of satellites
+   * 
+   */
+  void PrintEstimationStatistics(const VecXd& num_meas, const MatXd& error_mat, double ratio, int n_sat);
+
 
 
 }  // namespace lupnt

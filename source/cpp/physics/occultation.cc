@@ -118,7 +118,8 @@ namespace lupnt {
 
       // Compute occultation (alpha_body < beta and r12_norm > r1b_norm *
       // cos(beta))
-      bool is_vis = (alpha_body < beta_body) && (r12_norm > r1b_norm * cos(beta_body));
+      bool is_occult = (alpha_body < beta_body) && (r12_norm > r1b_norm * cos(beta_body));
+      bool is_vis = !is_occult;
 
       vis[bodydata.name] = is_vis;
     }

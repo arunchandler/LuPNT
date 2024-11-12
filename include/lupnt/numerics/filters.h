@@ -141,7 +141,8 @@ namespace lupnt {
       measurement_ = measurement;
     }
 
-    void Initialize(const VecX &x0, const MatXd &P0) {
+    void Initialize(const double t0, const VecX &x0, const MatXd &P0) {
+      t_curr_ = t0;
       x_ = x0;
       P_ = P0;
     }
