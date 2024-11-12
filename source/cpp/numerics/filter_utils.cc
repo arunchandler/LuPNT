@@ -98,7 +98,7 @@ void PrintEKFProgressHeaderPVC(int n_sat){
   std::cout << "Run Simulation" << std::endl;
   std::cout << " " << std::endl;
   std::cout << " " << std::endl;
-  
+
   //        |                  Sat1                     |                   Sat2                    | Sat3  ...
   //  Time  | PosErr [m] | VelErr [mm/s] | ClkBErr [ms] | PosErr [m] | VelErr [mm/s] | ClkBErr [ms] | ...
   // -------------------------------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ void PrintEKFProgressHeaderPVC(int n_sat){
 
 }
 
-VecXd ComputeEstimationErrorPVC(const Ptr<Spacecraft> sat, IFilter* filter, int start_idx) {
+VecXd ComputeEstimationErrorPVC(const Ptr<Spacecraft> sat, IFilter* filter, int start_idx=0) {
   auto x_est = filter->GetUpdatedStateEstimate();
   auto x_true = sat->GetStateVec();
 

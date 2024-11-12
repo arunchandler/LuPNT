@@ -34,8 +34,8 @@ public:
   };
 };
 
-Ptr<ISLTransmitter> CreateISLTransmitter() { 
-  Ptr<ISLTransmitter> transmitter =  MakePtr<ISLTransmitter>(); 
+Ptr<ISLTransmitter> CreateISLTransmitter() {
+  Ptr<ISLTransmitter> transmitter =  MakePtr<ISLTransmitter>();
   transmitter->P_tx = 10.0;       // Transmit power [dBW]
   transmitter->freq_tx = 26.5e9;  // Transmit frequency [Hz]
 
@@ -88,7 +88,7 @@ int main() {
   double t0 = epoch0.val();
   double dt = 1.0;  // Integration time step [s]
   double Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
-  double print_every = 600;
+  double print_every = 600 / Dt;
   double save_every = Dt;
 
   // Simulation seed
@@ -112,7 +112,7 @@ int main() {
   oe.col(2) = sat3_oe;
 
   // Set simulation to 1 orbit
-  int n_orbit = 1;  // number of orbits to simulate
+  int n_orbit = 3;  // number of orbits to simulate
   Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
   double tf = t0 + n_orbit * period.val();
   int time_step_num = int((tf - t0) / Dt) + 1;
@@ -435,7 +435,7 @@ int main() {
     }
 
     // Get True Measurement ---------------------------------
-    std::vector<VecX> z_true_vec; 
+    std::vector<VecX> z_true_vec;
     int n_meas = 0;
     int n_meas_total = 0;
     std::vector<bool> vis_isl;
@@ -476,8 +476,11 @@ int main() {
 
     // Print Progress using First Sat Est Error
     est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
-    PrintEKFProgressPVCVis((t-t0).val(), est_err, nsat, vis_isl);
     error_mat.col(time_index) = est_err;
+
+    if (fmod(time_index, print_every) < 1e-3) {
+      PrintEKFProgressPVCVis((t-t0).val(), est_err, nsat, vis_isl);
+    }
   }
 
   PrintEstimationStatistics(num_meas, error_mat, 0.3, nsat);  // use last 30%

@@ -60,13 +60,13 @@ namespace lupnt {
       std::cout << "  R: " << R_.diagonal().transpose() << std::endl;
       std::cout << "  H: " << H_ << std::endl;
       std::cout << "  P: " << P_.diagonal().transpose() << std::endl;
-      std::cout << "  S: " << S_sqrt.transpose() << std::endl; 
+      std::cout << "  S: " << S_sqrt.transpose() << std::endl;
       std::cout << "  " << std::endl;
     }
 
     if (m == m_orig) {
       return m;  // all measurement valid, nothing to change
-    } 
+    }
 
     MatXd H_new(m, n);
     MatXd R_new(m, m);

@@ -34,12 +34,12 @@ namespace lupnt {
     ClockState(VecX clock_vec);
 
     // Overrides
-    int GetSize() const;
-    VecX GetVec() const;
-    void SetVec(const VecX& x);
-    Real GetValue(int i) const;
-    void SetValue(int idx, Real val);
-    StateType GetStateType() const;
+    int GetSize() const override;
+    VecX GetVec() const override;
+    void SetVec(const VecX& x) override;
+    Real GetValue(int i) const override;
+    void SetValue(int idx, Real val) override;
+    StateType GetStateType() const override;
   };
 
   class ClockDynamics : public IDynamics {
