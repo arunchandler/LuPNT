@@ -88,7 +88,7 @@ int main() {
   double t0 = epoch0.val();
   double dt = 1.0;  // Integration time step [s]
   double Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
-  double print_every = 600 / Dt;
+  double print_every = 60.0;
   double save_every = Dt;
 
   // Simulation seed
@@ -317,7 +317,7 @@ int main() {
         continue;
       }
 
-      Real epoch_rx = moon_sats[sat_pairs_idx[i].second]->GetEpoch();
+      Real epoch_ref = moon_sats[sat_pairs_idx[i].second]->GetEpoch();
 
       int sat_target_idx = sat_pairs_idx[i].first;
       int sat_rx_idx = sat_pairs_idx[i].second;
@@ -331,7 +331,7 @@ int main() {
 
       bool with_noise = false;
       bool with_jac = true;
-      zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(epoch_rx, sat_rx.head(6), sat_target.head(6),
+      zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(link_meas_vec[i]->GetRecordedEpochRx(), epoch_ref, sat_rx.head(6), sat_target.head(6),
                                                       sat_rx.tail(2), sat_target.tail(2),
                                                       Htmp, hardware_delay, meas_types, with_noise, with_jac);
 

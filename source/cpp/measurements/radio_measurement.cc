@@ -42,28 +42,34 @@ namespace lupnt {
     return f_D;
   };
 
-  Real ComputeOneWayRangeLTR(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Real dt_tx, Real dt_rx,
-                             const Ptr<Agent> agent_tx, const Ptr<Agent> agent_rx, Real hardware_delay) {
-
-    // hardware delays
-    Real tau_d_rx = hardware_delay;  // receiver delay for downlink (xi->x0)
+  Real ComputeOneWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
+                             const Ptr<Agent> agent_tx, const Ptr<Agent> agent_rx, Real additional_delay, bool use_pure_range=false) {
 
     // solve for tau_d (downlink time)
     int max_iter = 5;
-    Real tau_d = 0.0;
+    Real tau_d = 0.0;   // light time
     Real tau_d_prev = 0.0;
 
     Vec3 r0_p, rid_p, rho_ad;
     Real r0_p_norm, rid_p_norm, rho_ad_norm;
+    Real rx_clk_offset = 0.0;
+    Real rx_epoch = epoch_rx_local;
+    Real tx_epoch = epoch_rx_local;
 
     // Solve for Downlink
     for (int i = 0; i < max_iter; i++) {
-      Real rx_epoch = epoch_rx - tau_d_rx;
-      Real tx_epoch = epoch_rx - tau_d_rx - tau_d;
+      if (epoch_ref == epoch_rx_local) {
+        rx_clk_offset = clk_rx(0);
+      }
+      else {
+        rx_clk_offset = agent_rx->PropagateClockState(epoch_ref, clk_rx, epoch_rx_local)(0);
+      }
+      rx_epoch = epoch_rx_local - rx_clk_offset - additional_delay;
+      tx_epoch = rx_epoch - tau_d;
 
       // Propagate the agent from the current epoch to the downlink/uplink  epoch
-      r0_p = agent_rx->PropagateRvState(epoch_rx, rv_rx, rx_epoch, Frame::GCRF).segment(0, 3);
-      rid_p = agent_tx->PropagateRvState(epoch_rx, rv_tx, tx_epoch, Frame::GCRF).segment(0, 3);
+      r0_p = agent_rx->PropagateRvState(epoch_ref, rv_rx, rx_epoch, Frame::GCRF).segment(0, 3);
+      rid_p = agent_tx->PropagateRvState(epoch_ref, rv_tx, tx_epoch, Frame::GCRF).segment(0, 3);
       rho_ad = rid_p - r0_p;
 
       // norms
@@ -85,55 +91,58 @@ namespace lupnt {
       }
     }
 
-    Real rho_d = C * tau_d + (dt_rx - dt_tx) * C;
+    Real tx_clk_offset = agent_tx->PropagateClockState(epoch_ref, clk_tx, tx_epoch)(0);
+    Real epoch_tx_local = tx_epoch + tx_clk_offset;
+
+    Real rho_d = 0.0;
+    if (use_pure_range) {
+      rho_d = rho_ad_norm;
+    }
+    else {
+      rho_d = C * (epoch_rx_local - epoch_tx_local);
+    }
 
     return rho_d;
   };
 
-  Real ComputeTwoWayRangeLTR(Real epoch_rx, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                             Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay,
+  Real ComputeTwoWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_target, Vec6 rv_rx,
+                             Vec2 clk_target, Vec2 clk_receiver,
+                             Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay_target,
                              Real additional_delay) {
-    // hardware delays
-    Real tau_d_rx = hardware_delay;  // receiver delay for downlink (xi->x0)
-    Real tau_u_rx = hardware_delay;  // receiver delay for uplink (x0->xi)
-    Real tau_d_tx = hardware_delay;  // transmitter delay for downlink (xi->x0)
 
     // solve for tau_d (downlink time, target->rx)
-    Real rho_d = ComputeOneWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, 0.0, 0.0,
-                                       agent_target, agent_receiver, tau_d_rx + additional_delay);
+    Real rho_d = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_target, rv_rx, clk_target, clk_receiver,
+                                       agent_target, agent_receiver, additional_delay, true);
     Real tau_d = rho_d / C;
 
     // solve for tau_u (uplink time, rx->target)
-    Real tau_c_pp = tau_u_rx + tau_d_tx + tau_d_rx;  // total hardware delay
-    Real delay_uplink = tau_c_pp + tau_d;            // total delay for uplink w.r.t epoch_rx
-    Real rho_u = ComputeOneWayRangeLTR(epoch_rx, rv_rx_tr, rv_target_tr, 0.0, 0.0,
-                                       agent_receiver, agent_target,
-                                       delay_uplink + additional_delay);
+    Real delay_uplink = additional_delay + tau_d + hardware_delay_target;  // total delay for uplink w.r.t epoch_rx
+    Real rho_u = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_rx, rv_target, clk_receiver, clk_target,
+                                       agent_receiver, agent_target, delay_uplink, true);
     Real tau_u = rho_u / C;
 
     Real rho_ud = C / 2 * (tau_u + tau_d);
 
-
     return rho_ud;
   };
 
-  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Vec6 rv_tx_tr, Vec6 rv_rx_tr, Real dt_dot_tx,
-                                 Real dt_dot_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real hardware_delay, double T_I) {
-    Real rho_d = ComputeOneWayRangeLTR(epoch_rx, rv_tx_tr, rv_rx_tr, 0.0, 0.0,
-                                       agent_tx, agent_rx, hardware_delay);
-    Real rho_d_past = ComputeOneWayRangeLTR(epoch_rx, rv_tx_tr, rv_rx_tr, 0.0, 0.0,
-                                            agent_tx, agent_rx, hardware_delay + T_I);
+  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr, Vec2 clk_tx, Vec2 clk_rx, 
+                                 Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real additional_delay, double T_I) {
+    Real rho_d = ComputeOneWayRangeLTR(epoch_rx, epoch_ref, rv_tx_tr, rv_rx_tr, clk_tx, clk_rx,
+                                       agent_tx, agent_rx, additional_delay, false);
+    Real rho_d_past = ComputeOneWayRangeLTR(epoch_rx, epoch_ref, rv_tx_tr, rv_rx_tr, clk_tx, clk_rx,
+                                            agent_tx, agent_rx, additional_delay + T_I, false);
 
-    Real rho_dot = (rho_d - rho_d_past) / T_I + C * (dt_dot_rx - dt_dot_tx);
+    Real rho_dot = (rho_d - rho_d_past) / T_I;
 
     return rho_dot;
   }
 
-  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Vec6 rv_target_tr, Vec6 rv_rx_tr,
+  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr, Vec2 clk_target, Vec2 clk_receiver,
                                  Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay, double T_I) {
-    Real rho_ud = ComputeTwoWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, agent_target, agent_receiver,
+    Real rho_ud = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target, clk_receiver, agent_target, agent_receiver,
                                         hardware_delay, 0);
-    Real rho_ud_past = ComputeTwoWayRangeLTR(epoch_rx, rv_target_tr, rv_rx_tr, agent_target, agent_receiver,
+    Real rho_ud_past = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target, clk_receiver, agent_target, agent_receiver,
                                              hardware_delay, T_I);
 
     Real rho_dot = (rho_ud - rho_ud_past) / T_I;

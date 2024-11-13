@@ -20,7 +20,7 @@
 
 namespace lupnt {
 
-  enum class LinkMeasurementType { Range, RangeRate, Bearing };
+  enum class LinkMeasurementType { Range, RangeRate };
 
   struct LinkParams {
     // Receiver Parameters
@@ -45,10 +45,13 @@ namespace lupnt {
   class LinkMeasurement {
   private:
     // True epochs
-    Real epoch_tx_true_ = 0.0;  // True transmitted epoch (The acutal signal is
-                                // tranmistted at epoch_tx_true + hardware delay)
-    Real epoch_rx_true_ = 0.0;  // True received epoch (The acutal signal is
-                                // received at epoch_rx_true - hardware delay)
+    Real epoch_tx_true_ = 0.0;  // True transmitted epoch 
+    Real epoch_rx_true_ = 0.0;  // True received epoch 
+
+    // Recorded epochs
+    Real epoch_tx_recorded_ = 0.0;  // Recorded transmitted epoch
+    Real epoch_rx_recorded_ = 0.0;  // Recorded received epoch
+    Real epoch_rx_recorded_u_ = 0.0;  // Recorded received epoch (uplink, used for time sync)
 
     // Transmission
     ITransmission trans_ow_;                // One-way transmission
@@ -114,6 +117,9 @@ namespace lupnt {
     inline Real GetRxEpoch() const { return epoch_rx_true_; }
     inline bool IsOneWayVisible() const { return vis_ow_; }
     inline bool IsTwoWayVisible() const { return vis_tw_; }
+    inline Real GetRecordedEpochTx() const { return epoch_tx_recorded_; }
+    inline Real GetRecordedEpochRx() const { return epoch_rx_recorded_; }
+    inline Real GetRecordedEpochRxU() const { return epoch_rx_recorded_u_; }
 
     void Reset() {
       one_way_generated_ = false;
@@ -123,6 +129,14 @@ namespace lupnt {
       trans_ow_ = ITransmission();
       trans_tw_.clear();
       trans_dow_.clear();
+
+      // clear linkparams
+      linkparams_ = LinkParams();
+
+      // Reset recorded epochs
+      epoch_tx_recorded_ = 0.0;
+      epoch_rx_recorded_ = 0.0;
+      epoch_rx_recorded_u_ = 0.0;
     }
 
     /********************** One way Link ***************************/
@@ -130,13 +144,13 @@ namespace lupnt {
     /**
      * @brief Get the One Way Link object
      *
-     * @param epoch_rx        epoch of the receiver or transmitter
+     * @param epoch_local     (local) epoch of the receiver or transmitter when the signal is transmitted/received
      * @param tx              transmitter
      * @param rx              receiver
-     * @param fixed_txrx      fixed transmitter or receiver (tx or rx)
+     * @param fixed_txrx      fixed transmitter or receiver time (tx or rx)
      * @return ITransmission
      */
-    void GenerateOneWayLink(Real epoch, std::shared_ptr<Transmitter> &tx,
+    void GenerateOneWayLink(Real epoch_local, std::shared_ptr<Transmitter> &tx,
                             std::shared_ptr<Receiver> &rx, std::string fixed_txrx);
 
     void GenerateOneWayLinkAtRxEpoch(Real epoch, std::shared_ptr<Transmitter> &tx,
@@ -151,17 +165,63 @@ namespace lupnt {
 
     VecX GetTrueOneWayLinkMeasurement(std::vector<LinkMeasurementType> meas_types);
 
-    VecX GetOneWayLinkMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
-                                  Vec2 clk_rx, MatXd& H_ow_rx, Real hardware_delay,
+    /**
+     * @brief Get the One Way Link Measurement
+     * 
+     * @param epoch_rx_recorded  recorded epoch of the receiver (TAI)
+     * @param epoch_ref          reference epoch
+     * @param rv_tx              Transmitter position and velocity at the ref epoch
+     * @param rv_rx              Receiver position and velocity at the ref epoch
+     * @param clk_tx             Transmitter clock state at the ref epoch
+     * @param clk_rx             Receiver clock state at the ref epoch
+     * @param H_ow_rx            Jacobian matrix
+     * @param additional_delay   Additional delay for the rx time  (recorded = true + clk_bias + additional_delay)
+     * @param meas_types         measurement types
+     * @param with_noise         (bool) add noise to the measurement
+     * @param with_jacobian      (bool) compute jacobian
+     * @return VecX 
+     */
+    VecX GetOneWayLinkMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
+                                  Vec2 clk_rx, MatXd& H_ow_rx, Real additional_delay,
                                   std::vector<LinkMeasurementType> meas_types,
                                   bool with_noise, bool with_jacobian);
 
-    Real GetOneWayRangeMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
-                                   MatXd &H_ow_rx, Real hardware_delay, bool with_noise,
+    /**
+     * @brief Get the One Way Range Measurement 
+     * 
+     * @param epoch_rx_recorded  recorded epoch of the receiver (TAI)
+     * @param epoch_ref          reference epoch
+     * @param rv_tx              Transmitter position and velocity at the ref epoch
+     * @param rv_rx              Receiver position and velocity at the ref epoch
+     * @param clk_tx             Transmitter clock state at the ref epoch
+     * @param clk_rx             Receiver clock state at the ref epoch
+     * @param H_ow_rx            Jacobian matrix
+     * @param additional_delay   Additional delay for the rx time  (recorded = true + clk_bias + additional_delay)
+     * @param with_noise         (bool) add noise to the measurement
+     * @param with_jacobian      (bool) compute jacobian
+     * @return Real 
+     */
+    Real GetOneWayRangeMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
+                                   MatXd &H_ow_rx, Real additional_delay, bool with_noise,
                                    bool with_jacobian);
 
-    Real GetOneWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
-                                       Vec2 clk_rx, MatXd &H_ow_rx, Real hardware_delay,
+    /**
+     * @brief Get the One Way Range Rate Measurement object
+     * 
+     * @param epoch_rx_recorded  recorded epoch of the receiver (TAI)
+     * @param epoch_ref          reference epoch
+     * @param rv_tx              Transmitter position and velocity at the ref epoch
+     * @param rv_rx              Receiver position and velocity at the ref epoch
+     * @param clk_tx             Transmitter clock state at the ref epoch
+     * @param clk_rx             Receiver clock state at the ref epoch
+     * @param H_ow_rx            Jacobian matrix
+     * @param additional_delay   Additional delay for the rx time  (recorded = true + clk_bias + additional_delay)
+     * @param with_noise         (bool) add noise to the measurement
+     * @param with_jacobian      (bool) compute jacobian
+     * @return Real 
+     */
+    Real GetOneWayRangeRateMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
+                                       Vec2 clk_rx, MatXd &H_ow_rx, Real additional_delay,
                                        bool with_noise, bool with_jacobian);
 
     VecXd GetOneWayLinkNoise(std::vector<LinkMeasurementType> meas_types);
@@ -192,18 +252,69 @@ namespace lupnt {
       GenerateTwoWayLink(epoch, tr_receiver, tr_target, "tx");
     };
 
+    /**
+     * @brief Get the True Two Way Link Measurement object
+     * 
+     * @param meas_types  vector of measurement types
+     * @return VecX  measurement vector
+     */
     VecX GetTrueTwoWayLinkMeasurement(std::vector<LinkMeasurementType> meas_types);
 
-    VecX GetTwoWayLinkMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
+    /**
+     * @brief Get the Two Way Link Measurement (receiver->target->receiver)
+     * 
+     * @param epoch_rx        Reception epoch (TAI) t_R
+     * @param epoch_ref       Reference epoch
+     * @param rv_receiver     Receiver position at ref epoch (w.r.t to
+     * @param rv_target       Transmitter position at ref epoch (w.r.t to
+     * @param clk_receiver    Receiver clock state at the ref epoch
+     * @param clk_target      Transmitter clock state at the ref epoch
+     * @param H_tw_rx         Jacobian matrix
+     * @param hardware_delay  Hardware delay at the target relay 
+     * @param meas_types      vector of measurement types
+     * @param with_noise      (bool) add noise to the measurement
+     * @param with_jacobian   (bool) compute jacobian
+     * @return VecX 
+     */
+    VecX GetTwoWayLinkMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
                                   MatXd &H_tw_rx, Real hardware_delay, std::vector<LinkMeasurementType> meas_types,
                                   bool with_noise, bool with_jacobian);
 
-    Real GetTwoWayRangeMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
+    /**
+     * @brief Get the Two Way Range Measurement object
+     * 
+     * @param epoch_rx        Reception epoch (TAI) t_R
+     * @param epoch_ref       Reference epoch
+     * @param rv_receiver     Receiver position at ref epoch (w.r.t to
+     * @param rv_target       Transmitter position at ref epoch (w.r.t to
+     * @param clk_receiver    Receiver clock state at the ref epoch
+     * @param clk_target      Transmitter clock state at the ref epoch
+     * @param H_tw_range      Jacobian matrix
+     * @param hardware_delay  Hardware delay at the target relay 
+     * @param with_noise      (bool) add noise to the measurement
+     * @param with_jacobian   (bool) compute jacobian
+     * @return Real 
+     */
+    Real GetTwoWayRangeMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
                                    MatXd &H_tw_range, Real hardware_delay, bool with_noise,
                                    bool with_jacobian);
 
-
-    Real GetTwoWayRangeRateMeasurement(Real epoch_rx, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
+    /**
+     * @brief Get the Two Way Range Rate Measurement object
+     * 
+     * @param epoch_rx        Reception epoch (TAI) t_R
+     * @param epoch_ref       Reference epoch
+     * @param rv_receiver     Receiver position at ref epoch
+     * @param rv_target       Transmitter position at ref epoch
+     * @param clk_receiver    Receiver clock state at the ref epoch
+     * @param clk_target      Transmitter clock state at the ref epoch
+     * @param H_tw_rr         Jacobian matrix
+     * @param hardware_delay  Hardware delay at the target relay 
+     * @param with_noise      (bool) add noise to the measurement
+     * @param with_jacobian   (bool) compute jacobian
+     * @return Real 
+     */
+    Real GetTwoWayRangeRateMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver, Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
                                        MatXd &H_tw_rr, Real hardware_delay, bool with_noise,
                                        bool with_jacobian);
 
