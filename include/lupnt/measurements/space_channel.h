@@ -27,6 +27,9 @@ namespace lupnt {
   private:
     std::vector<NaifId> occult_bodies_;
     VecXd occult_alt_;
+    VecXd elev_masks_;
+    bool use_elev_mask_tx_ = false;
+    bool use_elev_mask_rx_ = false;
 
   public:
     SpaceChannel() = default;
@@ -38,8 +41,14 @@ namespace lupnt {
      * @param occult_alt  occultation altitude
      */
     void SetOccultationBodies(std::vector<NaifId> occult_bodies, VecXd occult_alt) {
-      occult_bodies_ = occult_bodies;
-      occult_alt_ = occult_alt;
+        occult_bodies_ = occult_bodies;
+        occult_alt_ = occult_alt;
+    }
+
+    void SetElevationMask(bool enable_tx, bool enable_rx, VecXd elev_mask_rad) {
+      use_elev_mask_tx_ = enable_tx;
+      use_elev_mask_rx_ = enable_rx;
+      elev_masks_ = elev_mask_rad;
     }
 
     /**

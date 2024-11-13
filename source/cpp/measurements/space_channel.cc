@@ -71,7 +71,7 @@ namespace lupnt {
       Real epoch = (t_tx + t_rx) / 2.0;
       vis_occult
           = Occultation::ComputeOccultation(epoch, rv_tx_gcrf.r(), rv_rx_gcrf.r(), Frame::GCRF,
-                                            Frame::GCRF, occult_bodies_, occult_alt_);
+                                            Frame::GCRF, occult_bodies_, occult_alt_, elev_masks_, use_elev_mask_tx_, use_elev_mask_rx_);
       vis_all = vis_occult["all"];
     }
 

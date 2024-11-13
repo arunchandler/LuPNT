@@ -135,9 +135,12 @@ int main() {
 
   // Occultations
   std::vector<NaifId> occult_bodies = {NaifId::MOON};
-  VecXd occult_alt(1);
+  VecXd occult_alt(1), elev_masks(1);
   occult_alt << 100.0;         // occultation altitude [km]
+  elev_masks << 10.0 * RAD;    // elevation mask [rad]
   Real hardware_delay = 1e-8;  // hardware delay [s]
+  bool use_elev_mask_tx = false;  // do not use elevation masks for satellites
+  bool use_elev_mask_rx = false;
 
   // Estimation
   int state_size = 8;           // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
@@ -283,7 +286,9 @@ int main() {
   for (int i = 0; i < nsat; i++) {
     for (int j = i + 1; j < nsat; j++) {
       sat_pairs_idx.push_back(std::make_pair(i, j));
-      Ptr<LinkMeasurement> link_meas = MakePtr<LinkMeasurement>(occult_bodies, occult_alt, hardware_delay);
+      Ptr<LinkMeasurement> link_meas 
+      = MakePtr<LinkMeasurement>(occult_bodies, occult_alt, elev_masks,
+                                 use_elev_mask_tx, use_elev_mask_rx, hardware_delay);
       if (use_fixed_error) {
         link_meas->UseFixedError();
         link_meas->SetFixedRangeError(range_sigma_fixed);

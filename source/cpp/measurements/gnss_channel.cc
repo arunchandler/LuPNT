@@ -63,7 +63,7 @@ namespace lupnt {
       std::string tx_planet = "";
       std::map<std::string, bool> vis = Occultation::ComputeOccultationGnss(
           rv_tx_gcrf.r().cast<double>(), rv_tx_mi.r().cast<double>(), rv_rx_gcrf.r().cast<double>(),
-          rv_rx_mi.r().cast<double>(), tx_planet);
+          rv_rx_mi.r().cast<double>(), tx_planet, 10.0 * RAD);
 
       if (vis["EARTH"] || vis["MOON"]) continue;  // quit if occulted
 

@@ -76,6 +76,9 @@ namespace lupnt {
     // Occultation bodies
     std::vector<NaifId> occult_bodies_;
     VecXd occult_alt_;
+    bool use_elev_mask_tx_=false;
+    bool use_elev_mask_rx_=false;
+    VecXd elev_masks_;
 
     // Use Fixed error for the measurements
     bool use_fixed_error_ = false;
@@ -99,7 +102,9 @@ namespace lupnt {
      * @param hardware_delay  hardware delay
      * @param link_type  link type  (e.g. "one-way", "two-way", "dual-one-way")
      */
-    LinkMeasurement(std::vector<NaifId> occult_bodies, VecXd occult_alt, Real hardware_delay);
+    LinkMeasurement(std::vector<NaifId> occult_bodies, VecXd occult_alt,
+                    VecXd elev_masks, bool use_elev_mask_tx, bool use_elev_mask_rx,
+                    Real hardware_delay);
 
     /********************** Utils  *********************************/
     void SetLinkParams();

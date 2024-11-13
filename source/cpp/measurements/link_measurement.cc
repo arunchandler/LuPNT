@@ -19,8 +19,12 @@
 namespace lupnt {
 
   LinkMeasurement::LinkMeasurement(std::vector<NaifId> occult_bodies, VecXd occult_alt,
+                                   VecXd elev_masks, bool use_elev_mask_tx, bool use_elev_mask_rx,
                                    Real hardware_delay)
-      : occult_bodies_(occult_bodies), occult_alt_(occult_alt), hardware_delay_(hardware_delay) {}
+      : occult_bodies_(occult_bodies), occult_alt_(occult_alt), 
+        elev_masks_(elev_masks), use_elev_mask_tx_(use_elev_mask_tx),
+        use_elev_mask_rx_(use_elev_mask_rx),
+        hardware_delay_(hardware_delay) {}
 
   void LinkMeasurement::SetLinkParams() {
     ITransmission trans, trans_u;
@@ -58,9 +62,10 @@ namespace lupnt {
   void LinkMeasurement::GenerateOneWayLink(Real epoch_local, std::shared_ptr<Transmitter> &tx,
                                            std::shared_ptr<Receiver> &rx, std::string txrx) {
     SpaceChannel sc = SpaceChannel();
-    sc.SetOccultationBodies(occult_bodies_, occult_alt_);
+    sc.SetOccultationBodies(occult_bodies_, occult_alt_);  // set occultation bodies
+    sc.SetElevationMask(use_elev_mask_tx_, use_elev_mask_rx_, elev_masks_);  // set elevation mask
     Real t_tx_d, t_rx_d;
-    
+
     bool compute_cn0 = true;
     if (use_fixed_error_) {
       compute_cn0 = false;
@@ -324,7 +329,8 @@ namespace lupnt {
                                            std::shared_ptr<Transponder> &tr_target,
                                            std::string txrx) {
     SpaceChannel sc = SpaceChannel();
-    sc.SetOccultationBodies(occult_bodies_, occult_alt_);
+    sc.SetOccultationBodies(occult_bodies_, occult_alt_);  // set occultation bodies
+    sc.SetElevationMask(use_elev_mask_tx_, use_elev_mask_rx_, elev_masks_);  // set elevation mask
 
     Real t_tx_u, t_rx_u, t_tx_d, t_rx_d;
     ITransmission trans_d, trans_u;

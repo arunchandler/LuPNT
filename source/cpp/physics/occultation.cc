@@ -22,7 +22,8 @@ namespace lupnt {
                                                                   const Vec3d tx_mci,
                                                                   const Vec3d rx_eci,
                                                                   const Vec3d rx_mci,
-                                                                  const std::string tx_planet) {
+                                                                  const std::string tx_planet,
+                                                                  const double min_elevation = 10.0 * RAD) {
     Vec3d tx2usr = rx_eci - tx_eci;
     double tx2usr_norm = tx2usr.norm();
 
@@ -46,7 +47,7 @@ namespace lupnt {
       occ_atmos = ((alpha_earth < beta_atmos) && (tx2usr_norm > tx2earth_norm * cos(beta_atmos)));
       occ_ionos = ((alpha_earth < beta_ionos) && (tx2usr_norm > tx2earth_norm * cos(beta_ionos)));
     } else {
-      occ_earth = (alpha_earth < (PI / 2.0 + min_elevation_));
+      occ_earth = (alpha_earth < (PI / 2.0 + min_elevation));
       occ_atmos = true;
       occ_ionos = true;
     }
@@ -66,7 +67,7 @@ namespace lupnt {
       // Compute occultation (alpha_moon < beta and tx2usr_norm > tx2hor_norm)
       occ_moon = ((alpha_moon < beta_moon) && (tx2usr_norm > tx2moon_norm * cos(beta_moon)));
     } else {
-      occ_moon = (alpha_moon < (PI / 2.0 + min_elevation_));
+      occ_moon = (alpha_moon < (PI / 2.0 + min_elevation));
     }
 
     return {{"earth", occ_earth}, {"atmos", occ_atmos}, {"ionos", occ_ionos}, {"moon", occ_moon}};
@@ -77,7 +78,10 @@ namespace lupnt {
   std::map<std::string, bool> Occultation::ComputeOccultation(Real epoch, const Vec3& r1,
                                                               const Vec3& r2, Frame cs1, Frame cs2,
                                                               const std::vector<NaifId>& bodies,
-                                                              const VecXd& atm_h) {
+                                                              const VecXd& atm_h, 
+                                                              const VecXd& min_elevation,
+                                                              const bool use_elev_mask1 = false, 
+                                                              const bool use_elev_mask2 = false) {
     // Check if the input vectors have the same size
     assert(bodies.size() == atm_h.size() && "bodies and atm_h must have the same size");
 
@@ -99,18 +103,37 @@ namespace lupnt {
       Vec3d r1b = (rb - r1_icrf).cast<double>();       // 1->body
       Vec3d r2b = (rb - r2_icrf).cast<double>();       // 2->body
 
-      // If the transmitter or receiver is inside the atmosphere, ignore
-      // ocuultation computation (Likely they are ground users)
-      if ((r1b.norm() < atm_h(i)) || (r2b.norm() < atm_h(i))) {
-        vis[bodydata.name] = true;
-        continue;
-      }
+      // If the transmitter or receiver is inside the atmosphere, continue to elevation mask check
+      // (Likely they are ground users)
 
       // Compute angle between (tx->Body center) and (tx->rx)
       double r1b_norm = r1b.norm();
       double r12_norm = r12.norm();
-
       double alpha_body = acos(r12.dot(r1b) / (r1b_norm * r12_norm));
+
+      // Agent 1 or Agent 2 is ground user
+      if ((r1b.norm() < atm_h(i)) || (r2b.norm() < atm_h(i))) {
+        vis[bodydata.name] = true;
+
+        // Case 1: Agent 1 is ground user
+        if ((use_elev_mask1) && (r1b.norm() < atm_h(i))) {  
+            // Angle between body->1->2
+            if ((alpha_body - PI / 2.0) < min_elevation[i]) {
+              vis[bodydata.name] = false;
+            }
+        }
+        // Case 2: Agent 2 is ground user
+        else if ((use_elev_mask2) && (r2b.norm() < atm_h(i))) {  
+          // Angle between body->2->1
+          double b21 = acos(r2b.dot(-r12) / (r2b.norm() * r12.norm()));
+          if ((alpha_body - PI / 2.0) < min_elevation[i]) {
+            vis[bodydata.name] = false;
+          }
+        }
+
+        // Then, skip the rest of the occultation check for this body
+        continue;
+      } 
 
       // Compute angle between (tx>Body center) and (tx->horizon)
       double R_body = GetBodyRadius(bodies[i]) + atm_h(i);
@@ -132,7 +155,8 @@ namespace lupnt {
   // MatX = func(real, Mat<-1, 3>, Mat<-1, 3>)
   std::vector<std::map<std::string, bool>> Occultation::ComputeOccultation(
       Real epoch, const Mat<-1, 3>& r1, const Mat<-1, 3>& r2, Frame cs1, Frame cs2,
-      const std::vector<NaifId>& bodies, const VecXd& atm_h) {
+      const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elev,
+      const bool use_elev_mask1=false, const bool use_elev_mask2=false) {
     assert((r1.rows() == r2.rows() || r1.rows() == 1 || r2.rows() == 1) &&
          "r1 and r2 must have the same number of rows or one of them must have "
          "only one row");
@@ -141,14 +165,15 @@ namespace lupnt {
     for (int i = 0; i < std::max(r1.rows(), r2.rows()); i++) {
       Vec3 r1_vec = r1.rows() == 1 ? r1.row(0) : r1.row(i);
       Vec3 r2_vec = r2.rows() == 1 ? r2.row(0) : r2.row(i);
-      vis.push_back(ComputeOccultation(epoch, r1_vec, r2_vec, cs1, cs2, bodies, atm_h));
+      vis.push_back(ComputeOccultation(epoch, r1_vec, r2_vec, cs1, cs2, bodies, atm_h, min_elev, use_elev_mask1, use_elev_mask2));
     }
     return vis;
   }
 
   std::vector<std::map<std::string, bool>> Occultation::ComputeOccultation(
       const VecX& epoch, const Mat<-1, 3>& r1, const Mat<-1, 3>& r2, Frame cs1, Frame cs2,
-      const std::vector<NaifId>& bodies, const VecXd& atm_h) {
+      const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elev,
+      const bool use_elev_mask1=false, const bool use_elev_mask2=false) {
     assert((epoch.size() == r1.rows() || r1.rows() == 1)
            && "epoch and r1 must have the same size or r1 must have only one row");
     assert((epoch.size() == r2.rows() || r2.rows() == 1)
@@ -157,7 +182,7 @@ namespace lupnt {
     for (int i = 0; i < epoch.size(); i++) {
       Vec3 r1_vec = r1.rows() == 1 ? r1.row(0) : r1.row(i);
       Vec3 r2_vec = r2.rows() == 1 ? r2.row(0) : r2.row(i);
-      vis.push_back(ComputeOccultation(epoch(i), r1_vec, r2_vec, cs1, cs2, bodies, atm_h));
+      vis.push_back(ComputeOccultation(epoch(i), r1_vec, r2_vec, cs1, cs2, bodies, atm_h, min_elev, use_elev_mask1, use_elev_mask2));
     }
     return vis;
   }
