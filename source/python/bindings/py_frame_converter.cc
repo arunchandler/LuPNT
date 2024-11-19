@@ -114,4 +114,12 @@ void init_frame_converter(py::module &m) {
       },
       "Convert frame", py::arg("t_tai"), py::arg("r_in"), py::arg("frame_in"), py::arg("frame_out"),
       py::arg("rotate_only") = false);
+  m.def(
+      "get_lunar_orientation_angles",
+      [](double t_tai) -> Vec6d {
+        Real t_tai_ = Real(t_tai);
+        Vec6 angles = GetLunarMantleData(t_tai_);   
+        return angles.cast<double>();
+      },
+      "Get lunar mantle rotation angles", py::arg("t_tai"));
 }

@@ -9,6 +9,7 @@ try:
     # Order matters
     from ._pylupnt import *
     from . import plot
+    from . import ephemeris
 
 except ImportError as e:
     # this was installed with as a python wheel
@@ -20,3 +21,4 @@ except ImportError as e:
     # Order matters
     from _pylupnt import *
     import plot
+    import ephemeris

@@ -214,6 +214,15 @@ void init_dynamics(py::module &m) {
       .value("RKF45", IntegratorType::RKF45)
       .export_values();
 
+  // IntegratorParams
+  py::class_<IntegratorParams>(m, "IntegratorParams")
+      .def(py::init<>())
+      .def(py::init<int, double, double>(), py::arg("max_iter") = 20, py::arg("abstol") = 1e-6,
+           py::arg("reltol") = 1e-6)
+      .def_readwrite("max_iter", &IntegratorParams::max_iter)
+      .def_readwrite("abstol", &IntegratorParams::abstol)
+      .def_readwrite("reltol", &IntegratorParams::reltol);
+
   // IDynamics
   py::class_<IDynamics, PyIDyn<>>(m, "IDynamics");
 
@@ -240,7 +249,11 @@ void init_dynamics(py::module &m) {
              });
            })
       .def("get_time_step", [](NumericalOrbitDynamics &dyn) { return dyn.GetTimeStep().val(); })
-      .def("set_time_step", [](NumericalOrbitDynamics &dyn, double dt) { dyn.SetTimeStep(dt); });
+      .def("set_time_step", [](NumericalOrbitDynamics &dyn, double dt) { dyn.SetTimeStep(dt); })
+      .def("set_integrator_params",
+           [](NumericalOrbitDynamics &dyn, IntegratorParams params) {
+             dyn.SetIntegratorParams(params);
+           });
 
   // CartesianTwoBodyDynamics
   py::class_<CartesianTwoBodyDynamics, NumericalOrbitDynamics,
