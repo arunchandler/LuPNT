@@ -9,7 +9,7 @@
  * 
  */
 
-#include "lupnt/agents/state_estimation_app.h"
+#include "lupnt/apps/state_estimation_app.h"
 
 namespace lupnt {
 

@@ -2,9 +2,11 @@
 
 // agents
 #include "lupnt/agents/agent.h"
-#include "lupnt/agents/application.h"
 #include "lupnt/agents/gnss_constellation.h"
-#include "lupnt/agents/state_estimation_app.h"
+
+// apps
+#include "lupnt/apps/application.h"
+#include "lupnt/apps/state_estimation_app.h"
 
 // core
 #include "lupnt/core/constants.h"
