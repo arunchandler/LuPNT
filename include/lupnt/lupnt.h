@@ -3,6 +3,7 @@
 // agents
 #include "lupnt/agents/agent.h"
 #include "lupnt/agents/gnss_constellation.h"
+#include "lupnt/agents/ground_station.h"
 #include "lupnt/agents/rover.h"
 #include "lupnt/agents/spacecraft.h"
 

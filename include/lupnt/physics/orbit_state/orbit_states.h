@@ -68,6 +68,7 @@ namespace lupnt {
     std::array<const char *, 6> GetUnits() const;
     StateType GetStateType() const override;
     OrbitStateRepres GetOrbitStateRepres() const;
+    OrbitState CreateCopyWithValue(const Vec6 &x) const;
 
     void SetOrbitStateRepres(const OrbitStateRepres rep);
     void SetCoordSystem(Frame frame);

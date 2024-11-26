@@ -282,4 +282,24 @@ namespace lupnt {
     void SetUseDrag(bool use_drag) { use_drag_ = use_drag; }
   };
 
+  // ****************************************************************************
+  // Dynamics for Surface Objects (ground stations, rovers, etc.)
+  // ****************************************************************************
+  class SurfaceStaticDynamics : public IAnalyticalOrbitDynamics {
+  private:
+    NaifId body_id_;
+    Frame dynamics_frame_ = Frame::NONE;
+    Frame state_frame_ = Frame::NONE;    // Frame of the state inputs
+
+  public:
+    SurfaceStaticDynamics(const NaifId body_id, const Frame state_frame); 
+
+    Vec6 Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm = nullptr) override;
+    OrbitState PropagateState(const OrbitState &state, Real t0, Real tf,
+                              Mat6d *stm = nullptr) override;
+    void SetStateFrame(Frame frame) { state_frame_ = frame; }
+    void GetStateFrame(Frame &frame) { frame = state_frame_; }
+  };
+
+
 }  // namespace lupnt
