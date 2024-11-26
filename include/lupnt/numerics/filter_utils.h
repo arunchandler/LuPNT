@@ -14,7 +14,7 @@
 #include "lupnt/core/constants.h"
 #include "lupnt/numerics/filters.h"
 #include "lupnt/physics/clock.h"
-#include "lupnt/agents/agent.h"
+#include "lupnt/agents/spacecraft.h"
 
 namespace lupnt {
 
