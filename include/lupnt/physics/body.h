@@ -25,6 +25,7 @@ namespace lupnt {
     Real R;
     Frame fixed_frame;
     Frame inertial_frame;
+    Real flattening;
   };
 
   template <typename T = double> struct GravityField {
@@ -66,6 +67,8 @@ namespace lupnt {
 
   BodyData GetBodyData(NaifId id);
   double GetBodyRadius(NaifId body);
+  double GetBodyGM(NaifId body);
+  double GetBodyFlattening(NaifId body);
   std::string GetBodyName(NaifId body);
   Frame GetInertialFrameName(NaifId body);
   Frame GetBodyFixedFrameName(NaifId body);

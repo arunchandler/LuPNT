@@ -123,15 +123,30 @@ namespace lupnt {
   static constexpr double OMEGA_EARTH_MOON = 2.6617e-6;             // [rad/s]
   static constexpr double D_MOON_EMB = D_EARTH_MOON - D_EARTH_EMB;  // [km]
 
+  // Flattening 
   static constexpr double WGS84_A = 6378.137;             // [km]
   static constexpr double WGS84_F = 1.0 / 298.257223563;  // [-]
 
+  static constexpr double SUN_F = 0.0000;   // [-]
+  static constexpr double EARTH_F = WGS84_F;  // [-]
+  static constexpr double MOON_F = 0.0012;  // [-]
+  static constexpr double MERCURY_F = 	0.0009;    // [-]
+  static constexpr double VENUS_F = 0.0000;  // [-]
+  static constexpr double MARS_F = 1.0 / 169.8;  // [-]
+  static constexpr double JUPITER_F =  0.06487; // [-]
+  static constexpr double SATURN_F = 0.09796;  // [-]
+  static constexpr double URANUS_F = 0.02293;  // [-] 
+  static constexpr double NEPUTUNE_F = 0.01708;  // [-]
+
+  // Spherical harmonics
   static constexpr double J2_EARTH = 1.08262668e-3;
   // static constexpr double J2_MOON = 9.08901807506000e-5;
   static constexpr double J2_MOON
       = 9.094278450270e-5;  // Zonal value adjusted for permanent tide - Rigid J2
   static constexpr double C22_MOON
       = 3.470983013194e-5;  // Sectorial value adjusted for perm. tide - Rigid C22
+  static constexpr double J2_MARS = 1.96045e-3; // J2 value for Mars
+  
 
   // Transformations Between GCRF and Mean Equator and Equinox at J2000
   static constexpr double FRAME_BIAS_XI0 = -8.0561e-8;     // [rad]
