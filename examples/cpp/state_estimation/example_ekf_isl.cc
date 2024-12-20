@@ -10,6 +10,7 @@
  */
 
 #include <lupnt/lupnt.h>
+
 #include <highfive/H5Easy.hpp>
 
 using namespace lupnt;
@@ -27,7 +28,6 @@ public:
 };
 
 class ISLReceiver : public Receiver {
-
 public:
   double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override {
     return 0.0;
@@ -35,7 +35,7 @@ public:
 };
 
 Ptr<ISLTransmitter> CreateISLTransmitter() {
-  Ptr<ISLTransmitter> transmitter =  MakePtr<ISLTransmitter>();
+  Ptr<ISLTransmitter> transmitter = MakePtr<ISLTransmitter>();
   transmitter->P_tx = 10.0;       // Transmit power [dBW]
   transmitter->freq_tx = 26.5e9;  // Transmit frequency [Hz]
 
@@ -44,17 +44,17 @@ Ptr<ISLTransmitter> CreateISLTransmitter() {
 
 Ptr<ISLReceiver> CreateISLReceiver() {
   Ptr<ISLReceiver> receiver = MakePtr<ISLReceiver>();
-  receiver->rx_param_.B_L_chip = 0.1;             // tracking loop noise bandwidth [Hz]
-  receiver->rx_param_.Tc = 1 / 2.068e6;           // chip duration
-  receiver->rx_param_.B_L_carrier = 0.1;          // carrier loop noise bandwidth [Hz]
-  receiver->rx_param_.m_R = 0.0;                  // modulation index
-  receiver->rx_param_.T_I_doppler = 10.0;         // Doppler integration time [s]
-  receiver->rx_param_.T_I_range = 0.5;            // range integration time [s] (for open loop)
+  receiver->rx_param_.B_L_chip = 0.1;      // tracking loop noise bandwidth [Hz]
+  receiver->rx_param_.Tc = 1 / 2.068e6;    // chip duration
+  receiver->rx_param_.B_L_carrier = 0.1;   // carrier loop noise bandwidth [Hz]
+  receiver->rx_param_.m_R = 0.0;           // modulation index
+  receiver->rx_param_.T_I_doppler = 10.0;  // Doppler integration time [s]
+  receiver->rx_param_.T_I_range = 0.5;     // range integration time [s] (for open loop)
 
   return receiver;
 }
 
-Ptr<Spacecraft>  SetISLTransponder(Ptr<Spacecraft> sat) {
+Ptr<Spacecraft> SetISLTransponder(Ptr<Spacecraft> sat) {
   Ptr<ISLTransmitter> transmitter = CreateISLTransmitter();
   Ptr<ISLReceiver> receiver = CreateISLReceiver();
   Ptr<Transponder> transponder = MakePtr<Transponder>(transmitter, receiver);
@@ -68,16 +68,16 @@ void PrintEKFProgressPVCVis(double t, const VecXd& est_err, int n_sat, std::vect
   std::cout.precision(5);
   std::cout << std::left << std::setw(12) << t / 60 << " ";
   // for each satellite
-  for (int i = 0; i < n_sat; i++){
-    std::cout << std::left << std::setw(12) << est_err(i*4) << "  " << std::left << std::setw(14) << est_err(i*4+1) << "   " << std::left << std::setw(16) << est_err(i*4+2) << "  | ";
+  for (int i = 0; i < n_sat; i++) {
+    std::cout << std::left << std::setw(12) << est_err(i * 4) << "  " << std::left << std::setw(14)
+              << est_err(i * 4 + 1) << "   " << std::left << std::setw(16) << est_err(i * 4 + 2)
+              << "  | ";
   }
-  for (int j = 0; j < vis_isl.size(); j++){
+  for (int j = 0; j < vis_isl.size(); j++) {
     std::cout << std::left << std::setw(1) << int(vis_isl[j]) << "/";
   }
   std::cout << std::endl;
-
 };
-
 
 int main() {
   /**********************************************
@@ -86,7 +86,7 @@ int main() {
   // Time
   Real epoch0 = spice::String2TAI("2035/02/01 00:00:00.000 UTC");
   double t0 = epoch0.val();
-  double dt = 1.0;  // Integration time step [s]
+  double dt = 1.0;   // Integration time step [s]
   double Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 60.0;
   double save_every = Dt;
@@ -136,9 +136,9 @@ int main() {
   // Occultations
   std::vector<NaifId> occult_bodies = {NaifId::MOON};
   VecXd occult_alt(1), elev_masks(1);
-  occult_alt << 100.0;         // occultation altitude [km]
-  elev_masks << 10.0 * RAD;    // elevation mask [rad]
-  Real hardware_delay = 1e-8;  // hardware delay [s]
+  occult_alt << 100.0;            // occultation altitude [km]
+  elev_masks << 10.0 * RAD;       // elevation mask [rad]
+  Real hardware_delay = 1e-8;     // hardware delay [s]
   bool use_elev_mask_tx = false;  // do not use elevation masks for satellites
   bool use_elev_mask_rx = false;
 
@@ -286,9 +286,9 @@ int main() {
   for (int i = 0; i < nsat; i++) {
     for (int j = i + 1; j < nsat; j++) {
       sat_pairs_idx.push_back(std::make_pair(i, j));
-      Ptr<LinkMeasurement> link_meas 
-      = MakePtr<LinkMeasurement>(occult_bodies, occult_alt, elev_masks,
-                                 use_elev_mask_tx, use_elev_mask_rx, hardware_delay);
+      Ptr<LinkMeasurement> link_meas
+          = MakePtr<LinkMeasurement>(occult_bodies, occult_alt, elev_masks, use_elev_mask_tx,
+                                     use_elev_mask_rx, hardware_delay);
       if (use_fixed_error) {
         link_meas->UseFixedError();
         link_meas->SetFixedRangeError(range_sigma_fixed);
@@ -301,7 +301,6 @@ int main() {
   FilterMeasurementFunction meas_func
       = [link_meas_vec, sat_pairs_idx, state_size, meas_types, moon_sats](
             const VecX x, MatXd& H_stack, MatXd& R) -> VecX {
-
     VecX z_stack = VecX::Zero(0);
     VecX zi = VecX::Zero(0);
     VecXd noise_std_stack = VecXd::Zero(0);
@@ -317,7 +316,6 @@ int main() {
 
     // Iterate over all ISL pairs
     for (int i = 0; i < sat_pairs_idx.size(); i++) {
-
       if (!link_meas_vec[i]->IsTwoWayVisible()) {
         continue;
       }
@@ -336,16 +334,18 @@ int main() {
 
       bool with_noise = false;
       bool with_jac = true;
-      zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(link_meas_vec[i]->GetRecordedEpochRx(), epoch_ref, sat_rx.head(6), sat_target.head(6),
-                                                      sat_rx.tail(2), sat_target.tail(2),
-                                                      Htmp, hardware_delay, meas_types, with_noise, with_jac);
+      zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(
+          link_meas_vec[i]->GetRecordedEpochRx(), epoch_ref, sat_rx.head(6), sat_target.head(6),
+          sat_rx.tail(2), sat_target.tail(2), Htmp, hardware_delay, meas_types, with_noise,
+          with_jac);
 
       // column index for target and receiver satellite
       int col_idx_target = sat_target_idx * state_size;
       int col_idx_rx = sat_rx_idx * state_size;
-      H = MatXd::Zero(mtot, state_size*nsat);
-      H.block(0, col_idx_target, mtot, state_size) = Htmp.block(0, 0, mtot, 8);  // first 8 columns -> target
-      H.block(0, col_idx_rx, mtot, state_size) = Htmp.block(0, 8, mtot, 8);      // last 8 columns -> rx
+      H = MatXd::Zero(mtot, state_size * nsat);
+      H.block(0, col_idx_target, mtot, state_size)
+          = Htmp.block(0, 0, mtot, 8);  // first 8 columns -> target
+      H.block(0, col_idx_rx, mtot, state_size) = Htmp.block(0, 8, mtot, 8);  // last 8 columns -> rx
 
       // Get the Measurement Noise
       VecXd noise_std_vec = link_meas_vec[i]->GetTwoWayLinkNoise(meas_types);
@@ -360,7 +360,7 @@ int main() {
 
     // Store the values in the output variables
     z_stack = VecX::Zero(n_meas);
-    H_stack = MatXd::Zero(n_meas, state_size*nsat);
+    H_stack = MatXd::Zero(n_meas, state_size * nsat);
     R = MatXd::Zero(n_meas, n_meas);
 
     // std::cout << "z_stack_vec size: " << z_stack_vec.size() << std::endl;
@@ -371,7 +371,7 @@ int main() {
     int cur_idx = 0;
     for (int i = 0; i < z_stack_vec.size(); i++) {
       z_stack.segment(cur_idx, nmeas_per_link) = z_stack_vec[i];
-      H_stack.block(cur_idx, 0, nmeas_per_link, state_size*nsat) = H_stack_vec[i];
+      H_stack.block(cur_idx, 0, nmeas_per_link, state_size * nsat) = H_stack_vec[i];
       R.diagonal().segment(cur_idx, nmeas_per_link) = noise_std_stack_vec[i].array().square();
       cur_idx += nmeas_per_link;
     }
@@ -382,8 +382,8 @@ int main() {
   };
 
   /*************************************
-  * EKF Setup
-  * ***********************************/
+   * EKF Setup
+   * ***********************************/
   EKF ekf;
   ekf.SetDynamicsFunction(joint_dynamics);
   ekf.SetMeasurementFunction(meas_func);
@@ -391,7 +391,7 @@ int main() {
   std::cout << "Initialized EKF" << std::endl;
 
   // Storage
-  MatXd error_mat(4*nsat, time_step_num);
+  MatXd error_mat(4 * nsat, time_step_num);
   VecXd num_meas(time_step_num);
 
   // Initilization
@@ -429,7 +429,7 @@ int main() {
   PrintEKFProgressPVC(0, est_err, nsat);
   error_mat.col(time_index) = est_err;
 
-  for (t=t0; t<tf; t += Dt) {
+  for (t = t0; t < tf; t += Dt) {
     time_index += 1;
     epoch += Dt;
     epoch_rx = epoch;
@@ -460,8 +460,7 @@ int main() {
         n_meas += 1;
         n_meas_total += z_true_i.size();
         vis_isl.push_back(true);
-      }
-      else {
+      } else {
         vis_isl.push_back(false);
       }
     }
@@ -484,10 +483,9 @@ int main() {
     error_mat.col(time_index) = est_err;
 
     if (fmod(time_index, print_every) < 1e-3) {
-      PrintEKFProgressPVCVis((t-t0).val(), est_err, nsat, vis_isl);
+      PrintEKFProgressPVCVis((t - t0).val(), est_err, nsat, vis_isl);
     }
   }
 
   PrintEstimationStatistics(num_meas, error_mat, 0.3, nsat);  // use last 30%
-
 }

@@ -92,7 +92,6 @@ namespace lupnt {
     Receiver() { txrx = "rx"; };
     virtual ~Receiver() = default;
 
-
     virtual double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) = 0;
     inline void SetAntennaOrientation(Vec3 orientation) { antenna_orientation_body = orientation; };
   };
@@ -114,7 +113,6 @@ namespace lupnt {
       SetTxRx("txrx");
     };
     virtual ~Transponder() = default;
-
 
     inline void SetTransmitter(const Ptr<Transmitter> &tx) { tx_ = tx; };
     inline void SetReceiver(const Ptr<Receiver> &rx) { rx_ = rx; };

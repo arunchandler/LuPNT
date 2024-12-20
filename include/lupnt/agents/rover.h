@@ -4,9 +4,9 @@
  * @brief  Rover Agent
  * @version 0.1
  * @date 2024-11-26
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
 #pragma once
@@ -22,4 +22,4 @@ namespace lupnt {
   public:
     Rover() : Agent() { SetIsBodyFixed(true); };
   };
-} // namespace lupnt
+}  // namespace lupnt

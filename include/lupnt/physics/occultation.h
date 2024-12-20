@@ -38,12 +38,9 @@ namespace lupnt {
      * @param tx_planet    The planet surface the transmitter is on
      * @return std::map<std::string, bool>
      */
-    static std::map<std::string, bool> ComputeOccultationGnss(const Vec3d tx_eci,
-                                                              const Vec3d tx_mci,
-                                                              const Vec3d rx_eci,
-                                                              const Vec3d rx_mci,
-                                                              const std::string tx_planet, 
-                                                              const double min_elevation);
+    static std::map<std::string, bool> ComputeOccultationGnss(
+        const Vec3d tx_eci, const Vec3d tx_mci, const Vec3d rx_eci, const Vec3d rx_mci,
+        const std::string tx_planet, const double min_elevation);
 
     /**
      * @brief Compute occultation between a tx and a rx for a list of planets
@@ -61,12 +58,10 @@ namespace lupnt {
      * @return std::map<string, bool>  A map of the planets and their occultation,
      * ["all"] is the total occultation
      */
-    static std::map<std::string, bool> ComputeOccultation(Real epoch, const Vec3& r1,
-                                                          const Vec3& r2, Frame cs1, Frame cs2,
-                                                          const std::vector<NaifId>& bodies,
-                                                          const VecXd& atm_h, const VecXd& min_elevation, 
-                                                          const bool use_elev_mask1, 
-                                                          const bool use_elev_mask2);
+    static std::map<std::string, bool> ComputeOccultation(
+        Real epoch, const Vec3& r1, const Vec3& r2, Frame cs1, Frame cs2,
+        const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elevation,
+        const bool use_elev_mask1, const bool use_elev_mask2);
 
     /**
      * @brief  Compute occultation between a tx and a rx for a list of planets

@@ -49,7 +49,8 @@ namespace lupnt {
     return xf;
   }
 
-  VecX Agent::PropagateRvState(const Real epoch0, const Vec6& x0, const Real epoch, Frame inout_frame) {
+  VecX Agent::PropagateRvState(const Real epoch0, const Vec6& x0, const Real epoch,
+                               Frame inout_frame) {
     // Conver the state from GCRF to dynamics frame
     Vec6 x_new = ConvertFrame(epoch0, x0, inout_frame, dynamics_frame_, false);
 

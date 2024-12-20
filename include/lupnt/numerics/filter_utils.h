@@ -11,10 +11,10 @@
 
 #pragma once
 
+#include "lupnt/agents/spacecraft.h"
 #include "lupnt/core/constants.h"
 #include "lupnt/numerics/filters.h"
 #include "lupnt/physics/clock.h"
-#include "lupnt/agents/spacecraft.h"
 
 namespace lupnt {
 
@@ -49,8 +49,8 @@ namespace lupnt {
    * @param sigma_acc
    * @param n_sat
    */
-  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size, double sigma_acc, int n_sat);
-
+  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
+                                                      double sigma_acc, int n_sat);
 
   /**
    * @brief Print the EKF progress header for the position, velocity, and clock states
@@ -59,12 +59,12 @@ namespace lupnt {
   void PrintEKFProgressHeaderPVC();
 
   /**
-   * @brief Print the EKF progress header for the position, velocity, and clock states for N satellites
+   * @brief Print the EKF progress header for the position, velocity, and clock states for N
+   * satellites
    *
    * @param n_sat  Number of satellites
    */
   void PrintEKFProgressHeaderPVC(int n_sat);
-
 
   /**
    * @brief Construct the true state vector from the spacecraft vector
@@ -73,7 +73,6 @@ namespace lupnt {
    * @return VecX  True state vector (8xN)
    */
   VecX ConstructTrueStateVecFromSats(const std::vector<Ptr<Spacecraft>>& sats);
-
 
   /**
    * @brief Compute the estimation error for the position, velocity, and clock states fpr the filter
@@ -94,8 +93,6 @@ namespace lupnt {
    */
   VecXd ComputeEstimationErrorPVC(const std::vector<Ptr<Spacecraft>>& sats, IFilter* filter);
 
-
-
   /**
    * @brief Print the EKF progress for the position, velocity, and clock states
    *
@@ -105,7 +102,6 @@ namespace lupnt {
    * @param x_clk_bias_err Clock bias error
    */
   void PrintEKFProgressPVC(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err);
-
 
   /**
    * @brief Print the EKF progress for the position, velocity, and clock states for N satellites
@@ -126,8 +122,7 @@ namespace lupnt {
    * @param n_sat     Number of satellites
    *
    */
-  void PrintEstimationStatistics(const VecXd& num_meas, const MatXd& error_mat, double ratio, int n_sat);
-
-
+  void PrintEstimationStatistics(const VecXd& num_meas, const MatXd& error_mat, double ratio,
+                                 int n_sat);
 
 }  // namespace lupnt

@@ -250,10 +250,9 @@ void init_dynamics(py::module &m) {
            })
       .def("get_time_step", [](NumericalOrbitDynamics &dyn) { return dyn.GetTimeStep().val(); })
       .def("set_time_step", [](NumericalOrbitDynamics &dyn, double dt) { dyn.SetTimeStep(dt); })
-      .def("set_integrator_params",
-           [](NumericalOrbitDynamics &dyn, IntegratorParams params) {
-             dyn.SetIntegratorParams(params);
-           });
+      .def("set_integrator_params", [](NumericalOrbitDynamics &dyn, IntegratorParams params) {
+        dyn.SetIntegratorParams(params);
+      });
 
   // CartesianTwoBodyDynamics
   py::class_<CartesianTwoBodyDynamics, NumericalOrbitDynamics,

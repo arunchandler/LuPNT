@@ -47,7 +47,7 @@ namespace lupnt {
   public:
     virtual VecX Step(const ODE& f, Real t, const VecX& x, Real dt) = 0;
     void SetIntegratorParams(IntegratorParams params) { params_ = params; };
-    virtual ~IIntegrator(){};
+    virtual ~IIntegrator() {};
   };
 
   // Runge-Kutta Integrators
@@ -79,7 +79,7 @@ namespace lupnt {
 
   class RKF45 : public IRKF {
   public:
-    RKF45(IntegratorParams params) : IRKF(params, 4){};
+    RKF45(IntegratorParams params) : IRKF(params, 4) {};
     void Update(const ODE& f, Real t, const VecX& x, Real dt, VecX& x_new_low,
                 VecX& x_new_high) override;
   };

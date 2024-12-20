@@ -42,6 +42,7 @@
 #include "lupnt/measurements/gnss_receiver.h"
 #include "lupnt/measurements/gnss_receiver_param.h"
 #include "lupnt/measurements/gnss_transmitter.h"
+#include "lupnt/measurements/groundstation_measurement.h"
 #include "lupnt/measurements/link_measurement.h"
 #include "lupnt/measurements/radio_measurement.h"
 #include "lupnt/measurements/space_channel.h"
@@ -58,6 +59,7 @@
 #include "lupnt/numerics/vector_macros.h"
 
 // physics
+#include "lupnt/physics/atmosphere.h"
 #include "lupnt/physics/attitude_conversions.h"
 #include "lupnt/physics/attitude_state.h"
 #include "lupnt/physics/body.h"

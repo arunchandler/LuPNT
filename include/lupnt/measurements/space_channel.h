@@ -41,8 +41,8 @@ namespace lupnt {
      * @param occult_alt  occultation altitude
      */
     void SetOccultationBodies(std::vector<NaifId> occult_bodies, VecXd occult_alt) {
-        occult_bodies_ = occult_bodies;
-        occult_alt_ = occult_alt;
+      occult_bodies_ = occult_bodies;
+      occult_alt_ = occult_alt;
     }
 
     void SetElevationMask(bool enable_tx, bool enable_rx, VecXd elev_mask_rad) {

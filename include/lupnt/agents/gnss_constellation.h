@@ -14,11 +14,11 @@
 #include <string_view>
 #include <vector>
 
-#include "spacecraft.h"
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/measurements/gnss_channel.h"
 #include "lupnt/measurements/gnss_transmitter.h"
 #include "lupnt/physics/orbit_state.h"
+#include "spacecraft.h"
 
 namespace lupnt {
 

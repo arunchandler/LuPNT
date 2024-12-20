@@ -38,7 +38,7 @@ namespace lupnt {
     int state_types_ = 0;
 
   public:
-    JointState(){
+    JointState() {
       state_vec_value_ = VecX::Zero(0);
       state_vec_size_ = 0;
       state_types_ = 0;
@@ -73,7 +73,6 @@ namespace lupnt {
     void PushBackStateAndDynamics(IState* state, IDynamics* dynamics);
 
     FilterDynamicsFunction GetFilterDynamicsFunction();
-
   };
 
   class StateEstimationApp : public Application {

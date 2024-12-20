@@ -1,16 +1,15 @@
 /**
  * @file spacecraft.cc
  * @author Stanford NAV LAB
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2024-11-26
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
 #include "lupnt/agents/spacecraft.h"
-
 
 namespace lupnt {
   /********************** SpaceCraft  ********************************/
@@ -31,15 +30,12 @@ namespace lupnt {
       Ptr<OrbitState> new_state = MakePtr<OrbitState>(prop_state);
 
       Ptr<CartesianOrbitState> cartOrbitState = std::static_pointer_cast<CartesianOrbitState>(
-          ConvertOrbitStateRepresentation(new_state, OrbitStateRepres::CARTESIAN, GM))
-          ;
+          ConvertOrbitStateRepresentation(new_state, OrbitStateRepres::CARTESIAN, GM));
       return ConvertOrbitStateFrame(*cartOrbitState, epoch, Frame::GCRF);
-    }
-    else {
+    } else {
       // No need to propagate
       Ptr<CartesianOrbitState> cartOrbitState = std::static_pointer_cast<CartesianOrbitState>(
-          ConvertOrbitStateRepresentation(state, OrbitStateRepres::CARTESIAN, GM))
-          ;
+          ConvertOrbitStateRepresentation(state, OrbitStateRepres::CARTESIAN, GM));
       return ConvertOrbitStateFrame(*cartOrbitState, epoch, Frame::GCRF);
     }
   }

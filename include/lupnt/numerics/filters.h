@@ -52,7 +52,6 @@ namespace lupnt {
 
   class IFilter {
   public:
-
     Real t_curr_;  // Current time
     VecX x_;       // Updated state
     MatXd P_;      // Updated state cov
@@ -123,7 +122,7 @@ namespace lupnt {
     VecX z_true_;  // Observed measurement
     VecX z_pred_;  // Predicted measurement
 
-    MatXd Q_;     // Process noise cov
+    MatXd Q_;  // Process noise cov
 
     MatXd H_;  // Measurement matrix
     MatXd S_;  // Innovation cov

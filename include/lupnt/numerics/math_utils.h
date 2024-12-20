@@ -32,7 +32,7 @@ namespace lupnt {
 
   Real AngleBetweenVecs(const VecX& x, const VecX& y);
 
-  double DegMinSecToRad(double degrees, double minutes, double seconds);
+  double DegMinSec2DeciDeg(double degrees, double minutes, double seconds);
 
   Real Wrap2Pi(Real angle);
   Real Wrap2TwoPi(Real angle);
@@ -96,7 +96,5 @@ namespace lupnt {
   Real RatioOfSectorToTriangleArea(Vec3 r1, Vec3 r2, Real tau);
 
   VecX arange(Real start, Real stop, Real step);
-
-
 
 }  // namespace lupnt

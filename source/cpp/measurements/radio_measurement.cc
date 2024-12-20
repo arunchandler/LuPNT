@@ -42,12 +42,13 @@ namespace lupnt {
     return f_D;
   };
 
-  Real ComputeOneWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
-                             const Ptr<Agent> agent_tx, const Ptr<Agent> agent_rx, Real additional_delay, bool use_pure_range=false) {
-
+  Real ComputeOneWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
+                             Vec2 clk_tx, Vec2 clk_rx, const Ptr<Agent> agent_tx,
+                             const Ptr<Agent> agent_rx, Real additional_delay,
+                             bool use_pure_range = false) {
     // solve for tau_d (downlink time)
     int max_iter = 5;
-    Real tau_d = 0.0;   // light time
+    Real tau_d = 0.0;  // light time
     Real tau_d_prev = 0.0;
 
     Vec3 r0_p, rid_p, rho_ad;
@@ -60,8 +61,7 @@ namespace lupnt {
     for (int i = 0; i < max_iter; i++) {
       if (epoch_ref == epoch_rx_local) {
         rx_clk_offset = clk_rx(0);
-      }
-      else {
+      } else {
         rx_clk_offset = agent_rx->PropagateClockState(epoch_ref, clk_rx, epoch_rx_local)(0);
       }
       rx_epoch = epoch_rx_local - rx_clk_offset - additional_delay;
@@ -97,8 +97,7 @@ namespace lupnt {
     Real rho_d = 0.0;
     if (use_pure_range) {
       rho_d = rho_ad_norm;
-    }
-    else {
+    } else {
       rho_d = C * (epoch_rx_local - epoch_tx_local);
     }
 
@@ -106,19 +105,21 @@ namespace lupnt {
   };
 
   Real ComputeTwoWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_target, Vec6 rv_rx,
-                             Vec2 clk_target, Vec2 clk_receiver,
-                             Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay_target,
+                             Vec2 clk_target, Vec2 clk_receiver, Ptr<Agent> agent_target,
+                             Ptr<Agent> agent_receiver, Real hardware_delay_target,
                              Real additional_delay) {
-
     // solve for tau_d (downlink time, target->rx)
-    Real rho_d = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_target, rv_rx, clk_target, clk_receiver,
-                                       agent_target, agent_receiver, additional_delay, true);
+    Real rho_d
+        = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_target, rv_rx, clk_target,
+                                clk_receiver, agent_target, agent_receiver, additional_delay, true);
     Real tau_d = rho_d / C;
 
     // solve for tau_u (uplink time, rx->target)
-    Real delay_uplink = additional_delay + tau_d + hardware_delay_target;  // total delay for uplink w.r.t epoch_rx
-    Real rho_u = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_rx, rv_target, clk_receiver, clk_target,
-                                       agent_receiver, agent_target, delay_uplink, true);
+    Real delay_uplink = additional_delay + tau_d
+                        + hardware_delay_target;  // total delay for uplink w.r.t epoch_rx
+    Real rho_u
+        = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_rx, rv_target, clk_receiver,
+                                clk_target, agent_receiver, agent_target, delay_uplink, true);
     Real tau_u = rho_u / C;
 
     Real rho_ud = C / 2 * (tau_u + tau_d);
@@ -126,8 +127,9 @@ namespace lupnt {
     return rho_ud;
   };
 
-  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr, Vec2 clk_tx, Vec2 clk_rx, 
-                                 Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real additional_delay, double T_I) {
+  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr,
+                                 Vec2 clk_tx, Vec2 clk_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
+                                 Real additional_delay, double T_I) {
     Real rho_d = ComputeOneWayRangeLTR(epoch_rx, epoch_ref, rv_tx_tr, rv_rx_tr, clk_tx, clk_rx,
                                        agent_tx, agent_rx, additional_delay, false);
     Real rho_d_past = ComputeOneWayRangeLTR(epoch_rx, epoch_ref, rv_tx_tr, rv_rx_tr, clk_tx, clk_rx,
@@ -138,12 +140,15 @@ namespace lupnt {
     return rho_dot;
   }
 
-  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr, Vec2 clk_target, Vec2 clk_receiver,
-                                 Ptr<Agent> agent_target, Ptr<Agent> agent_receiver, Real hardware_delay, double T_I) {
-    Real rho_ud = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target, clk_receiver, agent_target, agent_receiver,
-                                        hardware_delay, 0);
-    Real rho_ud_past = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target, clk_receiver, agent_target, agent_receiver,
-                                             hardware_delay, T_I);
+  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr,
+                                 Vec2 clk_target, Vec2 clk_receiver, Ptr<Agent> agent_target,
+                                 Ptr<Agent> agent_receiver, Real hardware_delay, double T_I) {
+    Real rho_ud
+        = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target,
+                                clk_receiver, agent_target, agent_receiver, hardware_delay, 0);
+    Real rho_ud_past
+        = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target,
+                                clk_receiver, agent_target, agent_receiver, hardware_delay, T_I);
 
     Real rho_dot = (rho_ud - rho_ud_past) / T_I;
 

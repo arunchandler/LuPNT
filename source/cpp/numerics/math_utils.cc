@@ -51,9 +51,9 @@ namespace lupnt {
   /// @param minutes Minutes
   /// @param seconds Seconds
   /// @return Angle in radians
-  double DegMinSecToRad(double degrees, double minutes, double seconds) {
-      double decimalDegrees = degrees + minutes / 60.0 + seconds / 3600.0;
-      return decimalDegrees * M_PI / 180.0;
+  double DegMinSec2DeciDeg(double degrees, double minutes, double seconds) {
+    double decimalDegrees = degrees + minutes / 60.0 + seconds / 3600.0;
+    return decimalDegrees;
   }
 
   /// @brief Wrap angle in radians to [-pi, pi]
