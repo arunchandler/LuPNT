@@ -66,6 +66,7 @@ namespace lupnt {
     inline Ptr<Agent> GetAgent() const override { return agent; };
     inline void SetAgent(Ptr<Agent> agent) override { this->agent = agent; };
     inline Ptr<GnssChannel> GetGnssChannel() { return gnss_channel_; };
+    inline Ptr<SpaceChannel> GetChannel() const override { return gnss_channel_; };
     inline void SetChannel(Ptr<SpaceChannel> channel) override {
       gnss_channel_ = std::static_pointer_cast<GnssChannel>(channel);
     };
