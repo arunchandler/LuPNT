@@ -27,7 +27,7 @@ namespace lupnt {
    * @param t_end End time
    * @param Phi STM of the dynamics
    */
-  typedef std::function<VecX(const VecX, Real t_curr, Real t_end, MatXd &)> FilterDynamicsFunction;
+  typedef std::function<VecX(const VecX, Real t_curr, Real t_end, MatXd *F)> FilterDynamicsFunction;
 
   /**
    * @brief Process noise function for the filter
@@ -48,139 +48,25 @@ namespace lupnt {
    * @param R Measurement noise covariance
    *
    */
-  typedef std::function<VecX(const VecX, MatXd &, MatXd &)> FilterMeasurementFunction;
+  typedef std::function<VecX(const VecX x, MatXd *H, MatXd *R)> FilterMeasurementFunction;
 
   class IFilter {
   public:
-
-    Real t_curr_;  // Current time
-    VecX x_;       // Updated state
-    MatXd P_;      // Updated state cov
-    VecX xbar_;    // Predicted state
-    MatXd Pbar_;   // Predicted state cov
-
     virtual ~IFilter() = default;
-    FilterDynamicsFunction dynamics_;
-    FilterProcessNoiseFunction process_noise_;
-    FilterMeasurementFunction measurement_;
 
-    void SetDynamicsFunction(FilterDynamicsFunction dynamics) { dynamics_ = dynamics; }
-    void SetProcessNoiseFunction(FilterProcessNoiseFunction process_noise) {
-      process_noise_ = process_noise;
-    }
-    void SetMeasurementFunction(FilterMeasurementFunction measurement) {
-      measurement_ = measurement;
-    }
+    virtual void SetDynamicsFunction(FilterDynamicsFunction f_dyn) = 0;
+    virtual void SetProcessNoiseFunction(FilterProcessNoiseFunction f_proc) = 0;
+    virtual void SetMeasurementFunction(FilterMeasurementFunction f_meas) = 0;
 
-    VecX GetPredictedStateEstimate(MatXd &Pbar) {
-      Pbar = Pbar_;
-      return xbar_;
-    }
-    VecX GetPredictedStateEstimate() { return xbar_; }
-    VecX GetUpdatedStateEstimate(MatXd &Phat) {
-      Phat = P_;
-      return x_;
-    }
-    VecX GetUpdatedStateEstimate() { return x_; }
-
-    /**
-     * @brief Predict the state to a given time
-     *
-     * @param t_end   end time
-     */
     virtual void Predict(Real t_end) = 0;
-
-    /**
-     * @brief Update the state with a measurement
-     *
-     * @param z_obs   measurement
-     * @param debug   debug flag
-     */
     virtual void Update(VecX z_obs, bool debug = false) = 0;
 
-    /**
-     * @brief Update the state with a measurement
-     *
-     * @param t_end   end time
-     * @param z_obs   measurement obtained at end time
-     * @param debug   debug flag
-     */
-    void Step(Real t_end, VecX z_obs, bool debug) {
-      Predict(t_end);
-      Update(z_obs, debug);
-    }
-  };
-
-  /**
-   * @brief Extended Kalman Filter
-   *
-   */
-  class EKF : public IFilter {
-  public:
-    MatXd Phi_;    // State transition matrix
-    VecX dy_;      // Measurement residual
-    VecX dx_;      // State update
-    VecX z_true_;  // Observed measurement
-    VecX z_pred_;  // Predicted measurement
-
-    MatXd Q_;     // Process noise cov
-
-    MatXd H_;  // Measurement matrix
-    MatXd S_;  // Innovation cov
-    MatXd K_;  // Kalman gain
-    MatXd R_;  // Measurement noise cov
-
-    double outlier_threshold_ = 3.0;
-
-    EKF() {}
-
-    EKF(FilterDynamicsFunction dynamics, FilterProcessNoiseFunction process_noise,
-        FilterMeasurementFunction measurement) {
-      dynamics_ = dynamics;
-      process_noise_ = process_noise;
-      measurement_ = measurement;
-    }
-
-    void Initialize(const double t0, const VecX &x0, const MatXd &P0) {
-      t_curr_ = t0;
-      x_ = x0;
-      P_ = P0;
-    }
-
-    VecX GetMeasurementResidual() { return dy_; }
-    MatX GetKalmanGain() { return K_; }
-    MatX GetMeasurementNoiseCov() { return R_; }
-    MatX GetMeasurementJacobian() { return H_; }
-    int GetMeasurementSize() { return H_.rows(); }
-
-    void SetOutlierThreshold(double outlier_threshold) {
-      assert(outlier_threshold >= 0 && "Outlier threshold must be positive");
-      outlier_threshold_ = outlier_threshold;
-    }
-
-    /**
-     * @brief Remove outliers from the measurement
-     *
-     * @param m   number of measurements
-     * @param debug   debug flag
-     * @return int   number of measurements after removing outliers
-     */
-    int RemoveOutliers(int m, bool debug = false);
-
-    /**
-     * @brief Predict the state to a given time
-     *
-     * @param t_end   end time
-     */
-    void Predict(Real t_end);
-
-    /**
-     * @brief Update the state with a measurement
-     *
-     * @param z_obs   measurement
-     * @param debug   debug flag
-     */
-    void Update(VecX z_obs, bool debug = false);
+    virtual VecX GetSate() = 0;
+    virtual VecX GetSatePrior() = 0;
+    virtual VecX GetStatePost() = 0;
+    virtual MatXd GetCovariance() = 0;
+    virtual MatXd GetCovariancePrior() = 0;
+    virtual MatXd GetCovariancePost() = 0;
   };
 
 }  // namespace lupnt

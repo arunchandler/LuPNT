@@ -64,13 +64,23 @@ def set_view(fig: go.Figure, azimuth: float, elevation: float, zoom: float = 1.0
     )
 
 
+def set_lims(fig: go.Figure, lims: np.ndarray):
+    if not isinstance(lims, np.ndarray):
+        lims = np.array(lims)
+    if lims.ndim == 1:
+        lims = np.tile(lims, (3, 1))
+
+    for i, ax in enumerate(["x", "y", "z"]):
+        fig.layout.scene[f"{ax}axis"].range = lims[i]
+
+
 def set_equal_aspect_ratio(fig: go.Figure):
     lims = np.zeros((3, 2))
     # Iterate over the axis ranges
     for i, ax in enumerate(["x", "y", "z"]):
         lims[i] = fig.layout.scene[f"{ax}axis"].range
     # Get the max range
-    max_range = np.max(lims[:, 1] - lims[:, 0])
+    max_range = np.nanmax(lims[:, 1] - lims[:, 0])
     ratio = (lims[:, 1] - lims[:, 0]) / max_range
     # Set aspect ratio
     fig.update_layout(
@@ -420,7 +430,9 @@ def scatter(
         marker_size (float): marker size
         color (str): marker color
     """
-    if xyz.ndim == 2:
+    if xyz.ndim == 1:
+        xyz = xyz[np.newaxis, np.newaxis, :]
+    elif xyz.ndim == 2:
         xyz = xyz[np.newaxis, :, :]
     xyz = xyz / 10**scale
     N = xyz.shape[0]

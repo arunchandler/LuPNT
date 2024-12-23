@@ -343,7 +343,7 @@ namespace lupnt {
     return C;
   }
 
-  /// @brief Active rotation matrix about the x-axis
+  /// @brief Passive rotation matrix about the x-axis
   /// @param angle Angle in radians
   /// @return Rotation matrix
   template <typename T> Matrix<T, 3, 3> RotX(T angle) {
@@ -359,7 +359,7 @@ namespace lupnt {
   template Mat3d RotX(double angle);
   template Mat3 RotX(Real angle);
 
-  /// @brief Active rotation matrix about the y-axis
+  /// @brief Passive rotation matrix about the y-axis
   /// @param angle Angle in radians
   /// @return Rotation matrix
   template <typename T> Matrix<T, 3, 3> RotY(T angle) {
@@ -375,7 +375,7 @@ namespace lupnt {
   template Mat3d RotY(double angle);
   template Mat3 RotY(Real angle);
 
-  /// @brief Active rotation matrix about the z-axis
+  /// @brief Passive rotation matrix about the z-axis
   /// @param angle Angle in radians
   /// @return Rotation matrix
   template <typename T> Matrix<T, 3, 3> RotZ(T angle) {

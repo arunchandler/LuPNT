@@ -60,6 +60,14 @@ CPMAddPackage(
   OPTIONS "HIGHFIVE_UNIT_TESTS OFF" "HIGHFIVE_EXAMPLES OFF" "HIGHFIVE_BUILD_DOCS OFF"
 )
 
+# EigenRand
+CPMAddPackage(
+  NAME EigenRand
+  GIT_TAG v0.5.1
+  GITHUB_REPOSITORY bab2min/EigenRand
+  OPTIONS "EIGENRAND_BUILD_TEST OFF" "EIGENRAND_BUILD_BENCHMARK OFF"
+)
+
 set_target_properties(cspice PROPERTIES FOLDER thirdparty)
 set_target_properties(matplot PROPERTIES FOLDER thirdparty)
 set_target_properties(nodesoup PROPERTIES FOLDER thirdparty)

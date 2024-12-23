@@ -99,8 +99,9 @@ endfunction(target_link_libraries_system)
 
 # Link dependencies
 target_link_libraries_system(${PROJECT_NAME} Eigen3::Eigen matplot autodiff::autodiff cspice)
-# Link HighFive
 target_link_libraries(${PROJECT_NAME} PUBLIC HighFive)
+
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${EigenRand_INCLUDE_DIRS})
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${OpenMP_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)

@@ -9,13 +9,10 @@
  *
  */
 
+#include "lupnt/numerics/ekf.h"
 #include "lupnt/numerics/filters.h"
 
 namespace lupnt {
-
-  /*****************************************************
-   *   Extended Kalman Filter
-   *****************************************************/
 
   void EKF::Initialize(const double t0, const VecX &x0, const MatXd &P0) {
     t_ = t0;
@@ -26,7 +23,7 @@ namespace lupnt {
   void EKF::Predict(Real t_end) {
     int n = x_.size();
 
-    Q_ = process_noise_(x_, t_, t_end);
+    Q_ = f_pro(x_, t_, t_end);
     x_ = dynamics_(x_, t_, t_end, &Phi_);
 
     P_ = Phi_ * P_ * Phi_.transpose() + Q_;
@@ -45,27 +42,22 @@ namespace lupnt {
    *
    * @param z_true observed measurement
    */
-  void EKF::Update(VecX z_true_in, bool debug) {
-    z_true_ = z_true_in;
+  void EKF::Update(VecX z_true) {
+    z_true_ = z_true;
+    if (z_true_.size() == 0) return;
 
-    int n = x_.size();
-    int m = z_true_.size();
-    if (m == 0) return;  // no measurement, nothing to update
-
-    // allocate memory (without this, VecXd will cause segfault)
-    z_pred_ = measurement_(x_, &H_, &R_);
-
+    z_prior_ = f_meas_(x_, &H_, &R_);
     S_ = R_ + H_ * P_ * H_.transpose();  // Measurement information
-    dy_ = z_true_ - z_pred_;
+    dy_ = z_true_ - z_prior_;
 
-    // Remove outliers
-    // m = RemoveOutliers(m, debug);
-    if (m == 0) return;  // all measurements are outliers
+    // m = RemoveOutliers(m);
+    // if (m == 0) return;
 
     // Update step
     K_ = P_ * H_.transpose() * S_.inverse();  // Kalman gain
     dx_ = K_ * dy_;
     x_ = x_ + dx_;
+    int n = x_.size();
     MatXd I = MatXd::Identity(n, n);
     MatXd G(n, n);
     G = I - K_ * H_;
@@ -79,7 +71,7 @@ namespace lupnt {
    * @param debug   debug flag
    * @return int   number of measurements after removing outliers
    */
-  int EKF::RemoveOutliers(int m_orig, bool debug) {
+  int EKF::RemoveOutliers(int m_orig) {
     std::vector<int> is_outlier(m_orig);
     VecXd ratio(m_orig);
     int n_valid = 0;
@@ -97,19 +89,6 @@ namespace lupnt {
 
     // Remove outliers
     int m = n_valid;
-
-    if (debug) {
-      VecXd S_sqrt = S_.diagonal().array().sqrt();
-      std::cout << "  " << std::endl;
-      std::cout << "Removing " << m_orig - m << "/" << m_orig << " outliers" << std::endl;
-      std::cout << "  ratio: " << ratio.transpose() << std::endl;
-      std::cout << "  dy: " << dy_.transpose() << std::endl;
-      std::cout << "  R: " << R_.diagonal().transpose() << std::endl;
-      std::cout << "  H: " << H_ << std::endl;
-      std::cout << "  P: " << P_.diagonal().transpose() << std::endl;
-      std::cout << "  S: " << S_sqrt.transpose() << std::endl;
-      std::cout << "  " << std::endl;
-    }
 
     if (m == m_orig) {
       return m;  // all measurement valid, nothing to change
@@ -148,29 +127,5 @@ namespace lupnt {
 
     return m;
   }
-
-  /*****************************************************
-   *   EKF Smoother  (Todo)
-   *****************************************************/
-
-  /*****************************************************
-   *   Information Filter  (Todo)
-   *****************************************************/
-
-  /*****************************************************
-   *   Square Root Information Filter  (Todo)
-   *****************************************************/
-
-  /*****************************************************
-   *   Batch Filter  (Todo)
-   *****************************************************/
-
-  /*****************************************************
-   *   Unscented Kalman Filter  (Todo)
-   *****************************************************/
-
-  /*****************************************************
-   *   Particle Filter (Todo)
-   *****************************************************/
 
 }  // namespace lupnt
