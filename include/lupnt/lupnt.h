@@ -37,6 +37,7 @@
 #include "lupnt/measurements/antenna.h"
 #include "lupnt/measurements/comm_device.h"
 #include "lupnt/measurements/comm_utils.h"
+#include "lupnt/measurements/coverage.h"
 #include "lupnt/measurements/gnss_channel.h"
 #include "lupnt/measurements/gnss_measurement.h"
 #include "lupnt/measurements/gnss_receiver.h"
@@ -56,6 +57,7 @@
 #include "lupnt/numerics/interpolation.h"
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/numerics/string_utils.h"
+#include "lupnt/numerics/tensor.h"
 #include "lupnt/numerics/vector_macros.h"
 
 // physics
