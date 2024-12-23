@@ -4,6 +4,7 @@
 echo "Installing dependencies..."
 sudo apt-get update
 sudo apt-get install -y libboost-all-dev libomp-dev libhdf5-serial-dev
+sudo apt install -y qtbase5-dev qtbase5-dev-tools libqt5svg5-dev qttools5-dev-tools
 
 # 2. Download data
 echo "Downloading data..."
@@ -23,8 +24,11 @@ else
     exit 1
 fi
 
-echo "Setting data path in $SHELL_NAME configuration file..."
-echo "export LUPNT_DATA_PATH='$(pwd)/LuPNT_data'" >> $SHELL_RC
+# Check if LUPNT_DATA_PATH is already set
+if [ -n "$LUPNT_DATA_PATH" ]; then
+    echo "LUPNT_DATA_PATH is already set to: $LUPNT_DATA_PATH"
+    exit 0
+fi
 
 # 4. Source the shell configuration file to apply the changes
 echo "Applying changes by sourcing $SHELL_RC..."

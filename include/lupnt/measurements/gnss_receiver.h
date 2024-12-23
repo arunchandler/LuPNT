@@ -64,7 +64,7 @@ namespace lupnt {
     // Getters and Setters
     // Override channel getters and setters
     inline Ptr<GnssChannel> GetGnssChannel() { return gnss_channel_; };
-    inline Ptr<SpaceChannel> GetChannel() const override { return gnss_channel_; };
+    inline Ptr<SpaceChannel> GetChannel() const { return gnss_channel_; };
     inline void SetChannel(Ptr<SpaceChannel> channel) override {
       gnss_channel_ = std::static_pointer_cast<GnssChannel>(channel);
     };
