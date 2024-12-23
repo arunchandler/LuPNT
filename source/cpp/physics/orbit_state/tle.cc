@@ -59,11 +59,11 @@ namespace lupnt {
     return tle;
   };
 
-  std::vector<TLE> TLE::FromFile(const std::string& filename) {
+  std::vector<TLE> TLE::FromFile(const std::string_view filename) {
     std::filesystem::path path = GetFilePath(filename);
     std::ifstream input_file(path);
     if (!input_file.is_open()) {
-      throw std::runtime_error("Could not open file " + filename);
+      throw std::runtime_error("Could not open file " + std::string(filename));
     }
     std::vector<TLE> tles;
     std::string line1, line2, line3;

@@ -29,7 +29,7 @@ namespace lupnt {
     } else if (gnss_type_ == "BEIDOU") {
       InitializeBEIDOUTransmitter();
     } else {
-      std::cout << "Gnss type not recognized" << std::endl;
+      std::runtime_error("Invalid GNSS type");
     }
   }
 

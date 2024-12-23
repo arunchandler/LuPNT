@@ -9,7 +9,7 @@
  *
  */
 
-#include "lupnt/numerics/filters.h"
+#include "lupnt/numerics/ekf.h"
 
 namespace lupnt {
 
@@ -24,14 +24,12 @@ namespace lupnt {
   }
 
   void EKF::Predict(Real t_end) {
-    int n = x_.size();
+    Q_ = f_proc_(x_, t_, t_end);
+    x_ = f_dyn_(x_, t_, t_end, &F_);
 
-    Q_ = process_noise_(x_, t_, t_end);
-    x_ = dynamics_(x_, t_, t_end, &Phi_);
-
-    P_ = Phi_ * P_ * Phi_.transpose() + Q_;
-    xbar_ = x_;
-    Pbar_ = P_;
+    P_ = P_ * P_ * F_.transpose() + Q_;
+    x_prior_ = x_;
+    P_prior_ = P_;
     t_ = t_end;
   }
 
@@ -45,18 +43,20 @@ namespace lupnt {
    *
    * @param z_true observed measurement
    */
-  void EKF::Update(VecX z_true_in, bool debug) {
+  void EKF::Update(VecX z_true_in) {
     z_true_ = z_true_in;
+    x_post_ = x_;
+    P_post_ = P_;
 
     int n = x_.size();
     int m = z_true_.size();
     if (m == 0) return;  // no measurement, nothing to update
 
     // allocate memory (without this, VecXd will cause segfault)
-    z_pred_ = measurement_(x_, &H_, &R_);
+    z_prior_ = f_meas_(x_, &H_, &R_);
 
     S_ = R_ + H_ * P_ * H_.transpose();  // Measurement information
-    dy_ = z_true_ - z_pred_;
+    dy_ = z_true_ - z_prior_;
 
     // Remove outliers
     // m = RemoveOutliers(m, debug);
@@ -70,6 +70,9 @@ namespace lupnt {
     MatXd G(n, n);
     G = I - K_ * H_;
     P_ = G * P_ * G.transpose() + K_ * R_ * K_.transpose();  // Joseph form
+
+    x_post_ = x_;
+    P_post_ = P_;
   }
 
   /**
@@ -79,7 +82,7 @@ namespace lupnt {
    * @param debug   debug flag
    * @return int   number of measurements after removing outliers
    */
-  int EKF::RemoveOutliers(int m_orig, bool debug) {
+  int EKF::RemoveOutliers(int m_orig) {
     std::vector<int> is_outlier(m_orig);
     VecXd ratio(m_orig);
     int n_valid = 0;
@@ -97,20 +100,6 @@ namespace lupnt {
 
     // Remove outliers
     int m = n_valid;
-
-    if (debug) {
-      VecXd S_sqrt = S_.diagonal().array().sqrt();
-      std::cout << "  " << std::endl;
-      std::cout << "Removing " << m_orig - m << "/" << m_orig << " outliers" << std::endl;
-      std::cout << "  ratio: " << ratio.transpose() << std::endl;
-      std::cout << "  dy: " << dy_.transpose() << std::endl;
-      std::cout << "  R: " << R_.diagonal().transpose() << std::endl;
-      std::cout << "  H: " << H_ << std::endl;
-      std::cout << "  P: " << P_.diagonal().transpose() << std::endl;
-      std::cout << "  S: " << S_sqrt.transpose() << std::endl;
-      std::cout << "  " << std::endl;
-    }
-
     if (m == m_orig) {
       return m;  // all measurement valid, nothing to change
     }

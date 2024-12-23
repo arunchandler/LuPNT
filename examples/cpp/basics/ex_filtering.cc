@@ -84,7 +84,7 @@ int main() {
   Vec3 x0 = SampleMVN(x, Q, 1);  // Initial estimate
   Mat3d P0 = Q;                  // Initial covariance estimate
 
-  filters::EKF ekf;
+  EKF ekf;
   ekf.SetDynamicsFunction(f_dyn);
   ekf.SetMeasurementFunction(f_meas);
   ekf.SetProcessNoiseFunction(f_noise);
@@ -121,9 +121,9 @@ int main() {
     ekf.Update(z);
 
     x_hist.row(it) = x;
-    x_pred_hist.row(it) = ekf.GetPredictedStateEstimate();
-    x_updt_hist.row(it) = ekf.GetUpdatedStateEstimate();
-    P_hist.row(it) = ekf.GetPostCov().diagonal();
+    x_pred_hist.row(it) = ekf.GetSatePrior();
+    x_updt_hist.row(it) = ekf.GetStatePost();
+    P_hist.row(it) = ekf.GetCovariancePost().diagonal();
     z_hist.row(it) = z;
   }
 

@@ -21,11 +21,11 @@
 namespace lupnt {
 
   void GnssConstellation::LoadTleFile(std::string_view filename) {
-    std::filesystem::path path = GetFilePath(filename);
+    // std::filesystem::path path = GetFilePath(filename);
 
     bool is_first = true;
 
-    for (auto tle : TLE::FromFile(path.string())) {
+    for (auto tle : TLE::FromFile(filename)) {
       // extract epoch
       if (is_first) {
         epoch_ = tle.epoch_tai;

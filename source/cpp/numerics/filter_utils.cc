@@ -126,7 +126,7 @@ namespace lupnt {
   }
 
   VecXd ComputeEstimationErrorPVC(const Ptr<Spacecraft> sat, IFilter* filter, int start_idx = 0) {
-    auto x_est = filter->GetUpdatedStateEstimate();
+    auto x_est = filter->GetStatePost();
     auto x_true = sat->GetStateVec();
 
     double x_pos_err = 1000 * (x_true.segment(0, 3) - x_est.segment(start_idx, 3)).norm().val();

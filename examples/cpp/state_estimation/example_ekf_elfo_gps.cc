@@ -158,7 +158,7 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
                             double epoch) {
   // Navigation
   data_history->AddData("z_true", t, ekf->z_true_);
-  data_history->AddData("z_pred", t, ekf->z_pred_);
+  data_history->AddData("z_pred", t, ekf->z_prior_);
   data_history->AddData("CN0", t, meas->GetCN0());
 
   data_history->AddData("vis_earth", t, meas->GetEarthOccultation());
@@ -175,12 +175,12 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 
   // Estimation
   data_history->AddData("rv", t, sat->GetOrbitState()->GetVec());
-  data_history->AddData("rv_pred", t, ekf->xbar_.head(6));
-  data_history->AddData("rv_est", t, ekf->x_.head(6));
+  data_history->AddData("rv_pred", t, ekf->x_prior_.head(6));
+  data_history->AddData("rv_est", t, ekf->x_post_.head(6));
 
   data_history->AddData("clk", t, sat->GetClockState().GetVec());
-  data_history->AddData("clk_pred", t, ekf->xbar_.tail(2));
-  data_history->AddData("clk_est", t, ekf->x_.tail(2));
+  data_history->AddData("clk_pred", t, ekf->x_prior_.tail(2));
+  data_history->AddData("clk_est", t, ekf->x_post_.tail(2));
 
   data_history->AddData("P_rv", t, ekf->P_.diagonal().segment(0, 6));
   data_history->AddData("P_clk", t, ekf->P_.diagonal().segment(6, 2));
@@ -234,7 +234,7 @@ void PrintProgress(double t, double x_pos_err, double x_vel_err, double x_clk_bi
 };
 
 void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error_only = false) {
-  auto x_bar = ekf->xbar_;
+  auto x_bar = ekf->x_prior_;
   auto x_est = ekf->x_;
   auto x_true = sat->GetStateVec();
 
@@ -260,17 +260,17 @@ void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error
   std::cout << "  Linear Residuals: " << 1000 * (ekf->H_ * ekf->dx_).transpose() << std::endl;
   std::cout << "  dx: " << ekf->dx_.transpose() << std::endl;
   std::cout << "  Pos Err (Bar): " << x_pos_err_bar
-            << "  (3sigma : " << 3 * 1000 * sqrt(ekf->Pbar_.block(0, 0, 3, 3).diagonal().trace())
+            << "  (3sigma : " << 3 * 1000 * sqrt(ekf->P_prior_.block(0, 0, 3, 3).diagonal().trace())
             << " )    Pos Err (Est): " << x_pos_err
             << "  (3sigma: " << 3 * 1000 * sqrt(ekf->P_.block(0, 0, 3, 3).diagonal().trace())
             << " )" << std::endl;
   std::cout << "  Vel Err (Bar): " << x_vel_err_bar
-            << "  (3sigma : " << 3 * 1e6 * sqrt(ekf->Pbar_.block(3, 3, 3, 3).diagonal().trace())
+            << "  (3sigma : " << 3 * 1e6 * sqrt(ekf->P_prior_.block(3, 3, 3, 3).diagonal().trace())
             << "  )   Vel Err (Est): " << x_vel_err
             << "  (3sigma: " << 3 * 1e6 * sqrt(ekf->P_.block(3, 3, 3, 3).diagonal().trace()) << " )"
             << std::endl;
   std::cout << "  Clk Err (Bar): " << x_clk_bias_err_bar
-            << "  (3sigma : " << 3 * 3e8 * sqrt(ekf->Pbar_.block(6, 6, 1, 1).diagonal().trace())
+            << "  (3sigma : " << 3 * 3e8 * sqrt(ekf->P_prior_.block(6, 6, 1, 1).diagonal().trace())
             << "  )   Clk Err (Est): " << x_clk_bias_err
             << "  (3sigma: " << 3 * 3e8 * sqrt(ekf->P_.block(6, 6, 1, 1).diagonal().trace()) << " )"
             << std::endl;
@@ -640,7 +640,7 @@ int main() {
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
       = [moon_sat, receiver, state_size, no_meas, meas_types, debug_jacobian](
-            const VecX x, MatXd& H, MatXd& R) -> VecX {
+            const VecX x, MatXd* H, MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
     }
@@ -654,12 +654,12 @@ int main() {
     int mtot = sat_num * meas_types.size();          // total number of measurements
 
     // Predict measurements
-    H = MatXd::Zero(mtot, x.size());
-    R = MatXd::Zero(mtot, mtot);
+    *H = MatXd::Zero(mtot, x.size());
+    *R = MatXd::Zero(mtot, mtot);
     VecX x_N = VecX::Zero(mtot);  // a dummy variable for carrier phase
     Frame frame_in = Frame::MOON_CI;
 
-    VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, H, meas_types,
+    VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
                                               frame_in);  // Jacobian with autodiff
 
     if (debug_jacobian) {
@@ -685,13 +685,13 @@ int main() {
       std::cout << " " << std::endl;
       std::cout << "AutoDiff Jacobian: " << std::endl << H << std::endl;
       std::cout << "Numerical Jacobian: " << std::endl << H_num << std::endl;
-      std::cout << "Jacobian Error: " << (H - H_num).norm() << std::endl;
+      std::cout << "Jacobian Error: " << (*H - H_num).norm() << std::endl;
       std::cout << " " << std::endl;
     }
 
     // Get the Measurement Noise
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
-    R.diagonal().array() = noise_std_vec.array().square();
+    R->diagonal().array() = noise_std_vec.array().square();
 
     return z;
   };
@@ -800,7 +800,7 @@ int main() {
     // print Phi
     // std::cout << "Phi:" << std::endl << ekf.Phi_ << std::endl;
 
-    ekf.Update(z_true, debug_ekf);
+    ekf.Update(z_true);
 
     // Add Data
     if (!no_meas) {

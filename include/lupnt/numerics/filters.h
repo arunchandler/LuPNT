@@ -52,12 +52,6 @@ namespace lupnt {
 
   class IFilter {
   public:
-    Real t_curr_;  // Current time
-    VecX x_;       // Updated state
-    MatXd P_;      // Updated state cov
-    VecX xbar_;    // Predicted state
-    MatXd Pbar_;   // Predicted state cov
-
     virtual ~IFilter() = default;
 
     virtual void SetDynamicsFunction(FilterDynamicsFunction f_dyn) = 0;
@@ -65,91 +59,14 @@ namespace lupnt {
     virtual void SetMeasurementFunction(FilterMeasurementFunction f_meas) = 0;
 
     virtual void Predict(Real t_end) = 0;
-    virtual void Update(VecX z_obs, bool debug = false) = 0;
+    virtual void Update(VecX z_obs) = 0;
 
-    /**
-     * @brief Update the state with a measurement
-     *
-     * @param t_end   end time
-     * @param z_obs   measurement obtained at end time
-     * @param debug   debug flag
-     */
-    void Step(Real t_end, VecX z_obs, bool debug) {
-      Predict(t_end);
-      Update(z_obs, debug);
-    }
-  };
-
-  /**
-   * @brief Extended Kalman Filter
-   *
-   */
-  class EKF : public IFilter {
-  public:
-    MatXd Phi_;    // State transition matrix
-    VecX dy_;      // Measurement residual
-    VecX dx_;      // State update
-    VecX z_true_;  // Observed measurement
-    VecX z_pred_;  // Predicted measurement
-
-    MatXd Q_;  // Process noise cov
-
-    MatXd H_;  // Measurement matrix
-    MatXd S_;  // Innovation cov
-    MatXd K_;  // Kalman gain
-    MatXd R_;  // Measurement noise cov
-
-    double outlier_threshold_ = 3.0;
-
-    EKF() {}
-
-    EKF(FilterDynamicsFunction dynamics, FilterProcessNoiseFunction process_noise,
-        FilterMeasurementFunction measurement) {
-      dynamics_ = dynamics;
-      process_noise_ = process_noise;
-      measurement_ = measurement;
-    }
-
-    void Initialize(const double t0, const VecX &x0, const MatXd &P0) {
-      t_curr_ = t0;
-      x_ = x0;
-      P_ = P0;
-    }
-
-    VecX GetMeasurementResidual() { return dy_; }
-    MatX GetKalmanGain() { return K_; }
-    MatX GetMeasurementNoiseCov() { return R_; }
-    MatX GetMeasurementJacobian() { return H_; }
-    int GetMeasurementSize() { return H_.rows(); }
-
-    void SetOutlierThreshold(double outlier_threshold) {
-      assert(outlier_threshold >= 0 && "Outlier threshold must be positive");
-      outlier_threshold_ = outlier_threshold;
-    }
-
-    /**
-     * @brief Remove outliers from the measurement
-     *
-     * @param m   number of measurements
-     * @param debug   debug flag
-     * @return int   number of measurements after removing outliers
-     */
-    int RemoveOutliers(int m, bool debug = false);
-
-    /**
-     * @brief Predict the state to a given time
-     *
-     * @param t_end   end time
-     */
-    void Predict(Real t_end);
-
-    /**
-     * @brief Update the state with a measurement
-     *
-     * @param z_obs   measurement
-     * @param debug   debug flag
-     */
-    void Update(VecX z_obs, bool debug = false);
+    virtual VecX GetSate() = 0;
+    virtual VecX GetSatePrior() = 0;
+    virtual VecX GetStatePost() = 0;
+    virtual MatXd GetCovariance() = 0;
+    virtual MatXd GetCovariancePrior() = 0;
+    virtual MatXd GetCovariancePost() = 0;
   };
 
 }  // namespace lupnt

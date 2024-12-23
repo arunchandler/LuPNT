@@ -57,8 +57,6 @@ namespace lupnt {
 
     void SetOutlierThreshold(double outlier_threshold);
     int RemoveOutliers(int m);
-    void Predict(Real t_end);
-    void Update(VecX z_obs);
 
     // Interface
     void SetDynamicsFunction(FilterDynamicsFunction f_dyn) { f_dyn_ = f_dyn; }
@@ -74,6 +72,6 @@ namespace lupnt {
 
     MatXd GetCovariance() { return P_; }
     MatXd GetCovariancePrior() { return P_prior_; }
-    MatXd GetCovariancePost() { return P_post_ };
+    MatXd GetCovariancePost() { return P_post_; }
   };
 }  // namespace lupnt

@@ -300,7 +300,7 @@ int main() {
 
   FilterMeasurementFunction meas_func
       = [link_meas_vec, sat_pairs_idx, state_size, meas_types, moon_sats](
-            const VecX x, MatXd& H_stack, MatXd& R) -> VecX {
+            const VecX x, MatXd* H_stack, MatXd* R) -> VecX {
     VecX z_stack = VecX::Zero(0);
     VecX zi = VecX::Zero(0);
     VecXd noise_std_stack = VecXd::Zero(0);
@@ -360,8 +360,8 @@ int main() {
 
     // Store the values in the output variables
     z_stack = VecX::Zero(n_meas);
-    H_stack = MatXd::Zero(n_meas, state_size * nsat);
-    R = MatXd::Zero(n_meas, n_meas);
+    *H_stack = MatXd::Zero(n_meas, state_size * nsat);
+    *R = MatXd::Zero(n_meas, n_meas);
 
     // std::cout << "z_stack_vec size: " << z_stack_vec.size() << std::endl;
     // for (int i = 0; i < z_stack_vec.size(); i++) {
@@ -371,8 +371,8 @@ int main() {
     int cur_idx = 0;
     for (int i = 0; i < z_stack_vec.size(); i++) {
       z_stack.segment(cur_idx, nmeas_per_link) = z_stack_vec[i];
-      H_stack.block(cur_idx, 0, nmeas_per_link, state_size * nsat) = H_stack_vec[i];
-      R.diagonal().segment(cur_idx, nmeas_per_link) = noise_std_stack_vec[i].array().square();
+      H_stack->block(cur_idx, 0, nmeas_per_link, state_size * nsat) = H_stack_vec[i];
+      R->diagonal().segment(cur_idx, nmeas_per_link) = noise_std_stack_vec[i].array().square();
       cur_idx += nmeas_per_link;
     }
 
@@ -476,7 +476,7 @@ int main() {
     // Update EKF
     ekf.Predict(t + Dt);
     ekf.SetMeasurementFunction(meas_func);
-    ekf.Update(z_true, false);
+    ekf.Update(z_true);
 
     // Print Progress using First Sat Est Error
     est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);

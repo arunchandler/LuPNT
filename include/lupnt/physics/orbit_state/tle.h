@@ -20,7 +20,7 @@ namespace lupnt {
     int prn;              // PRN number
     static TLE FromLines(const std::string& line1, const std::string& line2,
                          const std::string& line3);
-    static std::vector<TLE> FromFile(const std::string& filename);
+    static std::vector<TLE> FromFile(const std::string_view filename);
   };
 
 }  // namespace lupnt

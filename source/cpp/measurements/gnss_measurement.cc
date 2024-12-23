@@ -236,7 +236,6 @@ namespace lupnt {
     if (use_cp) state_size = 9;
 
     VecX z(n_meas_all);
-    H_gnss.resize(n_meas_all, state_size);
     H_gnss = MatXd::Zero(n_meas_all, state_size);
     MatXd H_pr(n_meas, state_size), H_prr(n_meas, state_size), H_cp(n_meas, state_size);
 
