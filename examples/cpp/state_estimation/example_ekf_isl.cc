@@ -1,0 +1,491 @@
+/**
+ * @file example_isl.cc
+ * @author Stanford NAV Lab
+ * @brief
+ * @version 0.1
+ * @date 2024-08-21
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
+
+#include <lupnt/lupnt.h>
+
+#include <highfive/H5Easy.hpp>
+
+using namespace lupnt;
+namespace sp = spice;
+
+VecX ExtractSatState(const VecX& x, int sat_idx, int state_per_sat) {
+  return x.segment(sat_idx * state_per_sat, state_per_sat);
+};
+
+class ISLTransmitter : public Transmitter {
+public:
+  double GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override {
+    return 0.0;
+  };
+};
+
+class ISLReceiver : public Receiver {
+public:
+  double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override {
+    return 0.0;
+  };
+};
+
+Ptr<ISLTransmitter> CreateISLTransmitter() {
+  Ptr<ISLTransmitter> transmitter = MakePtr<ISLTransmitter>();
+  transmitter->P_tx = 10.0;       // Transmit power [dBW]
+  transmitter->freq_tx = 26.5e9;  // Transmit frequency [Hz]
+
+  return transmitter;
+}
+
+Ptr<ISLReceiver> CreateISLReceiver() {
+  Ptr<ISLReceiver> receiver = MakePtr<ISLReceiver>();
+  receiver->rx_param_.B_L_chip = 0.1;      // tracking loop noise bandwidth [Hz]
+  receiver->rx_param_.Tc = 1 / 2.068e6;    // chip duration
+  receiver->rx_param_.B_L_carrier = 0.1;   // carrier loop noise bandwidth [Hz]
+  receiver->rx_param_.m_R = 0.0;           // modulation index
+  receiver->rx_param_.T_I_doppler = 10.0;  // Doppler integration time [s]
+  receiver->rx_param_.T_I_range = 0.5;     // range integration time [s] (for open loop)
+
+  return receiver;
+}
+
+Ptr<Spacecraft> SetISLTransponder(Ptr<Spacecraft> sat) {
+  Ptr<ISLTransmitter> transmitter = CreateISLTransmitter();
+  Ptr<ISLReceiver> receiver = CreateISLReceiver();
+  Ptr<Transponder> transponder = MakePtr<Transponder>(transmitter, receiver);
+  transponder->SetAgent(sat);
+  sat->AddDevice(transponder);
+
+  return sat;
+}
+
+void PrintEKFProgressPVCVis(double t, const VecXd& est_err, int n_sat, std::vector<bool> vis_isl) {
+  std::cout.precision(5);
+  std::cout << std::left << std::setw(12) << t / 60 << " ";
+  // for each satellite
+  for (int i = 0; i < n_sat; i++) {
+    std::cout << std::left << std::setw(12) << est_err(i * 4) << "  " << std::left << std::setw(14)
+              << est_err(i * 4 + 1) << "   " << std::left << std::setw(16) << est_err(i * 4 + 2)
+              << "  | ";
+  }
+  for (int j = 0; j < vis_isl.size(); j++) {
+    std::cout << std::left << std::setw(1) << int(vis_isl[j]) << "/";
+  }
+  std::cout << std::endl;
+};
+
+int main() {
+  /**********************************************
+   * Parameter Setting
+   * ********************************************/
+  // Time
+  Real epoch0 = spice::String2TAI("2035/02/01 00:00:00.000 UTC");
+  double t0 = epoch0.val();
+  double dt = 1.0;   // Integration time step [s]
+  double Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
+  double print_every = 60.0;
+  double save_every = Dt;
+
+  // Simulation seed
+  int seed = 1;
+  std::srand(seed);
+
+  int nsat = 3;  // number of satellites
+
+  // IOAG study report
+  // https://www.ioag.org/Public%20Documents/Lunar%20communications%20architecture%20study%20report%20FINAL%20v1.3.pdf
+  Real M1 = 0.0;    // mean anomaly of satellite 1 (rad)
+  Real M2 = 0.0;    // mean anomaly of satellite 2 (rad)
+  Real M3 = 0.0;    // mean anomaly of satellite 3 (rad)
+  Real a = 6142.4;  // semi-major axis (km)
+  MatX oe(6, nsat);
+  Vec6 sat1_oe = {a, 0.0, 0.0, 0.0, RAD * 315, M1};
+  Vec6 sat2_oe = {a, 0.6, RAD * 57.7, RAD * 270, RAD * 270, M2};  // 2
+  Vec6 sat3_oe = {a, 0.6, RAD * 57.7, 0.0, RAD * 90, M3};         // 3
+  oe.col(0) = sat1_oe;
+  oe.col(1) = sat2_oe;
+  oe.col(2) = sat3_oe;
+
+  // Set simulation to 1 orbit
+  int n_orbit = 3;  // number of orbits to simulate
+  Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
+  double tf = t0 + n_orbit * period.val();
+  int time_step_num = int((tf - t0) / Dt) + 1;
+  tf = t0 + (time_step_num - 1) * Dt;
+
+  // Dynamics Model   Todo: Refine this to a more high fidelity model
+  int moon_sph_true = 8;  // moon spherical harmonics order in true dynamics
+  int moon_sph_est = 5;   // moon spherical harmonics order in filter dynamics
+  bool add_earth = true;  // add earth to true and filter dynamics
+
+  // Onboard Clock Model
+  ClockModel cmodel = ClockModel::kMiniRafs;
+
+  // measurements
+  bool use_range = true;       // use range measurements
+  bool use_range_rate = true;  // use range rates measurement
+  bool use_fixed_error = true;
+  double range_sigma_fixed = 1e-3;
+  double range_rate_sigma_fixed = 1e-6;
+
+  // Occultations
+  std::vector<NaifId> occult_bodies = {NaifId::MOON};
+  VecXd occult_alt(1), elev_masks(1);
+  occult_alt << 100.0;            // occultation altitude [km]
+  elev_masks << 10.0 * RAD;       // elevation mask [rad]
+  Real hardware_delay = 1e-8;     // hardware delay [s]
+  bool use_elev_mask_tx = false;  // do not use elevation masks for satellites
+  bool use_elev_mask_rx = false;
+
+  // Estimation
+  int state_size = 8;           // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
+  double pos_err = 1.0;         // Initial Position error [km]
+  double vel_err = 1e-3;        // Initial Velocity error [km/s]
+  double clk_bias_err = 1e-6;   // Initial Clock bias error [s]
+  double clk_drift_err = 1e-9;  // Initial Clock drift error [s/s]
+  double sigma_acc = 1e-10;     // Process noise Acceleration [km/s^2]  <-- tune
+                                // this for optimal performance!
+
+  // Transmitter
+  Ptr<ISLTransmitter> transmitter = MakePtr<ISLTransmitter>();
+  transmitter->P_tx = 10.0;       // Transmit power [dBW]
+  transmitter->freq_tx = 26.5e9;  // Transmit frequency [Hz]
+
+  // Receiver
+  Ptr<ISLReceiver> receiver = MakePtr<ISLReceiver>();
+  Modulation modulation_type = Modulation::BPSK;  // carrier type
+  receiver->rx_param_.B_L_chip = 0.1;             // tracking loop noise bandwidth [Hz]
+  receiver->rx_param_.Tc = 1 / 2.068e6;           // chip duration
+  receiver->rx_param_.B_L_carrier = 0.1;          // carrier loop noise bandwidth [Hz]
+  receiver->rx_param_.m_R = 0.0;                  // modulation index
+  receiver->rx_param_.T_I_doppler = 10.0;         // Doppler integration time [s]
+  receiver->rx_param_.T_I_range = 0.5;            // range integration time [s] (for open loop)
+  receiver->rx_param_.pn_ranging_code = "T4B";    //  "T2B", "T4B"
+  receiver->rx_param_.SER_threshold = 0.1;        // Symbol error rate threshold
+  receiver->rx_param_.BTs = 0.5;  // For GMSK modulation (B: 3dB point of gaussian filter, )
+  receiver->rx_param_.coding_rate = 1 / 2;  // Coding rate
+
+  /**********************************************
+   * Setup
+   * ********************************************/
+
+  // measurement type vector
+  std::vector<LinkMeasurementType> meas_types;
+  if (use_range) {
+    meas_types.push_back(LinkMeasurementType::Range);
+  }
+  if (use_range_rate) {
+    meas_types.push_back(LinkMeasurementType::RangeRate);
+  }
+  int meas_type_num = meas_types.size();
+
+  // Orbit Dynamics
+  IntegratorParams iparams;
+  iparams.abstol = 1e-12;
+  iparams.reltol = 1e-12;
+
+  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
+  auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
+  auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics
+
+  dyn_true->SetIntegratorParams(iparams);
+  dyn_est->SetIntegratorParams(iparams);
+
+  auto moon_true = BodyT<double>::Moon(moon_sph_true, moon_sph_true);
+  auto moon_est = BodyT<Real>::Moon(moon_sph_est, moon_sph_est);
+
+  dyn_true->SetFrame(Frame::MOON_CI);
+  dyn_est->SetFrame(Frame::MOON_CI);
+  dyn_true->AddBody(moon_true);
+  dyn_est->AddBody(moon_est);
+
+  if (add_earth) {
+    dyn_true->AddBody(BodyT<double>::Earth());
+    dyn_est->AddBody(BodyT<Real>::Earth());
+  }
+
+  // clock dynamics
+  auto dyn_clk_true = ClockDynamics(cmodel);
+  auto dyn_clk_est = ClockDynamics(cmodel);
+  dyn_clk_true.SetNoise(true);
+  dyn_clk_est.SetNoise(false);
+
+  // Print Time
+  std::string epoch_string = sp::TAItoStringUTC(epoch0, 3);
+  std::cout << "Initial Epoch: " << epoch_string << std::endl;
+
+  // Set dynamics integration time
+  dyn_earth_tb->SetTimeStep(dt);
+  dyn_est->SetTimeStep(dt);
+  dyn_true->SetTimeStep(dt);
+
+  // Moon spacecraft
+  std::vector<Ptr<Spacecraft>> moon_sats;
+  JointState joint_state;
+
+  for (int i = 0; i < nsat; i++) {
+    // orbit
+    ClassicalOE coe_moon(oe.col(i), Frame::MOON_CI);
+    Ptr<CartesianOrbitState> cart_state
+        = MakePtr<CartesianOrbitState>(Classical2Cart(coe_moon, GM_MOON));
+    Ptr<Spacecraft> moon_sat = MakePtr<Spacecraft>();
+
+    // clock
+    Real clk_bias = Real(SampleRandNormal(0.0, clk_bias_err, seed));
+    Real clk_drift = Real(SampleRandNormal(0.0, clk_drift_err, seed));
+    Vec2 clock_vec{clk_bias, clk_drift};  // [s, s/s]
+    ClockState clock_state(clock_vec);
+
+    moon_sat = SetISLTransponder(moon_sat);
+    moon_sat->SetDynamics(dyn_true);
+    moon_sat->SetDynamicsFrame(Frame::MOON_CI);
+    moon_sat->SetClock(clock_state);
+    moon_sat->SetOrbitState(cart_state);
+    moon_sat->SetEpoch(epoch0);
+    moon_sat->SetBodyId(NaifId::MOON);
+    moon_sat->SetClockDynamics(dyn_clk_true);
+
+    joint_state.PushBackStateAndDynamics(cart_state.get(), dyn_est.get());
+    joint_state.PushBackStateAndDynamics(&clock_state, &dyn_clk_est);
+
+    moon_sats.push_back(moon_sat);
+  }
+
+  /********************************************************************************
+   * Define Necessary Functions for the Filter
+   * *****************************************************************************/
+
+  // Initial covariance
+  MatXd P0_sat = ConstructInitCovariancePVC(pos_err, vel_err, clk_bias_err, clk_drift_err);
+  MatXd P0 = MatXd::Zero(state_size * nsat, state_size * nsat);
+  for (int i = 0; i < nsat; i++) {
+    P0.block(i * state_size, i * state_size, state_size, state_size) = P0_sat;
+  }
+
+  // Dynamics Function
+  FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
+
+  // Process Noise Function
+  FilterProcessNoiseFunction proc_noise_func
+      = ConstructProcessNoisePVC(cmodel, state_size, sigma_acc, nsat);
+
+  /*********************************************
+   * Define Measurement function
+   * *******************************************/
+  std::vector<std::pair<int, int>> sat_pairs_idx;
+  std::vector<Ptr<LinkMeasurement>> link_meas_vec;
+  bool no_meas = false;
+  Real epoch_rx = 0;
+
+  for (int i = 0; i < nsat; i++) {
+    for (int j = i + 1; j < nsat; j++) {
+      sat_pairs_idx.push_back(std::make_pair(i, j));
+      Ptr<LinkMeasurement> link_meas
+          = MakePtr<LinkMeasurement>(occult_bodies, occult_alt, elev_masks, use_elev_mask_tx,
+                                     use_elev_mask_rx, hardware_delay);
+      if (use_fixed_error) {
+        link_meas->UseFixedError();
+        link_meas->SetFixedRangeError(range_sigma_fixed);
+        link_meas->SetFixedRangeRateError(range_rate_sigma_fixed);
+      }
+      link_meas_vec.push_back(link_meas);
+    }
+  }
+
+  FilterMeasurementFunction meas_func
+      = [link_meas_vec, sat_pairs_idx, state_size, meas_types, moon_sats](
+            const VecX x, MatXd& H_stack, MatXd& R) -> VecX {
+    VecX z_stack = VecX::Zero(0);
+    VecX zi = VecX::Zero(0);
+    VecXd noise_std_stack = VecXd::Zero(0);
+    Real hardware_delay = 0.0;
+    int nsat = moon_sats.size();
+
+    std::vector<VecX> z_stack_vec;
+    std::vector<MatXd> H_stack_vec;
+    std::vector<VecXd> noise_std_stack_vec;
+
+    int n_meas = 0;
+    int nmeas_per_link = meas_types.size();
+
+    // Iterate over all ISL pairs
+    for (int i = 0; i < sat_pairs_idx.size(); i++) {
+      if (!link_meas_vec[i]->IsTwoWayVisible()) {
+        continue;
+      }
+
+      Real epoch_ref = moon_sats[sat_pairs_idx[i].second]->GetEpoch();
+
+      int sat_target_idx = sat_pairs_idx[i].first;
+      int sat_rx_idx = sat_pairs_idx[i].second;
+
+      // Measurements
+      VecX sat_target = ExtractSatState(x, sat_target_idx, state_size);
+      VecX sat_rx = ExtractSatState(x, sat_rx_idx, state_size);
+
+      int mtot = meas_types.size();
+      MatXd Htmp(mtot, 16), H(mtot, state_size);
+
+      bool with_noise = false;
+      bool with_jac = true;
+      zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(
+          link_meas_vec[i]->GetRecordedEpochRx(), epoch_ref, sat_rx.head(6), sat_target.head(6),
+          sat_rx.tail(2), sat_target.tail(2), Htmp, hardware_delay, meas_types, with_noise,
+          with_jac);
+
+      // column index for target and receiver satellite
+      int col_idx_target = sat_target_idx * state_size;
+      int col_idx_rx = sat_rx_idx * state_size;
+      H = MatXd::Zero(mtot, state_size * nsat);
+      H.block(0, col_idx_target, mtot, state_size)
+          = Htmp.block(0, 0, mtot, 8);  // first 8 columns -> target
+      H.block(0, col_idx_rx, mtot, state_size) = Htmp.block(0, 8, mtot, 8);  // last 8 columns -> rx
+
+      // Get the Measurement Noise
+      VecXd noise_std_vec = link_meas_vec[i]->GetTwoWayLinkNoise(meas_types);
+
+      // stack z, H, and noise
+      z_stack_vec.push_back(zi);
+      H_stack_vec.push_back(H);
+      noise_std_stack_vec.push_back(noise_std_vec);
+
+      n_meas += zi.size();
+    }
+
+    // Store the values in the output variables
+    z_stack = VecX::Zero(n_meas);
+    H_stack = MatXd::Zero(n_meas, state_size * nsat);
+    R = MatXd::Zero(n_meas, n_meas);
+
+    // std::cout << "z_stack_vec size: " << z_stack_vec.size() << std::endl;
+    // for (int i = 0; i < z_stack_vec.size(); i++) {
+    //   std::cout << "z_stack_vec[" << i << "]: " << z_stack_vec[i].transpose() << std::endl;
+    // }
+
+    int cur_idx = 0;
+    for (int i = 0; i < z_stack_vec.size(); i++) {
+      z_stack.segment(cur_idx, nmeas_per_link) = z_stack_vec[i];
+      H_stack.block(cur_idx, 0, nmeas_per_link, state_size * nsat) = H_stack_vec[i];
+      R.diagonal().segment(cur_idx, nmeas_per_link) = noise_std_stack_vec[i].array().square();
+      cur_idx += nmeas_per_link;
+    }
+
+    // std::cout << "Returning z stack: " << z_stack.transpose() << std::endl;
+    // std::cout << "Returning H stack: " << std::endl << H_stack << std::endl;
+    return z_stack;
+  };
+
+  /*************************************
+   * EKF Setup
+   * ***********************************/
+  EKF ekf;
+  ekf.SetDynamicsFunction(joint_dynamics);
+  ekf.SetMeasurementFunction(meas_func);
+  ekf.SetProcessNoiseFunction(proc_noise_func);
+  std::cout << "Initialized EKF" << std::endl;
+
+  // Storage
+  MatXd error_mat(4 * nsat, time_step_num);
+  VecXd num_meas(time_step_num);
+
+  // Initilization
+  VecX x_init_true = joint_state.GetJointStateValue();
+  VecX x_est = SampleMVN(x_init_true, P0, 1, seed);
+  ekf.Initialize(t0, x_est, P0);
+  VecXd est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
+  error_mat.col(0) = est_err;
+
+  // Print State
+  std::cout << "Initial true state: " << x_init_true.transpose() << std::endl;
+  std::cout << "Initial est  state: " << x_est.transpose() << std::endl;
+
+  /*********************************************
+   * Main loop
+   * **********************************************/
+  Real t = t0;
+  Real epoch = epoch0;
+  int sat_target_idx = 0;
+  int sat_rx_idx = 0;
+  int time_index = 0;
+
+  // Loggers
+  // auto output_path = GetOutputPath("ex_isl");
+  // std::cout << "Output Path: " << output_path << std::endl;
+  // auto save_path = output_path / "data.h5";
+  // auto open_mode = H5Easy::File::Create;
+  // H5Easy::File log_file = H5Easy::File("output/ExampleISL.h5", open_mode);
+
+  // Print Header
+  PrintEKFProgressHeaderPVC(nsat);
+
+  // Compute Intial estimation error
+  est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
+  PrintEKFProgressPVC(0, est_err, nsat);
+  error_mat.col(time_index) = est_err;
+
+  for (t = t0; t < tf; t += Dt) {
+    time_index += 1;
+    epoch += Dt;
+    epoch_rx = epoch;
+
+    // Propagate True State
+    for (auto& moon_sat : moon_sats) {
+      moon_sat->Propagate(epoch);
+    }
+
+    // Get True Measurement ---------------------------------
+    std::vector<VecX> z_true_vec;
+    int n_meas = 0;
+    int n_meas_total = 0;
+    std::vector<bool> vis_isl;
+
+    for (int i = 0; i < sat_pairs_idx.size(); i++) {
+      link_meas_vec[i]->Reset();  // reset the measurement
+      sat_target_idx = sat_pairs_idx[i].first;
+      sat_rx_idx = sat_pairs_idx[i].second;
+      auto tr_rx = moon_sats[sat_rx_idx]->GetTransponder();
+      auto tr_target = moon_sats[sat_target_idx]->GetTransponder();
+      link_meas_vec[i]->GenerateTwoWayLinkAtRxEpoch(epoch_rx, tr_rx, tr_target);
+
+      if (link_meas_vec[i]->IsTwoWayVisible()) {
+        VecX z_true_i = link_meas_vec[i]->GetTrueTwoWayLinkMeasurement(meas_types);
+        // std::cout << "  z_true: " << z_true_i.transpose() << std::endl;
+        z_true_vec.push_back(z_true_i);
+        n_meas += 1;
+        n_meas_total += z_true_i.size();
+        vis_isl.push_back(true);
+      } else {
+        vis_isl.push_back(false);
+      }
+    }
+    VecX z_true = VecX::Zero(n_meas_total);
+    int idx = 0;
+    for (int i = 0; i < z_true_vec.size(); i++) {
+      z_true.segment(idx, z_true_vec[i].size()) = z_true_vec[i];
+      idx += z_true_vec[i].size();
+    }
+    num_meas(time_index) = n_meas;
+    z_true_vec.clear();
+
+    // Update EKF
+    ekf.Predict(t + Dt);
+    ekf.SetMeasurementFunction(meas_func);
+    ekf.Update(z_true, false);
+
+    // Print Progress using First Sat Est Error
+    est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
+    error_mat.col(time_index) = est_err;
+
+    if (fmod(time_index, print_every) < 1e-3) {
+      PrintEKFProgressPVCVis((t - t0).val(), est_err, nsat, vis_isl);
+    }
+  }
+
+  PrintEstimationStatistics(num_meas, error_mat, 0.3, nsat);  // use last 30%
+}

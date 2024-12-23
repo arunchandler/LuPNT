@@ -27,6 +27,9 @@ namespace lupnt {
   private:
     std::vector<NaifId> occult_bodies_;
     VecXd occult_alt_;
+    VecXd elev_masks_;
+    bool use_elev_mask_tx_ = false;
+    bool use_elev_mask_rx_ = false;
 
   public:
     SpaceChannel() = default;
@@ -42,6 +45,12 @@ namespace lupnt {
       occult_alt_ = occult_alt;
     }
 
+    void SetElevationMask(bool enable_tx, bool enable_rx, VecXd elev_mask_rad) {
+      use_elev_mask_tx_ = enable_tx;
+      use_elev_mask_rx_ = enable_rx;
+      elev_masks_ = elev_mask_rad;
+    }
+
     /**
      * @brief Compute the link budget
      *
@@ -53,7 +62,7 @@ namespace lupnt {
      */
     ITransmission ComputeLinkBudget(std::shared_ptr<Transmitter> &txDevice,
                                     std::shared_ptr<Receiver> &rxDevice, Real t,
-                                    std::string time_fixed);
+                                    std::string time_fixed, bool compute_cn0 = true);
 
     /**
      * @brief  Compute the link budget for a given data rate

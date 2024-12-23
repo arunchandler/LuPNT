@@ -17,8 +17,10 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   )
 endif()
 
-# ---- Add dependencies ----
+# ---- Options ----
+option(UseTorch "Use LibTorch" OFF)
 
+# ---- Add dependencies ----
 include(cmake/FindOpenMP.cmake)
 include(cmake/CPM.cmake)
 add_subdirectory(thirdparty)
@@ -101,7 +103,18 @@ endfunction(target_link_libraries_system)
 target_link_libraries_system(${PROJECT_NAME} Eigen3::Eigen matplot autodiff::autodiff cspice)
 # Link HighFive
 target_link_libraries(${PROJECT_NAME} PUBLIC HighFive)
+# Link Torch
+if (UseTorch)
+  find_package(Torch REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
+  target_include_directories(LuPNT PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/_deps/libtorch-src/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+endif()
 
+#Link OpenMP
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${OpenMP_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 

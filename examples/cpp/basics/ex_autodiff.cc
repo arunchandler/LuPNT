@@ -8,7 +8,7 @@ int main() {
   bool flag = false;
 
   Vec3 y;
-  MatX dydx = jacobian(func, wrt(x), at(x, flag), y);
+  MatX dydx = jacobian(func, wrt(x), autodiff::at(x, flag), y);
   std::cout << dydx << std::endl;
 }
 

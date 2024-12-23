@@ -8,7 +8,7 @@
 #include <queue>
 #include <vector>
 
-#include "lupnt/agents/application.h"
+#include "lupnt/apps/application.h"
 #include "lupnt/core/definitions.h"
 #include "lupnt/core/event.h"
 

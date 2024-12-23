@@ -25,7 +25,7 @@ namespace lupnt {
 
   ITransmission SpaceChannel::ComputeLinkBudget(std::shared_ptr<Transmitter> &tx,
                                                 std::shared_ptr<Receiver> &rx, Real t,
-                                                std::string time_fixed) {
+                                                std::string time_fixed, bool compute_cn0) {
     ITransmission trans;  // create an empty vector
 
     // Register the transmitter and receiver
@@ -55,41 +55,57 @@ namespace lupnt {
       std::cerr << "Error: Invalid time_fixed parameter" << std::endl;
     }
 
+    // assign values to trans
+    trans.t_tx = t_tx.val();
+    trans.t_rx = t_rx.val();
+    trans.r_tx = rv_tx_gcrf.r().cast<double>();
+    trans.v_tx = rv_tx_gcrf.v().cast<double>();
+    trans.r_rx = rv_rx_gcrf.r().cast<double>();
+    trans.v_rx = rv_rx_gcrf.v().cast<double>();
+
     // Commpute Occultations
     bool vis_all = true;
     std::map<std::string, bool> vis_occult;
 
     if (occult_bodies_.size() > 0) {
       Real epoch = (t_tx + t_rx) / 2.0;
-      vis_occult
-          = Occultation::ComputeOccultation(epoch, rv_tx_gcrf.r(), rv_rx_gcrf.r(), Frame::GCRF,
-                                            Frame::GCRF, occult_bodies_, occult_alt_);
+      vis_occult = Occultation::ComputeOccultation(
+          epoch, rv_tx_gcrf.r(), rv_rx_gcrf.r(), Frame::GCRF, Frame::GCRF, occult_bodies_,
+          occult_alt_, elev_masks_, use_elev_mask_tx_, use_elev_mask_rx_);
       vis_all = vis_occult["all"];
     }
 
     // Link Budget
-    double At = tx->GetTransmitterAntennaGain(t_tx.val(), rv_tx_gcrf.r().cast<double>(),
-                                              rv_rx_gcrf.r().cast<double>());
-    double Ar = rx->GetReceiverAntennaGain(t_rx.val(), rv_tx_gcrf.r().cast<double>(),
-                                           rv_rx_gcrf.r().cast<double>());
+    if (compute_cn0) {
+      double At = tx->GetTransmitterAntennaGain(t_tx.val(), trans.r_tx, trans.r_rx);
+      double Ar = rx->GetReceiverAntennaGain(t_rx.val(), trans.r_tx, trans.r_rx);
 
-    double dist = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
-    double lambda = C / tx->freq_tx;
-    double fsl_loss_dB = ComputeFreeSpaceLossdB(dist, lambda);
+      double dist = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
+      double lambda = C / tx->freq_tx;
+      double fsl_loss_dB = ComputeFreeSpaceLossdB(dist, lambda);
 
-    double EIRP_dB = tx->P_tx + At;
-    double G_T_rx_dB = Ar - 10.0 * log10(rx->rx_param_.Tsys);
-    double loss = rx->rx_param_.Ae + rx->rx_param_.As + rx->rx_param_.L;  // sum of lossess (minus)
-    double CN0 = EIRP_dB - fsl_loss_dB + 228.6 + G_T_rx_dB + loss;
-    // double CN = CN0 - 10.0 * log10(tx->bandwidth);
-    // double RP = CN0 - 228.6 + 10.0 * log10(rx->rx_param_.Tsys);  // Received Power
-    // double RP_N0 = RP - 10.0 * log10(rx->rx_param_.Tsys);        // Received Power Noise
+      double EIRP_dB = tx->P_tx + At;
+      double G_T_rx_dB = Ar - 10.0 * log10(rx->rx_param_.Tsys);
+      double loss
+          = rx->rx_param_.Ae + rx->rx_param_.As + rx->rx_param_.L;  // sum of lossess (minus)
+      double CN0 = EIRP_dB - fsl_loss_dB + 228.6 + G_T_rx_dB + loss;
+      // double CN = CN0 - 10.0 * log10(tx->bandwidth);
+      // double RP = CN0 - 228.6 + 10.0 * log10(rx->rx_param_.Tsys);  // Received Power
+      // double RP_N0 = RP - 10.0 * log10(rx->rx_param_.Tsys);        // Received Power Noise
 
-    // register the values
-    trans.EIRP = EIRP_dB;
-    trans.G_T = G_T_rx_dB;
-    trans.CN0 = CN0;
-    trans.CN0_linear = pow(10, CN0 / 10.0);
+      // register the values
+      trans.EIRP = EIRP_dB;
+      trans.G_T = G_T_rx_dB;
+      trans.CN0 = CN0;
+      trans.CN0_linear = pow(10, CN0 / 10.0);
+    } else {
+      // skip the link budget computation (for fixed noise case)
+      trans.EIRP = 0.0;
+      trans.G_T = 0.0;
+      trans.CN0 = 0.0;
+      trans.CN0_linear = 0.0;
+    }
+
     trans.vis_occult = vis_occult;
     trans.vis_all = vis_all;
 

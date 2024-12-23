@@ -24,7 +24,6 @@ namespace lupnt {
 
   class Occultation {
   private:
-    static constexpr double min_elevation_ = 10.0 * RAD;
     static constexpr double r_atmos_ = R_EARTH + 100.0;  // atmospheric mask
     static constexpr double r_ionos_ = R_EARTH + 965.0;  // ionospheric mask
 
@@ -39,11 +38,9 @@ namespace lupnt {
      * @param tx_planet    The planet surface the transmitter is on
      * @return std::map<std::string, bool>
      */
-    static std::map<std::string, bool> ComputeOccultationGnss(const Vec3d tx_eci,
-                                                              const Vec3d tx_mci,
-                                                              const Vec3d rx_eci,
-                                                              const Vec3d rx_mci,
-                                                              const std::string tx_planet);
+    static std::map<std::string, bool> ComputeOccultationGnss(
+        const Vec3d tx_eci, const Vec3d tx_mci, const Vec3d rx_eci, const Vec3d rx_mci,
+        const std::string tx_planet, const double min_elevation);
 
     /**
      * @brief Compute occultation between a tx and a rx for a list of planets
@@ -55,13 +52,16 @@ namespace lupnt {
      * @param cs2  The frame of the rx
      * @param bodies  The list of planets to check for occultation (naif ids)
      * @param atm_h  The atmospheric heights of the planets
+     * @param min_elevation  The minimum elevation angle for users on each planet surface
+     * @param use_elev_mask1  Use elevation mask for tx
+     * @param use_elev_mask2  Use elevation mask for rx
      * @return std::map<string, bool>  A map of the planets and their occultation,
      * ["all"] is the total occultation
      */
-    static std::map<std::string, bool> ComputeOccultation(Real epoch, const Vec3& r1,
-                                                          const Vec3& r2, Frame cs1, Frame cs2,
-                                                          const std::vector<NaifId>& bodies,
-                                                          const VecXd& atm_h);
+    static std::map<std::string, bool> ComputeOccultation(
+        Real epoch, const Vec3& r1, const Vec3& r2, Frame cs1, Frame cs2,
+        const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elevation,
+        const bool use_elev_mask1, const bool use_elev_mask2);
 
     /**
      * @brief  Compute occultation between a tx and a rx for a list of planets
@@ -77,7 +77,8 @@ namespace lupnt {
      */
     static std::vector<std::map<std::string, bool>> ComputeOccultation(
         Real epoch, const Mat<-1, 3>& r1, const Mat<-1, 3>& r2, Frame cs1, Frame cs2,
-        const std::vector<NaifId>& bodies, const VecXd& atm_h);
+        const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elevation,
+        const bool use_elev_mask1, const bool use_elev_mask2);
 
     /**
      * @brief  Compute occultation between a tx and a rx for a list of planets
@@ -93,7 +94,8 @@ namespace lupnt {
      */
     static std::vector<std::map<std::string, bool>> ComputeOccultation(
         const VecX& epoch, const Mat<-1, 3>& r1, const Mat<-1, 3>& r2, Frame cs1, Frame cs2,
-        const std::vector<NaifId>& bodies, const VecXd& atm_h);
+        const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elevation,
+        const bool use_elev_mask1, const bool use_elev_mask2);
   };
 
 }  // namespace lupnt

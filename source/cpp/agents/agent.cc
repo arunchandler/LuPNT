@@ -49,6 +49,27 @@ namespace lupnt {
     return xf;
   }
 
+  VecX Agent::PropagateRvState(const Real epoch0, const Vec6& x0, const Real epoch,
+                               Frame inout_frame) {
+    // Conver the state from GCRF to dynamics frame
+    Vec6 x_new = ConvertFrame(epoch0, x0, inout_frame, dynamics_frame_, false);
+
+    // Propagate the state
+    Vec6 xf = dynamics_->Propagate(x_new, epoch0, epoch);
+
+    // Convert the state back to inout frame
+    Vec6 xf_out = ConvertFrame(epoch, xf, dynamics_frame_, inout_frame, false);
+
+    return xf_out;
+  }
+
+  VecX Agent::PropagateClockState(const Real epoch0, const Vec2& x0, const Real epoch) {
+    // Propagate the state
+    Vec2 xf = clock_dynamics_->Propagate(x0, epoch0, epoch);
+
+    return xf;
+  }
+
   ClockState Agent::GetClockStateAtEpoch(const Real epoch, bool with_noise) {
     if (epoch == epoch_) return clock_;
 
@@ -74,26 +95,6 @@ namespace lupnt {
     // Create a deep copy of the clock state
     ClockState clk = GetClockStateAtEpoch(epoch, with_noise);
     return clk.GetVec();
-  }
-
-  /********************** SpaceCraft  ********************************/
-
-  CartesianOrbitState Spacecraft::GetCartesianGCRFStateAtEpoch(Real epoch) {
-    Ptr<OrbitState> state = GetOrbitState();
-
-    Real current_epoch = GetEpoch();
-    Ptr<NumericalOrbitDynamics> dynamics
-        = std::dynamic_pointer_cast<NumericalOrbitDynamics>(GetDynamics());
-
-    if (epoch != current_epoch) {
-      // set dt
-      dynamics->PropagateState(*state, current_epoch, epoch);
-    }
-    // TODO
-    Real GM = GetBodyData(GetBodyId()).GM;
-    Ptr<CartesianOrbitState> cartOrbitState = std::static_pointer_cast<CartesianOrbitState>(
-        ConvertOrbitStateRepresentation(state, OrbitStateRepres::CARTESIAN, GM));
-    return ConvertOrbitStateFrame(*cartOrbitState, epoch, Frame::GCRF);
   }
 
 };  // namespace lupnt

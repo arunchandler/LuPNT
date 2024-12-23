@@ -154,7 +154,7 @@ MatXd ConstructInitCovariance(double pos_err, double vel_err, double clk_bias_er
 
 void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
                             const std::shared_ptr<Spacecraft> sat, EKF* ekf,
-                            Constellation* gps_const, GnssMeasurement* meas, double t,
+                            GnssConstellation* gps_const, GnssMeasurement* meas, double t,
                             double epoch) {
   // Navigation
   data_history->AddData("z_true", t, ekf->z_true_);
@@ -479,7 +479,7 @@ int main() {
    * Simulation Parameters
    *********************************************/
   // Get initial epoch
-  auto gps_const = Constellation();
+  auto gps_const = GnssConstellation();
   double epoch0 = gps_const.GetEpoch();
 
   // Time
@@ -737,7 +737,7 @@ int main() {
 
   // Initilization
   VecX x_est = SampleMVN(joint_state.GetJointStateValue(), P0, 1, seed);
-  ekf.Initialize(x_est, P0);
+  ekf.Initialize(t0, x_est, P0);
   VecXd est_err = ComputeEstimationErrors(moon_sat, &ekf);
   error_mat.col(0) = est_err;
 

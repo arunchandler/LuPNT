@@ -42,6 +42,8 @@ namespace lupnt {
     Real epoch_;
     Ptr<IState> rv_;
     Ptr<IDynamics> dynamics_;
+    Frame dynamics_frame_ = Frame::NONE;
+
     Ptr<AttitudeState> attitude_;
     std::vector<Ptr<ICommDevice>> devices_;
 
@@ -50,9 +52,11 @@ namespace lupnt {
 
   public:
     Agent() : id_(id_counter_++), clock_(ClockState(2)) {};
+    virtual ~Agent() = default;
 
     // Getters
     Real GetEpoch() const { return epoch_; }
+    std::string GetName() const { return name_; }
     NaifId GetBodyId() const { return bodyId_; }
     bool IsBodyFixed() const { return is_bodyfixed_; }
     Ptr<IState> GetRvState() const { return rv_; }
@@ -62,6 +66,8 @@ namespace lupnt {
 
     // Setters
     void SetIsBodyFixed(bool is_bodyfixed) { is_bodyfixed_ = is_bodyfixed; }
+    void SetDynamicsFrame(Frame frame) { dynamics_frame_ = frame; }
+    void GetDynamicsFrame(Frame frame) { dynamics_frame_ = frame; }
     void SetRvState(Ptr<IState> rv) { rv_ = rv; }
     void SetDynamics(Ptr<IDynamics> dyn) { dynamics_ = dyn; }
     void SetEpoch(Real epoch) { epoch_ = epoch; }
@@ -73,6 +79,7 @@ namespace lupnt {
 
     // Comm Device
     void AddDevice(Ptr<ICommDevice> device) { devices_.push_back(device); }
+
     Ptr<Transmitter> GetTransmitter() {
       for (auto device : devices_) {
         if (device->txrx == "tx") {
@@ -86,6 +93,15 @@ namespace lupnt {
       for (auto device : devices_) {
         if (device->txrx == "rx") {
           return std::dynamic_pointer_cast<Receiver>(device);
+        }
+      }
+      return nullptr;
+    }
+
+    Ptr<Transponder> GetTransponder() {
+      for (auto device : devices_) {
+        if (device->txrx == "txrx") {
+          return std::dynamic_pointer_cast<Transponder>(device);
         }
       }
       return nullptr;
@@ -111,6 +127,17 @@ namespace lupnt {
     VecX GetRvStateAtEpoch(const Real epoch);
 
     /**
+     * @brief Propagate the state to the given epoch
+     *
+     * @param epoch0    Initial epoch
+     * @param x         Initial state
+     * @param epoch     Final epoch
+     * @param inout_frame   Frame of the input state
+     * @return
+     */
+    VecX PropagateRvState(const Real epoch0, const Vec6& x0, const Real epoch, Frame inout_frame);
+
+    /**
      * @brief Get the Clock State at epoch, wihtout changing the agent's epoch and
      * state
      *
@@ -121,6 +148,16 @@ namespace lupnt {
     ClockState GetClockStateAtEpoch(const Real epoch, bool with_noise = true);
 
     /**
+     * @brief Propagate the state to the given epoch
+     *
+     * @param epoch0    Initial epoch
+     * @param x         Initial state
+     * @param epoch     Final epoch
+     * @return
+     */
+    VecX PropagateClockState(const Real epoch0, const Vec2& x0, const Real epoch);
+
+    /**
      * @brief Get the State Vec object
      *
      * @return VecX
@@ -128,62 +165,4 @@ namespace lupnt {
     VecX GetClockStateVecAtEpoch(const Real epoch, bool with_noise = true);
   };
 
-  /**
-   * @brief Spacecraft Agent
-   *
-   */
-  class Spacecraft : public Agent {
-  protected:
-    Ptr<OrbitState> orbit_state_;
-    bool orbit_state_set_ = false;
-
-  public:
-    Spacecraft() : Agent() { SetIsBodyFixed(false); };
-
-    void SetOrbitState(Ptr<OrbitState> orbit_state) {
-      orbit_state_ = orbit_state;
-      std::shared_ptr<IState> state = std::static_pointer_cast<OrbitState>(orbit_state);
-      Agent::SetRvState(state);
-      orbit_state_set_ = true;
-    }
-
-    Ptr<OrbitState> GetOrbitState() const {
-      // First Update the orbit state vector using state_ vector
-      if (!orbit_state_set_) {
-        std::cerr << "Orbit State is not set: Call SetOrbitState(Ptr<OrbitState>)" << std::endl;
-      }
-      orbit_state_->SetVec(rv_->GetVec());
-      return orbit_state_;
-    }
-
-    CartesianOrbitState GetCartesianGCRFStateAtEpoch(Real epoch) override;
-
-    VecX GetStateVec() {
-      Vec6 rv = rv_->GetVec();
-      Vec2 clk = GetClockState().GetVec();
-      VecX state(8);
-      state << rv, clk;
-      return state;
-    }
-  };
-
-  /**
-   * @brief Rover Agent
-   *
-   */
-  class Rover : public Agent {
-  public:
-    Rover() : Agent() { SetIsBodyFixed(true); };
-  };
-
-  class GroundStation : public Agent {
-  public:
-    GroundStation() : Agent() { SetIsBodyFixed(true); };
-
-    void SetPosition(Vec3d pos) { pos_ = pos; }
-    Vec3d GetPosition() { return pos_; }
-
-  private:
-    Vec3d pos_;
-  };
 };  // namespace lupnt

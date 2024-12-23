@@ -46,6 +46,16 @@ namespace lupnt {
                    (x.normalized() + y.normalized()).norm());
   }
 
+  /// @brief Convert degrees, minutes, and seconds to radians
+  /// @param degrees Degrees
+  /// @param minutes Minutes
+  /// @param seconds Seconds
+  /// @return Angle in radians
+  double DegMinSec2DeciDeg(double degrees, double minutes, double seconds) {
+    double decimalDegrees = degrees + minutes / 60.0 + seconds / 3600.0;
+    return decimalDegrees;
+  }
+
   /// @brief Wrap angle in radians to [-pi, pi]
   /// @param angle Angle in radians
   /// @return Wrapped angle in radians

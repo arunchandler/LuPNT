@@ -69,7 +69,7 @@ int main() {
   xlabel("Degree");
   ylabel("CPU Time [s]");
   title("Gravity Field Computation (" + to_string(N_Step) + " evaluations)");
-  legend({"Real", "Double"});
+  matplot::legend({"Real", "Double"});
   grid(on);
   show();
 

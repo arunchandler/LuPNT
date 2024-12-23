@@ -32,6 +32,8 @@ namespace lupnt {
 
   Real AngleBetweenVecs(const VecX& x, const VecX& y);
 
+  double DegMinSec2DeciDeg(double degrees, double minutes, double seconds);
+
   Real Wrap2Pi(Real angle);
   Real Wrap2TwoPi(Real angle);
   VecX Wrap2Pi(VecX angle);

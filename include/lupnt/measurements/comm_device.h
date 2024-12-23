@@ -28,10 +28,17 @@ namespace lupnt {
     virtual ~ICommDevice() = default;
     std::string txrx = "none";
     std::string name = "none";
-    virtual Ptr<Agent> GetAgent() const = 0;
-    virtual Ptr<SpaceChannel> GetChannel() const = 0;
-    virtual void SetAgent(Ptr<Agent> agent) = 0;
-    virtual void SetChannel(Ptr<SpaceChannel> channel) = 0;
+    inline Ptr<Agent> GetAgent() const { return agent_; };
+    inline Ptr<SpaceChannel> GetChannel() const {
+      return std::static_pointer_cast<SpaceChannel>(channel_);
+    };
+    inline void SetAgent(Ptr<Agent> agent) { agent_ = agent; };
+    inline void SetTxRx(std::string txrx_in) { txrx = txrx_in; };
+    virtual void SetChannel(Ptr<SpaceChannel> channel) { channel_ = channel; };
+
+  private:
+    Ptr<Agent> agent_;
+    Ptr<SpaceChannel> channel_;
   };
 
   class Transmitter : public ICommDevice {
@@ -42,6 +49,10 @@ namespace lupnt {
     double bandwidth;  // Bandwidth of the signal [Hz]
     std::string txrx = "tx";
     Vec3 antenna_orientation_body = Vec3::Zero();
+
+    // Set txrx to tx in the constructor
+    Transmitter() { txrx = "tx"; };
+    virtual ~Transmitter() = default;
 
     virtual double GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) = 0;
 
@@ -76,8 +87,12 @@ namespace lupnt {
     std::string txrx = "rx";
     ReceiverParam rx_param_;
     Vec3 antenna_orientation_body = Vec3::Zero();
-    virtual double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) = 0;
 
+    // Set txrx to rx in the constructor
+    Receiver() { txrx = "rx"; };
+    virtual ~Receiver() = default;
+
+    virtual double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) = 0;
     inline void SetAntennaOrientation(Vec3 orientation) { antenna_orientation_body = orientation; };
   };
 
@@ -92,14 +107,16 @@ namespace lupnt {
 
     Vec3 antenna_orientation_body = Vec3::Zero();
 
-    Transponder(const std::shared_ptr<Transmitter> &tx, const std::shared_ptr<Receiver> &rx) {
+    Transponder(const Ptr<Transmitter> tx, const Ptr<Receiver> rx) {
       tx_ = tx;
       rx_ = rx;
+      SetTxRx("txrx");
     };
     virtual ~Transponder() = default;
-    inline void SetTransmitter(const std::shared_ptr<Transmitter> &tx) { tx_ = tx; };
-    inline void SetReceiver(const std::shared_ptr<Receiver> &rx) { rx_ = rx; };
-    inline void SetAgent(Ptr<Agent> agent) override {
+
+    inline void SetTransmitter(const Ptr<Transmitter> &tx) { tx_ = tx; };
+    inline void SetReceiver(const Ptr<Receiver> &rx) { rx_ = rx; };
+    inline void SetAgent(Ptr<Agent> agent) {
       ICommDevice::SetAgent(agent);
       tx_->SetAgent(agent);
       rx_->SetAgent(agent);
@@ -110,12 +127,12 @@ namespace lupnt {
       rx_->SetAntennaOrientation(orientation);
     };
 
-    inline std::shared_ptr<Transmitter> GetTransmitter() { return tx_; };
-    inline std::shared_ptr<Receiver> GetReceiver() { return rx_; };
+    inline Ptr<Transmitter> GetTransmitter() { return tx_; };
+    inline Ptr<Receiver> GetReceiver() { return rx_; };
 
   private:
-    std::shared_ptr<Transmitter> tx_;
-    std::shared_ptr<Receiver> rx_;
+    Ptr<Transmitter> tx_;
+    Ptr<Receiver> rx_;
   };
 
 }  // namespace lupnt

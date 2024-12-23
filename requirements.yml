@@ -15,5 +15,6 @@ dependencies:
   - requests
   - scikit-learn
   - tqdm
+  - cvxpy
   - pip:
     - mathutils

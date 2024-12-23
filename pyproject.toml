@@ -29,6 +29,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "tqdm",
+    "cvxpy",
 ]
 keywords = ["pybind11", "cibuildwheel", "c++", "pypi", "numpy", "simple", "example", "wheel", "pypi", "conda-forge"]
 classifiers=[
