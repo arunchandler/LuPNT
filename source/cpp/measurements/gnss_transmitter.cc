@@ -20,18 +20,19 @@
 namespace lupnt {
 
   void GnssTransmitter::InitializeGnssTransmitter() {
-    if (gnss_type_ == "GPS") {
-      InitializeGPSTransmitter();
-    } else if (gnss_type_ == "GLONASS") {
-      InitializeGLONASSTransmitter();
-    } else if (gnss_type_ == "GALILEO") {
-      InitializeGALILEOTransmitter();
-    } else if (gnss_type_ == "BEIDOU") {
-      InitializeBEIDOUTransmitter();
-    } else {
-      std::runtime_error("Invalid GNSS type");
+        if (gnss_type_.find("GPS") != std::string::npos) {
+            InitializeGPSTransmitter();
+        } else if (gnss_type_.find("COSMOS") != std::string::npos) {
+            InitializeGLONASSTransmitter();
+        } else if (gnss_type_.find("GSAT") != std::string::npos) {
+            InitializeGALILEOTransmitter();
+        } else if (gnss_type_.find("BEIDOU") != std::string::npos) {
+            InitializeBEIDOUTransmitter();
+        } else {
+            throw std::runtime_error("Invalid GNSS type");
+        }
     }
-  }
+
 
   /**
    * @brief Initialize the GPS transmitter
