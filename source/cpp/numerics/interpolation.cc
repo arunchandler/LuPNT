@@ -35,15 +35,16 @@ namespace lupnt {
   /// @param xi x interpolation point
   double LinearInterp2d(const VecXd& x, const VecXd& y, const MatXd& z, double xi, double yi) {
     if (x.size() != z.rows() || y.size() != z.cols()) {
-      std::string msg = std::format("Invalid size: x is {}, y is {}, z is {} x {}", x.size(),
-                                    y.size(), z.rows(), z.cols());
-      throw std::runtime_error(msg);
+      std::stringstream msg;
+      msg << "Invalid size: x is " << x.size() << ", y is " << y.size() << ", z is " << z.rows()
+          << " x " << z.cols();
+      throw std::runtime_error(msg.str());
     }
     if (xi < x(0) || xi > x(x.size() - 1) || yi < y(0) || yi > y(y.size() - 1)) {
-      std::string msg
-          = std::format("Out of range: xi is {}, yi is {}, x is {} to {}, y is {} to {}", xi, yi,
-                        x(0), x(x.size() - 1), y(0), y(y.size() - 1));
-      throw std::runtime_error(msg);
+      std::stringstream msg;
+      msg << "Out of range: xi is " << xi << ", yi is " << yi << ", x is " << x(0) << " to "
+          << x(x.size() - 1) << ", y is " << y(0) << " to " << y(y.size() - 1);
+      throw std::runtime_error(msg.str());
     }
 
     const double *start, *end;

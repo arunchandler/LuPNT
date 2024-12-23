@@ -9,7 +9,7 @@
  *
  */
 
-#include "lupnt/agents/state_estimation_app.h"
+#include "lupnt/apps/state_estimation_app.h"
 
 namespace lupnt {
 
@@ -33,10 +33,10 @@ namespace lupnt {
   };
 
   FilterDynamicsFunction JointState::GetFilterDynamicsFunction() {
-    FilterDynamicsFunction dynfunc = [this](VecX x, Real t_curr, Real t_end, MatXd* Phi = nullptr) {
+    FilterDynamicsFunction dynfunc = [this](VecX x, Real t_curr, Real t_end, MatXd& Phi) {
       std::vector<IState*> state_vec = this->GetJointState();
-      Phi->resize(state_vec_size_, state_vec_size_);
-      Phi->setZero();
+      Phi.resize(state_vec_size_, state_vec_size_);
+      Phi.setZero();
 
       // Iterate for each dynamics and corresponding state (e.g. orbit and
       // dynamics)
@@ -55,7 +55,7 @@ namespace lupnt {
           x_seg(j) = x(start_idx + j);
         }
         x_seg_next = this->dynamics_vec_[i]->Propagate(x_seg, t_curr, t_end, &Phi_tmp);
-        Phi->block(start_idx, start_idx, state_size, state_size) = Phi_tmp;
+        Phi.block(start_idx, start_idx, state_size, state_size) = Phi_tmp;
         for (int j = 0; j < state_size; j++) {
           x(start_idx + j) = x_seg_next(j);
         }

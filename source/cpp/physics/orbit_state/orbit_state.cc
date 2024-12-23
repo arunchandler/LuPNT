@@ -42,6 +42,9 @@ namespace lupnt {
   std::array<const char *, 6> OrbitState::GetUnits() const { return units_; }
   std::array<const char *, 6> OrbitState::GetNames() const { return names_; }
   OrbitStateRepres OrbitState::GetOrbitStateRepres() const { return repres_; }
+  OrbitState OrbitState::CreateCopyWithValue(const Vec6 &x) const {
+    return OrbitState(x, frame_, repres_, names_, units_);
+  }
 
   void OrbitState::SetOrbitStateRepres(const OrbitStateRepres rep) { repres_ = rep; }
   void OrbitState::SetCoordSystem(Frame frame) { frame_ = frame; }

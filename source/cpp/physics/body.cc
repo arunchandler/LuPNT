@@ -123,39 +123,51 @@ namespace lupnt {
 
   BodyData GetBodyData(NaifId id) {
     switch (id) {
-      case NaifId::SUN: return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF};
+      case NaifId::SUN:
+        return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF, SUN_F};
       case NaifId::MERCURY:
-        return {NaifId::MERCURY,      "MERCURY",        GM_MERCURY, R_MERCURY,
-                Frame::MERCURY_FIXED, Frame::MERCURY_CI};
+        return {NaifId::MERCURY,      "MERCURY",         GM_MERCURY, R_MERCURY,
+                Frame::MERCURY_FIXED, Frame::MERCURY_CI, MERCURY_F};
       case NaifId::VENUS:
-        return {NaifId::VENUS, "VENUS", GM_VENUS, R_VENUS, Frame::VENUS_FIXED, Frame::VENUS_CI};
+        return {NaifId::VENUS,      "VENUS",         GM_VENUS, R_VENUS,
+                Frame::VENUS_FIXED, Frame::VENUS_CI, VENUS_F};
       case NaifId::EARTH:
-        return {NaifId::EARTH, "EARTH", GM_EARTH, R_EARTH, Frame::ITRF, Frame::GCRF};
+        return {NaifId::EARTH, "EARTH", GM_EARTH, R_EARTH, Frame::ITRF, Frame::GCRF, WGS84_F};
       case NaifId::MOON:
-        return {NaifId::MOON, "MOON", GM_MOON, R_MOON, Frame::MOON_PA, Frame::MOON_CI};
+        return {NaifId::MOON, "MOON", GM_MOON, R_MOON, Frame::MOON_PA, Frame::MOON_CI, MOON_F};
       case NaifId::MARS:
-        return {NaifId::MARS, "MARS", GM_MARS, R_MARS, Frame::MARS_FIXED, Frame::MARS_CI};
+        return {NaifId::MARS, "MARS", GM_MARS, R_MARS, Frame::MARS_FIXED, Frame::MARS_CI, MARS_F};
       case NaifId::JUPITER:
-        return {NaifId::JUPITER,      "JUPITER",        GM_JUPITER, R_JUPITER,
-                Frame::JUPITER_FIXED, Frame::JUPITER_CI};
+        return {NaifId::JUPITER,      "JUPITER",         GM_JUPITER, R_JUPITER,
+                Frame::JUPITER_FIXED, Frame::JUPITER_CI, JUPITER_F};
       case NaifId::SATURN:
-        return {NaifId::SATURN,      "SATURN",        GM_SATURN, R_SATURN,
-                Frame::SATURN_FIXED, Frame::SATURN_CI};
+        return {NaifId::SATURN,      "SATURN",         GM_SATURN, R_SATURN,
+                Frame::SATURN_FIXED, Frame::SATURN_CI, SATURN_F};
       case NaifId::URANUS:
-        return {NaifId::URANUS,      "URANUS",        GM_URANUS, R_URANUS,
-                Frame::URANUS_FIXED, Frame::URANUS_CI};
+        return {NaifId::URANUS,      "URANUS",         GM_URANUS, R_URANUS,
+                Frame::URANUS_FIXED, Frame::URANUS_CI, URANUS_F};
       case NaifId::NEPTUNE:
-        return {NaifId::NEPTUNE,      "NEPTUNE",        GM_NEPTUNE, R_NEPTUNE,
-                Frame::NEPTUNE_FIXED, Frame::NEPTUNE_CI};
+        return {NaifId::NEPTUNE,      "NEPTUNE",         GM_NEPTUNE, R_NEPTUNE,
+                Frame::NEPTUNE_FIXED, Frame::NEPTUNE_CI, NEPUTUNE_F};
       default: break;
     }
     throw std::runtime_error("Body not found");
-    return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF};
+    return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF, SUN_F};
   }
 
   double GetBodyRadius(NaifId body) {
     BodyData data = GetBodyData(body);
     return data.R.val();
+  }
+
+  double GetBodyGM(NaifId body) {
+    BodyData data = GetBodyData(body);
+    return data.GM.val();
+  }
+
+  double GetBodyFlattening(NaifId body) {
+    BodyData data = GetBodyData(body);
+    return data.flattening.val();
   }
 
   std::string GetBodyName(NaifId body) {

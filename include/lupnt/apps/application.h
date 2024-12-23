@@ -18,7 +18,7 @@
 namespace lupnt {
   class Application {
   public:
-    virtual ~Application(){};
+    virtual ~Application() {};
 
     virtual void Setup() = 0;
     virtual void Step(Real t) = 0;

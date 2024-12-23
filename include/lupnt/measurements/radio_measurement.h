@@ -86,12 +86,13 @@ namespace lupnt {
    * @param dt_rx      Receiver clock offset and bias at epoch_ref
    * @param agent_tx  Transmitter agent
    * @param agent_rx  Receiver agent
-   * @param additional_delay  Additional delay for the receiver time
+   * @param additional_delay  Additional delay for the receiver time recording
    * @param use_pure_range  Flag to indicate if the pure range is used (no clock bias)
    * @return Real      One-way pseudorange at t_R (clock offset error included)
    */
-  Real ComputeOneWayRangeLTR(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 dt_tx, Vec2 dt_rx,
-                             Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real addional_delay, bool use_pure_range);
+  Real ComputeOneWayRangeLTR(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
+                             Vec2 dt_tx, Vec2 dt_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
+                             Real addional_delay, bool use_pure_range);
 
   /**
    * @brief Compute the one-way range between two points considering light time
@@ -108,15 +109,14 @@ namespace lupnt {
    * @param dt_rx      Receiver clock offset and bias at epoch_ref
    * @param agent_tx  Transmitter agent
    * @param agent_rx  Receiver agent
-   * @param hardware_delay_target  Hardware delay at the target 
+   * @param hardware_delay_target  Hardware delay at the target
    * @param additional_delay Additional delay for the receiver time
    * @param use_pure_range  Flag to indicate if the pure range is used (no clock bias)
    * @return Real      One-way pseudorange at t_R (clock offset error included)
    */
   Real ComputeTwoWayRangeLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target, Vec6 rv_rx,
-                             Vec2 clk_target, Vec2 clk_receiver,
-                             Ptr<Agent> agent_target, Ptr<Agent> agent_rx,
-                             Real hardware_delay_target,
+                             Vec2 clk_target, Vec2 clk_receiver, Ptr<Agent> agent_target,
+                             Ptr<Agent> agent_rx, Real hardware_delay_target,
                              Real additional_delay = 0.0);
 
   /**
@@ -138,13 +138,13 @@ namespace lupnt {
    * @param T_I  Integration time [s]
    * @return Real
    */
-  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr, Vec2 clk_tx,
-                                 Vec2 clk_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
+  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr,
+                                 Vec2 clk_tx, Vec2 clk_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
                                  Real hardware_delay, double T_I);
 
   /**
    * @brief Compute the two-way range rate between two points considering light
-   * 
+   *
    * @param epoch_rx        Reception epoch (TAI) t_R
    * @param epoch_ref       Reference epoch
    * @param rv_target_tr    Transmitter position at reception time t_R (w.r.t to
@@ -155,12 +155,11 @@ namespace lupnt {
    * @param agent_receiver  Receiver agent
    * @param hardware_delay  Hardware delay at the target relay
    * @param T_I             Integration time [s]
-   * @return Real 
+   * @return Real
    */
-  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr, 
-                                 Vec2 clk_target, Vec2 clk_rx, 
-                                 Ptr<Agent> agent_target, Ptr<Agent> agent_receiver,
-                                 Real hardware_delay, double T_I);
+  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr,
+                                 Vec2 clk_target, Vec2 clk_rx, Ptr<Agent> agent_target,
+                                 Ptr<Agent> agent_receiver, Real hardware_delay, double T_I);
 
   /**
    * @brief Compute the PN regenerative range error for chip tracking loop

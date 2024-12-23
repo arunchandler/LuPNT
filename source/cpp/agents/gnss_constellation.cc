@@ -20,7 +20,7 @@
 
 namespace lupnt {
 
-  void Constellation::LoadTleFile(std::string_view filename) {
+  void GnssConstellation::LoadTleFile(std::string_view filename) {
     std::filesystem::path path = GetFilePath(filename);
 
     bool is_first = true;

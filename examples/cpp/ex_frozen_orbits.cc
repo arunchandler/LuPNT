@@ -547,7 +547,9 @@ int main() {
 
   auto end = GetSystemTime();
   cout << "Total elapsed time: " << PrintDuration(end - begin) << endl;
-  show();
+  if (config.plot_case0 || config.plot_case1 || config.plot_case2 || config.plot_case3 || config.plot_case4 || config.plot_ew || config.plot_delta_M) {
+      show();
+    }
 
   return 0;
 }

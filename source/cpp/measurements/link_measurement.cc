@@ -21,8 +21,10 @@ namespace lupnt {
   LinkMeasurement::LinkMeasurement(std::vector<NaifId> occult_bodies, VecXd occult_alt,
                                    VecXd elev_masks, bool use_elev_mask_tx, bool use_elev_mask_rx,
                                    Real hardware_delay)
-      : occult_bodies_(occult_bodies), occult_alt_(occult_alt), 
-        elev_masks_(elev_masks), use_elev_mask_tx_(use_elev_mask_tx),
+      : occult_bodies_(occult_bodies),
+        occult_alt_(occult_alt),
+        elev_masks_(elev_masks),
+        use_elev_mask_tx_(use_elev_mask_tx),
         use_elev_mask_rx_(use_elev_mask_rx),
         hardware_delay_(hardware_delay) {}
 
@@ -52,9 +54,10 @@ namespace lupnt {
     linkparams_.Tc = rx_param.modulation_type;
     linkparams_.T_I_doppler = rx_param.T_I_doppler;
     linkparams_.T_I_range = rx_param.T_I_range;
+    linkparams_.elevation =
 
-    // Singals
-    linkparams_.CN0_linear = trans.CN0_linear;
+        // Singals
+        linkparams_.CN0_linear = trans.CN0_linear;
   }
 
   /********************** One way Link ***************************/
@@ -72,15 +75,18 @@ namespace lupnt {
     }
 
     if (txrx == "rx") {
-      t_rx_d = epoch_local - rx->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0); // true received time
+      t_rx_d = epoch_local
+               - rx->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0);  // true received time
       trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_rx_d, "rx", compute_cn0);
       t_tx_d = trans_ow_.t_tx;  // true transmission time
       epoch_tx_recorded_ = t_tx_d + tx->GetAgent()->GetClockStateVecAtEpoch(t_tx_d)(0);
     } else if (txrx == "tx") {
-      t_tx_d = epoch_local - tx->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0); // true transmission time
+      t_tx_d = epoch_local
+               - tx->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0);  // true transmission time
       trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_tx_d, "tx", compute_cn0);
-      t_rx_d = trans_ow_.t_rx; // true received time
-      epoch_rx_recorded_ = rx->GetAgent()->GetClockStateVecAtEpoch(t_rx_d)(0);  // recorded received time
+      t_rx_d = trans_ow_.t_rx;  // true received time
+      epoch_rx_recorded_
+          = rx->GetAgent()->GetClockStateVecAtEpoch(t_rx_d)(0);  // recorded received time
     }
     one_way_generated_ = true;
 
@@ -114,14 +120,15 @@ namespace lupnt {
 
     MatXd H_ow_rx(2, 8);  // temporary, won't be used
 
-    VecX y = GetOneWayLinkMeasurement(epoch_rx_recorded_, epoch_rx_true_, rv_tx, rv_rx, clk_tx, clk_rx, H_ow_rx,
-                                    0.0, meas_types, true, false);
+    VecX y = GetOneWayLinkMeasurement(epoch_rx_recorded_, epoch_rx_true_, rv_tx, rv_rx, clk_tx,
+                                      clk_rx, H_ow_rx, 0.0, meas_types, true, false);
 
     return y;
   }
 
-  VecX LinkMeasurement::GetOneWayLinkMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
-                                                 Vec2 clk_rx, MatXd& H_ow_rx, Real additional_delay,
+  VecX LinkMeasurement::GetOneWayLinkMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx,
+                                                 Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
+                                                 MatXd &H_ow_rx, Real additional_delay,
                                                  std::vector<LinkMeasurementType> meas_types,
                                                  bool with_noise, bool with_jacobian) {
     Real rho_ow, rho_ow_rate;
@@ -149,16 +156,17 @@ namespace lupnt {
     for (auto meas_type : meas_types) {
       switch (meas_type) {
         case LinkMeasurementType::Range: {
-          rho_ow = GetOneWayRangeMeasurement(epoch_rx_recorded, epoch_ref, rv_tx, rv_rx, clk_tx, clk_rx, H_ow_range,
-                                             additional_delay, with_noise, with_jacobian);
+          rho_ow = GetOneWayRangeMeasurement(epoch_rx_recorded, epoch_ref, rv_tx, rv_rx, clk_tx,
+                                             clk_rx, H_ow_range, additional_delay, with_noise,
+                                             with_jacobian);
           z(idx) = rho_ow;
           H_ow_rx.row(idx) = H_ow_range;
           idx++;
         }
         case LinkMeasurementType::RangeRate: {
-          rho_ow_rate = GetOneWayRangeRateMeasurement(epoch_rx_recorded, epoch_ref, rv_tx, rv_rx, clk_tx, clk_rx,
-                                                      H_ow_rangerate, additional_delay, with_noise,
-                                                      with_jacobian);
+          rho_ow_rate = GetOneWayRangeRateMeasurement(epoch_rx_recorded, epoch_ref, rv_tx, rv_rx,
+                                                      clk_tx, clk_rx, H_ow_rangerate,
+                                                      additional_delay, with_noise, with_jacobian);
           z(idx) = rho_ow_rate;
           H_ow_rx.row(idx) = H_ow_rangerate;
           idx++;
@@ -170,17 +178,17 @@ namespace lupnt {
     return z;
   }
 
-  Real LinkMeasurement::GetOneWayRangeMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
-                                                  Vec2 clk_tx, Vec2 clk_rx, MatXd &H_ow_rx,
-                                                  Real additional_delay, bool with_noise,
-                                                  bool with_jacobian) {
+  Real LinkMeasurement::GetOneWayRangeMeasurement(Real epoch_rx_recorded, Real epoch_ref,
+                                                  Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx,
+                                                  MatXd &H_ow_rx, Real additional_delay,
+                                                  bool with_noise, bool with_jacobian) {
     // return
 
-    auto func = [epoch_rx_recorded, epoch_ref, additional_delay, this](const Vec6 rv_tx_in, const Vec2 clk_tx_in,
-                                                 const Vec6 rv_rx_in, const Vec2 clk_rx_in) {
-
-      Real owr = ComputeOneWayRangeLTR(epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in, clk_tx_in, clk_rx_in,
-                                       linkparams_.tx_agent, linkparams_.rx_agent,
+    auto func = [epoch_rx_recorded, epoch_ref, additional_delay, this](
+                    const Vec6 rv_tx_in, const Vec2 clk_tx_in, const Vec6 rv_rx_in,
+                    const Vec2 clk_rx_in) {
+      Real owr = ComputeOneWayRangeLTR(epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in, clk_tx_in,
+                                       clk_rx_in, linkparams_.tx_agent, linkparams_.rx_agent,
                                        additional_delay, false);
       return owr;
     };
@@ -220,16 +228,17 @@ namespace lupnt {
     return rho_ow;
   }
 
-  Real LinkMeasurement::GetOneWayRangeRateMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
-                                                      Vec2 clk_tx, Vec2 clk_rx, MatXd &H_ow_rx,
+  Real LinkMeasurement::GetOneWayRangeRateMeasurement(Real epoch_rx_recorded, Real epoch_ref,
+                                                      Vec6 rv_tx, Vec6 rv_rx, Vec2 clk_tx,
+                                                      Vec2 clk_rx, MatXd &H_ow_rx,
                                                       Real hardware_delay, bool with_noise,
                                                       bool with_jacobian) {
     auto func = [epoch_rx_recorded, epoch_ref, rv_tx, clk_tx, hardware_delay, this](
                     const Vec6 rv_tx_in, const Vec2 clk_tx_in, const Vec6 rv_rx_in,
                     const Vec2 clk_rx_in) {
       Real owrr = ComputeOneWayRangeRateLTR(
-          epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in, clk_tx_in, clk_rx_in, linkparams_.tx_agent,
-          linkparams_.rx_agent, hardware_delay, linkparams_.T_I_doppler);
+          epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in, clk_tx_in, clk_rx_in,
+          linkparams_.tx_agent, linkparams_.rx_agent, hardware_delay, linkparams_.T_I_doppler);
       return owrr;
     };
 
@@ -265,7 +274,6 @@ namespace lupnt {
 
   /* Noise models for One-way */
   VecXd LinkMeasurement::GetOneWayLinkNoise(std::vector<LinkMeasurementType> meas_types) {
-
     VecXd noise_std_vec(meas_types.size());
     int idx = 0;
 
@@ -288,15 +296,14 @@ namespace lupnt {
     return noise_std_vec;
   }
 
-
-  double LinkMeasurement::GetOneWayRangeNoise(){
+  double LinkMeasurement::GetOneWayRangeNoise() {
     double sigma_ow = 0.0;
 
     if (use_fixed_error_) {
       sigma_ow = range_sigma_fixed_;
     } else {
       // For one-way link, double the range error of the two way link
-      if (linkparams_.rx_agent->GetName() == "GroundStation") {
+      if (!use_open_loop_) {
         sigma_ow = 2
                    * ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
                                             linkparams_.Tc, linkparams_.modulation_type);
@@ -309,7 +316,7 @@ namespace lupnt {
     return sigma_ow;
   }
 
-  double LinkMeasurement::GetOneWayRangeRateNoise(){
+  double LinkMeasurement::GetOneWayRangeRateNoise() {
     double sigma_ow_rate = 0.0;
 
     if (use_fixed_error_) {
@@ -325,7 +332,8 @@ namespace lupnt {
 
   /********************** Two way Link ***************************/
 
-  void LinkMeasurement::GenerateTwoWayLink(Real epoch_local, std::shared_ptr<Transponder> &tr_receiver,
+  void LinkMeasurement::GenerateTwoWayLink(Real epoch_local,
+                                           std::shared_ptr<Transponder> &tr_receiver,
                                            std::shared_ptr<Transponder> &tr_target,
                                            std::string txrx) {
     SpaceChannel sc = SpaceChannel();
@@ -360,7 +368,7 @@ namespace lupnt {
       t_tx_u = trans_u.t_tx;  // true transmission time
 
       // recorded time
-      epoch_tx_recorded_ = t_tx_u + tr_receiver->GetAgent()->GetClockStateVecAtEpoch(t_tx_u)(0); 
+      epoch_tx_recorded_ = t_tx_u + tr_receiver->GetAgent()->GetClockStateVecAtEpoch(t_tx_u)(0);
       epoch_rx_recorded_ = epoch_local;
       epoch_rx_recorded_u_ = t_rx_u + tr_target->GetAgent()->GetClockStateVecAtEpoch(t_rx_u)(0);
 
@@ -420,15 +428,16 @@ namespace lupnt {
 
     MatXd H_tw_rx(2, state_size_tw_);  // temporary, won't be used
 
-    VecX y = GetTwoWayLinkMeasurement(epoch_rx_recorded_, epoch_rx_true_, rv_receiver, rv_target, clk_receiver, clk_target,
-                                    H_tw_rx, hardware_delay_, meas_types, true, false);
+    VecX y = GetTwoWayLinkMeasurement(epoch_rx_recorded_, epoch_rx_true_, rv_receiver, rv_target,
+                                      clk_receiver, clk_target, H_tw_rx, hardware_delay_,
+                                      meas_types, true, false);
 
     return y;
   }
 
-  VecX LinkMeasurement::GetTwoWayLinkMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver, Vec6 rv_target,
-                                                 Vec2 clk_receiver, Vec2 clk_target,
-                                                 MatXd& H_tw_rx, Real hardware_delay,
+  VecX LinkMeasurement::GetTwoWayLinkMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver,
+                                                 Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
+                                                 MatXd &H_tw_rx, Real hardware_delay,
                                                  std::vector<LinkMeasurementType> meas_types,
                                                  bool with_noise, bool with_jacobian) {
     // double sigma_tw = 0.0;
@@ -458,18 +467,17 @@ namespace lupnt {
       switch (meas_type) {
         case LinkMeasurementType::Range: {
           Real rho_tw = GetTwoWayRangeMeasurement(epoch_rx, epoch_ref, rv_receiver, rv_target,
-                                             clk_receiver, clk_target, H_tw_range,
-                                             hardware_delay, with_noise, with_jacobian);
+                                                  clk_receiver, clk_target, H_tw_range,
+                                                  hardware_delay, with_noise, with_jacobian);
           z(idx) = rho_tw;
           H_tw_rx.row(idx) = H_tw_range;
           idx++;
           break;
         }
         case LinkMeasurementType::RangeRate: {
-          Real rho_tw_rate
-              = GetTwoWayRangeRateMeasurement(epoch_rx, epoch_ref, rv_receiver, rv_target,
-                                              clk_receiver, clk_target, H_tw_rangerate,
-                                              hardware_delay, with_noise, with_jacobian);
+          Real rho_tw_rate = GetTwoWayRangeRateMeasurement(
+              epoch_rx, epoch_ref, rv_receiver, rv_target, clk_receiver, clk_target, H_tw_rangerate,
+              hardware_delay, with_noise, with_jacobian);
           z(idx) = rho_tw_rate;
           H_tw_rx.row(idx) = H_tw_rangerate;
           idx++;
@@ -482,21 +490,21 @@ namespace lupnt {
     return z;
   }
 
-  Real LinkMeasurement::GetTwoWayRangeMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver, Vec6 rv_target,
-                                                  Vec2 clk_receiver, Vec2 clk_target,
-                                                  MatXd &H_tw_range, Real hardware_delay,
-                                                  bool with_noise, bool with_jacobian) {
+  Real LinkMeasurement::GetTwoWayRangeMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver,
+                                                  Vec6 rv_target, Vec2 clk_receiver,
+                                                  Vec2 clk_target, MatXd &H_tw_range,
+                                                  Real hardware_delay, bool with_noise,
+                                                  bool with_jacobian) {
     // return
 
-    auto func
-        = [epoch_ref, epoch_rx, hardware_delay, this](const Vec6 rv_target_in, const Vec2 clk_target_in,
-                                           const Vec6 rv_receiver_in, const Vec2 clk_receiver_in) {
-            Real twr = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_in, rv_receiver_in, 
-                                             clk_target_in, clk_receiver_in,
-                                             linkparams_.tx_agent, linkparams_.rx_agent,
-                                             hardware_delay, 0.0);
-            return twr;
-          };
+    auto func = [epoch_ref, epoch_rx, hardware_delay, this](
+                    const Vec6 rv_target_in, const Vec2 clk_target_in, const Vec6 rv_receiver_in,
+                    const Vec2 clk_receiver_in) {
+      Real twr = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_in, rv_receiver_in,
+                                       clk_target_in, clk_receiver_in, linkparams_.tx_agent,
+                                       linkparams_.rx_agent, hardware_delay, 0.0);
+      return twr;
+    };
 
     // break the computational graph relations before taking the jacobian
     Vec6 rv_target_tmp = rv_target.cast<double>();
@@ -506,8 +514,9 @@ namespace lupnt {
     Real rho_tw = 0.0;
 
     if (with_jacobian) {
-      VecXd H_tw_vec = gradient(func, wrt(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp),
-                                at(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp), rho_tw);
+      VecXd H_tw_vec
+          = gradient(func, wrt(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp),
+                     at(rv_target_tmp, clk_target_tmp, rv_receiver_tmp, clk_receiver_tmp), rho_tw);
 
       // Convert to (1, state) matrix
       H_tw_range.row(0) = H_tw_vec.transpose();
@@ -524,24 +533,25 @@ namespace lupnt {
       // std::cout << " <Range Computation>" << std::endl;
       // std::cout << " Target Position    : " << rv_target_tmp.transpose() << std::endl;
       // std::cout << " Receiver Position  : " << rv_receiver_tmp.transpose() << std::endl;
-      // std::cout << " Inst Distance      : " << (rv_target_tmp.head(3) - rv_receiver_tmp.head(3)).norm() << std::endl;
-      // std::cout << " Light-Time Distance: " << rho_tw << std::endl;
-      // std::cout << " Noise              : " << noise_tw << std::endl;
+      // std::cout << " Inst Distance      : " << (rv_target_tmp.head(3) -
+      // rv_receiver_tmp.head(3)).norm() << std::endl; std::cout << " Light-Time Distance: " <<
+      // rho_tw << std::endl; std::cout << " Noise              : " << noise_tw << std::endl;
       // std::cout << " " << std::endl;
     }
     return rho_tw;
   }
 
-  Real LinkMeasurement::GetTwoWayRangeRateMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver,
-                                                      Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
-                                                      MatXd &H_tw_rr,
-                                                      Real hardware_delay, bool with_noise,
-                                                      bool with_jacobian) {
+  Real LinkMeasurement::GetTwoWayRangeRateMeasurement(Real epoch_rx, Real epoch_ref,
+                                                      Vec6 rv_receiver, Vec6 rv_target,
+                                                      Vec2 clk_receiver, Vec2 clk_target,
+                                                      MatXd &H_tw_rr, Real hardware_delay,
+                                                      bool with_noise, bool with_jacobian) {
     // Function to compute the two way range rate
-    auto func = [epoch_rx, epoch_ref, rv_target, hardware_delay, this](const Vec6 rv_target_in, const Vec2 clk_target_in,
-                                                                       const Vec6 rv_receiver_in, const Vec2 clk_receiver_in) {
+    auto func = [epoch_rx, epoch_ref, rv_target, hardware_delay, this](
+                    const Vec6 rv_target_in, const Vec2 clk_target_in, const Vec6 rv_receiver_in,
+                    const Vec2 clk_receiver_in) {
       Real owrr = ComputeTwoWayRangeRateLTR(
-          epoch_rx, epoch_ref, rv_target_in, rv_receiver_in, clk_target_in, clk_receiver_in, 
+          epoch_rx, epoch_ref, rv_target_in, rv_receiver_in, clk_target_in, clk_receiver_in,
           linkparams_.tx_agent, linkparams_.rx_agent, hardware_delay, linkparams_.T_I_doppler);
       return owrr;
     };
@@ -554,8 +564,9 @@ namespace lupnt {
     Real rho_tw_rate = 0.0;
 
     if (with_jacobian) {
-      VecXd H_tw_rate_vec = gradient(func, wrt(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp),
-                                     at(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp), rho_tw_rate);
+      VecXd H_tw_rate_vec
+          = gradient(func, wrt(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp),
+                     at(rv_target_tmp, clk_target_tmp, rv_rx_tmp, clk_rx_tmp), rho_tw_rate);
 
       // Convert to (1, 8) matrix
       H_tw_rr.row(0) = H_tw_rate_vec.transpose();
@@ -575,7 +586,6 @@ namespace lupnt {
 
   /* Noise models for Two-way */
   VecXd LinkMeasurement::GetTwoWayLinkNoise(std::vector<LinkMeasurementType> meas_types) {
-
     VecXd noise_std_vec(meas_types.size());
     int idx = 0;
 
@@ -586,7 +596,7 @@ namespace lupnt {
           idx += 1;
           break;
         }
-        case LinkMeasurementType::RangeRate:{
+        case LinkMeasurementType::RangeRate: {
           noise_std_vec(idx) = GetTwoWayRangeRateNoise();
           idx += 1;
           break;
@@ -604,7 +614,7 @@ namespace lupnt {
     if (use_fixed_error_) {
       sigma_tw = range_sigma_fixed_;
     } else {
-      if (linkparams_.rx_agent->GetName() == "GroundStation") {
+      if (!use_open_loop_) {
         sigma_tw = ComputePnRangeErrorCTL(linkparams_.CN0_linear, linkparams_.B_L_chip,
                                           linkparams_.Tc, linkparams_.modulation_type);
       } else {
@@ -616,7 +626,7 @@ namespace lupnt {
     return sigma_tw;
   }
 
-  double LinkMeasurement::GetTwoWayRangeRateNoise(){
+  double LinkMeasurement::GetTwoWayRangeRateNoise() {
     double sigma_tw_rate = 0.0;
 
     if (use_fixed_error_) {

@@ -14,15 +14,15 @@
 #include <string_view>
 #include <vector>
 
-#include "agent.h"
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/measurements/gnss_channel.h"
 #include "lupnt/measurements/gnss_transmitter.h"
 #include "lupnt/physics/orbit_state.h"
+#include "spacecraft.h"
 
 namespace lupnt {
 
-  class Constellation {
+  class GnssConstellation {
   private:
     std::vector<Ptr<Spacecraft>> satellites_;
     Ptr<IDynamics> dynamics_;

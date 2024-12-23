@@ -20,8 +20,17 @@ file(
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   *.cc
 )
-# Remove example_ekf_elfo.cc from the list to compile
-list(REMOVE_ITEM examples "example_ekf_elfo.cc")
+
+if (NOT UseTorch)
+  # Remove example_torch.cc from the list to compile
+  set(NEW_EXAMPLES "")
+  foreach(item IN LISTS examples)
+    if(NOT item MATCHES "^torch/.*")
+      list(APPEND NEW_EXAMPLES "${item}")
+    endif()
+  endforeach()
+  set(examples "${NEW_EXAMPLES}")
+endif()
 
 find_package(OpenMP REQUIRED)
 
