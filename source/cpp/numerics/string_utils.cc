@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+#include "lupnt/core/file.h"
+
 namespace lupnt {
 
   /**
