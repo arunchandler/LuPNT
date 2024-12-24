@@ -1,7 +1,6 @@
 #include "lupnt/physics/orbit_state/converter.h"
 
 #include <algorithm>
-#include <cassert>
 #include <functional>
 #include <map>
 #include <queue>
@@ -87,9 +86,7 @@ namespace lupnt {
         return ConvertOrbitState(state_abs_d, repres_to, repres_out, GM);
       }
     }
-
-    assert(false && "Relative conversion not found for the given input.");
-    return Vec6::Zero();
+    throw std::runtime_error("Relative conversion not found for the given input.");
   }
 
   Ptr<OrbitState> ConvertOrbitStateRepresentation(const Ptr<OrbitState>& state_in,

@@ -4,7 +4,6 @@
 #include <lupnt/core/constants.h>
 #include <lupnt/core/file.h>
 
-#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -23,8 +22,7 @@ namespace lupnt {
     if (tai_utc_data) return;  // Data already loaded
 
     size_t n_lines = CountLines(filepath.string());
-    std::ifstream file(filepath);
-    assert(file.is_open() && "Unable to open file");
+    std::ifstream file = OpenFile<std::ifstream>(filepath);
 
     // Initialize TaiUtcFileData struct
     tai_utc_data = MakePtr<TaiUtcFileData>();

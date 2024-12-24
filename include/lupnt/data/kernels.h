@@ -32,7 +32,7 @@ Console.WriteLine(de.getPlanet(1, de.getHeader().jdStart)[0]);
 24857048.3412405
 */
 #pragma once
-#include <cassert>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>

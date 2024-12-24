@@ -237,7 +237,8 @@ namespace lupnt {
 
   MatX6 ConvertFrame(VecX t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out,
                      bool rotate_only) {
-    assert(t_tai.size() == rv_in.rows() && "Epoch and rv_in must have same size");
+    if (t_tai.size() != rv_in.rows())
+      throw std::runtime_error("Epoch and rv_in must have same size");
     MatX6 rv_out(t_tai.size(), 6);
     for (int i = 0; i < t_tai.size(); i++) {
       rv_out.row(i) = ConvertFrame(t_tai(i), rv_in.row(i).transpose().eval(), frame_in, frame_out,
@@ -248,7 +249,7 @@ namespace lupnt {
 
   MatX3 ConvertFrame(VecX t_tai, const MatX3& r_in, Frame frame_in, Frame frame_out,
                      bool rotate_only) {
-    assert(t_tai.size() == r_in.rows() && "Epoch and r_in must have same size");
+    if (t_tai.size() != r_in.rows()) throw std::runtime_error("Epoch and r_in must have same size");
     MatX3 r_out(t_tai.size(), 3);
     for (int i = 0; i < t_tai.size(); i++) {
       Vec3 r_in_ = r_in.row(i).transpose();

@@ -34,7 +34,7 @@ namespace lupnt {
   }
 
   void EKF::SetOutlierThreshold(double outlier_threshold) {
-    assert(outlier_threshold >= 0 && "Outlier threshold must be positive");
+    if (outlier_threshold < 0) throw std::invalid_argument("Outlier threshold must be positive");
     outlier_threshold_ = outlier_threshold;
   }
 

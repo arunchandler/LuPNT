@@ -1,6 +1,5 @@
 #include "lupnt/data/kernels.h"
 
-#include <cassert>
 #include <filesystem>
 #include <mutex>
 #include <string>
@@ -161,7 +160,10 @@ namespace lupnt {
 
   void ReadEphemerisHeaderFile(const std::filesystem::path& filepath, EphemerisHeaderData& data) {
     std::ifstream infile(filepath);
-    assert(infile.is_open() && "Unable to open file");
+    if (!infile.is_open()) {
+      std::string msg = "Unable to open file: " + filepath.string();
+      throw std::runtime_error(msg);
+    }
     std::string line, empty_line;
     std::vector<std::string> constant_names;
     std::vector<double> constant_values;
@@ -194,7 +196,10 @@ namespace lupnt {
     ephemeris_data->blocks.clear();
 
     std::ifstream infile(filepath);
-    assert(infile.is_open() && "Unable to open file");
+    if (!infile.is_open()) {
+      std::string msg = "Unable to open file: " + filepath.string();
+      throw std::runtime_error(msg);
+    }
     std::string value_str, line;
     int block = 1;
     int block_in, tmp;
@@ -253,12 +258,21 @@ namespace lupnt {
     Real jd_tdb = Time2JD(t_tdb);
 
     // Block
-    assert(jd_tdb >= ephemeris_data->jd_tdb_start && jd_tdb <= ephemeris_data->jd_tdb_end
-           && "Kernels no loaded for the requested time");
+    if (jd_tdb < ephemeris_data->jd_tdb_start || jd_tdb > ephemeris_data->jd_tdb_end) {
+      std::string msg = "Kernels not loaded for the requested time\n";
+      msg += "- Start: " + std::to_string(ephemeris_data->jd_tdb_start) + "\n";
+      msg += "- End: " + std::to_string(ephemeris_data->jd_tdb_end) + "\n";
+      msg += "- Requested: " + std::to_string(jd_tdb.val());
+      throw std::runtime_error(msg);
+    }
     double Dt = ephemeris_data->header.step;
     int i = int((jd_tdb - ephemeris_data->jd_tdb_start) / Dt);
-    assert(i >= 0 && i < ephemeris_data->blocks.size()
-           && "Block index out of range");  // TODO: Load proper file
+    if (!(i >= 0 && i < (int)ephemeris_data->blocks.size())) {
+      std::string msg = "Block index out of range\n";
+      msg += "- Index: " + std::to_string(i) + "\n";
+      msg += "- Number of blocks: " + std::to_string(ephemeris_data->blocks.size());
+      throw std::runtime_error(msg);
+    }
     EphemerisBlock& block = ephemeris_data->blocks[i];
     EphemerisHeaderData& header = ephemeris_data->header;
 

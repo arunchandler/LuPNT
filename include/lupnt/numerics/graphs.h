@@ -45,9 +45,7 @@ namespace lupnt {
         }
       }
     }
-
-    assert(false && "Path not found from start to end representation.");
-    return {};
+    throw std::runtime_error("Path not found from start to end representation.");
   }
 
 }  // namespace lupnt

@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "lupnt/core/definitions.h"
-#include "lupnt/core/user_file_path.h"
+#include "lupnt/core/file.h"
 
 namespace lupnt {
 

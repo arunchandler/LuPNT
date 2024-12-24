@@ -5,7 +5,6 @@
 #include <lupnt/numerics/interpolation.h>
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -21,8 +20,7 @@ namespace lupnt {
     if (iau_sofa) return;  // Data already loaded
 
     size_t n_lines = CountLines(filepath.string());
-    std::ifstream file(filepath);
-    assert(file.is_open() && "Unable to open file");
+    std::ifstream file = OpenFile<std::ifstream>(filepath);
 
     iau_sofa = MakePtr<IauSofaFileData>();
     iau_sofa->jd_tt.resize(n_lines);

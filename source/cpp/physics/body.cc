@@ -1,14 +1,13 @@
 #include "lupnt/physics/body.h"
 
 #include <algorithm>
-#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 
-#include "lupnt/core/user_file_path.h"
+#include "lupnt/core/file.h"
 #include "lupnt/physics/frame_converter.h"
 
 namespace lupnt {
@@ -213,8 +212,7 @@ namespace lupnt {
                                                                  int m, bool normalized) {
     GravityField<T> gravity_field;
     std::filesystem::path filepath = GetFilePath(filename);
-    std::ifstream file(filepath);
-    assert(file.is_open() && "Unable to open file");
+    std::ifstream file = OpenFile<std::ifstream>(filepath);
 
     // Read header lines
     std::string line;
@@ -238,7 +236,9 @@ namespace lupnt {
     gravity_field.m = m;
 
     // Initialize Eigen matrices with the specified maxN and maxM
-    assert(n <= gravity_field.n_max && m <= gravity_field.m_max);
+    if (n > gravity_field.n_max || m > gravity_field.m_max)
+      throw std::runtime_error("Degree and order exceed maximum values");
+
     gravity_field.CS = Eigen::MatrixXd::Zero(n + 1, m + 1);
     gravity_field.CS(0, 0) = 1.0;  // C00 = 1.0
     // Read coefficient lines

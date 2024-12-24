@@ -187,9 +187,10 @@ namespace lupnt {
   }
 
   Real TCB2TDB(Real t_tcb) {
-    const double tdb0 = -6.44e-5;
+    // TODO: Verify JD_J2000 TCB
+    const double tdb0 = -6.55e-5;
     Real jd_tcb = JD_J2000 + t_tcb / SECS_DAY;
-    Real t_tdb = 1.55051976772e-8 * (jd_tcb - JD_T0) * SECS_DAY + tdb0;
+    Real t_tdb = t_tcb - (1.55051976772e-8 * (jd_tcb - JD_T0) * SECS_DAY + tdb0);
     return t_tdb;
   }
 
@@ -258,6 +259,7 @@ namespace lupnt {
   Real GreenwichMeanSiderealTime(Real mjd_ut1) {
     Real mjd0 = floor(mjd_ut1);
     Real ut1 = SECS_DAY * (mjd_ut1 - mjd0);  // [s]
+    // TODO: Verify JD_J2000 UT1
     Real T0 = (mjd0 - MJD_J2000) / DAYS_CENTURY;
     Real T = (mjd_ut1 - MJD_J2000) / DAYS_CENTURY;
 

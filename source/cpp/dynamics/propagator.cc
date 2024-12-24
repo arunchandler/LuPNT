@@ -27,8 +27,7 @@ namespace lupnt {
 
   VecX NumericalPropagator::Propagate(const ODE &odefunc, Real t0, Real tf, const VecX &x0,
                                       Real dt) {
-    assert(dt > 0 && "Invalid time step");
-
+    if (dt <= 0) throw std::invalid_argument("Invalid time step");
     VecX x = x0;
     Real t = t0;
     while (t < tf) {

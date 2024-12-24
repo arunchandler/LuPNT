@@ -143,7 +143,7 @@ namespace lupnt {
   VecXd ComputeEstimationErrorPVC(const std::vector<Ptr<Spacecraft>>& sats, IFilter* filter) {
     VecXd est_err = VecXd::Zero(4 * sats.size());
 
-    for (int i = 0; i < sats.size(); i++) {
+    for (size_t i = 0; i < sats.size(); i++) {
       VecXd est_err_i = ComputeEstimationErrorPVC(sats[i], filter, i * 8);
       est_err.segment(i * 4, 4) = est_err_i;
     }
@@ -153,7 +153,7 @@ namespace lupnt {
 
   VecX ConstructTrueStateVecFromSats(const std::vector<Ptr<Spacecraft>>& sats) {
     VecX x_true = VecX::Zero(8 * sats.size());
-    for (int i = 0; i < sats.size(); i++) {
+    for (size_t i = 0; i < sats.size(); i++) {
       VecX x_sat = sats[i]->GetStateVec();
       x_true.segment(i * 8, 8) = x_sat;
     }

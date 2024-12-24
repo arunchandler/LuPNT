@@ -15,7 +15,11 @@ namespace lupnt {
   /// @return Line handle
   matplot::line_handle Plot3(const VecX &x, const VecX &y, const VecX &z,
                              std::string_view line_spec, double scale) {
-    assert(x.size() == y.size() && x.size() == z.size() && "x, y, and z must have the same size");
+    if (x.size() != y.size() || x.size() != z.size()) {
+      std::string msg = "x (" + std::to_string(x.size()) + "), y (" + std::to_string(y.size())
+                        + "), and z (" + std::to_string(z.size()) + ") must have the same size";
+      throw std::invalid_argument(msg);
+    }
     scale = pow(10, scale);
     return matplot::plot3(ToDouble(x / scale), ToDouble(y / scale), ToDouble(z / scale), line_spec);
   }
@@ -38,7 +42,11 @@ namespace lupnt {
   /// @param line_spec Line specification
   /// @return Line handle
   matplot::line_handle Plot(const VecX &x, const VecX &y, std::string_view line_spec) {
-    assert(x.size() == y.size() && "x and y must have the same size");
+    if (x.size() != y.size()) {
+      std::string msg = "x (" + std::to_string(x.size()) + ") and y (" + std::to_string(y.size())
+                        + ") must have the same size";
+      throw std::invalid_argument(msg);
+    }
     return matplot::plot(ToDouble(x), ToDouble(y), line_spec);
   }
 
@@ -51,8 +59,13 @@ namespace lupnt {
   /// @return Line handle
   matplot::line_handle Scatter3(const VecX &x, const VecX &y, const VecX &z, const VecX &sizes,
                                 const VecX &colors, std::string_view marker, double scale) {
-    assert(x.size() == y.size() && x.size() == z.size() && x.size() == sizes.size()
-           && "x, y, z, and sizes must have the same size");
+    if (x.size() != y.size() || x.size() != z.size() || x.size() != sizes.size()
+        || x.size() != colors.size()) {
+      std::string msg = "x (" + std::to_string(x.size()) + "), y (" + std::to_string(y.size())
+                        + "), z (" + std::to_string(z.size()) + "), and sizes ("
+                        + std::to_string(sizes.size()) + ") must have the same size";
+      throw std::invalid_argument(msg);
+    }
     return matplot::scatter3(ToDouble(x / scale), ToDouble(y / scale), ToDouble(z / scale),
                              ToDouble(sizes), marker);
   }

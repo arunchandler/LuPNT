@@ -12,8 +12,6 @@
 
 #include "lupnt/numerics/string_utils.h"
 
-#include <assert.h>
-
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -21,6 +19,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "lupnt/core/file.h"
 
 namespace lupnt {
 
@@ -53,8 +53,7 @@ namespace lupnt {
     std::vector<std::string> row;
     std::string line, word;
 
-    std::ifstream file(fname);
-    assert(file.is_open() && "File not found.");
+    std::ifstream file = OpenFile<std::ifstream>(fname);
 
     std::getline(file, line);  // read header
 

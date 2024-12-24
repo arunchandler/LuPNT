@@ -5,7 +5,6 @@
 #include <lupnt/numerics/interpolation.h>
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -24,9 +23,7 @@ namespace lupnt {
 
     int n_header_lines = 14;
     size_t n_lines = CountLines(filepath.string()) - n_header_lines;
-    std::ifstream file(filepath);
-    assert(file.is_open() && "Unable to open file");
-
+    std::ifstream file = OpenFile<std::ifstream>(filepath);
     // Skip header lines
     std::string line;
     for (int i = 0; i < n_header_lines; ++i) {

@@ -69,7 +69,8 @@ namespace lupnt {
     }
 
     MatX6 ConvertFrameSpice(VecX t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out) {
-      assert(t_tai.size() == rv_in.rows() && "Epoch and rv_in must have same size");
+      if (t_tai.size() != rv_in.rows())
+        throw std::runtime_error("Epoch and rv_in must have same size");
       MatX6 rv_out(t_tai.size(), 6);
       for (int i = 0; i < t_tai.size(); i++) {
         rv_out.row(i)
@@ -79,7 +80,8 @@ namespace lupnt {
     }
 
     MatX3 ConvertFrameSpice(VecX t_tai, const MatX3& r_in, Frame frame_in, Frame frame_out) {
-      assert(t_tai.size() == r_in.rows() && "Epoch and r_in must have same size");
+      if (t_tai.size() != r_in.rows())
+        throw std::runtime_error("Epoch and r_in must have same size");
       MatX6 rv_in(t_tai.size(), 6);
       rv_in << r_in, MatX3::Zero(t_tai.size(), 3);
       MatX6 rv_out = ConvertFrameSpice(t_tai, rv_in, frame_in, frame_out);
@@ -228,7 +230,7 @@ namespace lupnt {
               Vec6 rv_out = ConvertFrameSpice(t_tai, rv_mi, Frame::MOON_CI, frame_out);
               return rv_out;
             }
-            default: assert(false && "Conversion not found");
+            default: throw std::runtime_error("Conversion not found");
           }
         }
 
@@ -308,11 +310,9 @@ namespace lupnt {
             }
           }
         }
-        default: {
-          assert(false && "Conversion not found");
-        }
+        default: throw std::runtime_error("Conversion not found");
       }
-      assert(false && "Conversion not found");
+      throw std::runtime_error("Conversion not found");
       return Vec6::Zero();
     }
 

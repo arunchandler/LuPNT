@@ -1,6 +1,5 @@
 h5py
 ipykernel
-mathutils
 matplotlib
 mypy
 nbformat
