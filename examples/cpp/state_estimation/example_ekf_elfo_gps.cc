@@ -538,8 +538,8 @@ int main() {
   // Debug mode
   bool plot_results = false;
   bool debug_jacobian = false;
-  bool print_debug = true;
-  bool debug_ekf = true;            // Print EKF debug info
+  bool print_debug =false;
+  bool debug_ekf = false;            // Print EKF debug info
   bool debug_ekf_error_only = false;  // Print only error for EKF debugging
   bool no_meas = false;              // set to true to turn off measurements
 
@@ -817,7 +817,7 @@ int main() {
     // Print progress
     if (fmod((t-t0).val(), print_every) < 1e-3) {
       PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
-      PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
+      // PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
     }
 
     // print measurement residuals
