@@ -10,21 +10,15 @@ namespace lupnt {
   /// @param xi x interpolation point
   double LinearInterp1d(const VecXd& x, const VecXd& z, double xi) {
     if (x.size() != z.size()) throw std::runtime_error("Invalid size");
-    if (!(xi >= x(0) && xi <= x(x.size() - 1))) throw std::runtime_error("Out of range");
+    if (xi < x(0) - EPS || xi > x(x.size() - 1) + EPS) throw std::runtime_error("Out of range");
 
-    const double* start = x.data();
-    const double* end = x.data() + x.size();
-    auto it = std::lower_bound(start, end, xi);
-    size_t i0 = it - start;
-    size_t i1 = i0 + 1;
+    int i = 0;
+    for (i = 0; i < x.size() - 1; ++i)
+      if (xi <= x(i + 1) + EPS) break;
 
-    double dx0 = xi - x(i0);
-    double dx1 = x(i1) - xi;
-
-    dx0 = dx0 / (x(i1) - x(i0));
-    dx1 = dx1 / (x(i1) - x(i0));
-
-    double result = z(i0) * dx1 + z(i1) * dx0;
+    double dx0 = (xi - x(i)) / (x(i + 1) - x(i));
+    double dx1 = (x(i + 1) - xi) / (x(i + 1) - x(i));
+    double result = z(i) * dx1 + z(i + 1) * dx0;
     return result;
   }
 
@@ -34,76 +28,47 @@ namespace lupnt {
   /// @param z Matrix of z values
   /// @param xi x interpolation point
   double LinearInterp2d(const VecXd& x, const VecXd& y, const MatXd& z, double xi, double yi) {
-    if (x.size() != z.rows() || y.size() != z.cols()) {
-      std::stringstream msg;
-      msg << "Invalid size: x is " << x.size() << ", y is " << y.size() << ", z is " << z.rows()
-          << " x " << z.cols();
-      throw std::runtime_error(msg.str());
-    }
-    if (xi < x(0) || xi > x(x.size() - 1) || yi < y(0) || yi > y(y.size() - 1)) {
-      std::stringstream msg;
-      msg << "Out of range: xi is " << xi << ", yi is " << yi << ", x is " << x(0) << " to "
-          << x(x.size() - 1) << ", y is " << y(0) << " to " << y(y.size() - 1);
-      throw std::runtime_error(msg.str());
-    }
+    if (x.size() != z.rows() || y.size() != z.cols()) throw std::runtime_error("Invalid size");
+    if (xi < x(0) - EPS || xi > x(x.size() - 1) + EPS || yi < y(0) - EPS
+        || yi > y(y.size() - 1) + EPS)
+      throw std::runtime_error("Out of range");
 
-    const double *start, *end;
+    int i = 0, j = 0;
+    for (i = 0; i < x.size() - 1; ++i)
+      if (xi <= x(i + 1) + EPS) break;
+    for (j = 0; j < y.size() - 1; ++j)
+      if (yi <= y(j + 1) + EPS) break;
 
-    start = x.data();
-    end = x.data() + x.size();
-    auto it = std::lower_bound(start, end, xi + EPS);
-    size_t i0 = it - start - 1;
-    size_t i1 = i0 + 1;
-
-    start = y.data();
-    end = y.data() + y.size();
-    it = std::lower_bound(start, end, yi + EPS);
-    size_t j0 = it - start - 1;
-    size_t j1 = j0 + 1;
-
-    double dx0 = (xi - x(i0)) / (x(i1) - x(i0));
-    double dx1 = (x(i1) - xi) / (x(i1) - x(i0));
-    double dy0 = (yi - y(j0)) / (y(j1) - y(j0));
-    double dy1 = (y(j1) - yi) / (y(j1) - y(j0));
-    double result = z(i0, j0) * dx1 * dy1 + z(i0, j1) * dx1 * dy0 + z(i1, j0) * dx0 * dy1
-                    + z(i1, j1) * dx0 * dy0;
+    double dx0 = (xi - x(i)) / (x(i + 1) - x(i));
+    double dx1 = (x(i + 1) - xi) / (x(i + 1) - x(i));
+    double dy0 = (yi - y(j)) / (y(j + 1) - y(j));
+    double dy1 = (y(j + 1) - yi) / (y(j + 1) - y(j));
+    double result = z(i, j) * dx1 * dy1 + z(i, j + 1) * dx1 * dy0 + z(i + 1, j) * dx0 * dy1
+                    + z(i + 1, j + 1) * dx0 * dy0;
     return result;
   }
 
   LagrangeInterpolator::LagrangeInterpolator(const VecXd& x, double xi, int order)
       : x_(x), xi_(xi), order_(order) {
     if (x.size() <= order) throw std::runtime_error("Invalid size");
-    if (!(xi >= x(0) && xi <= x(x.size() - 1))) throw std::runtime_error("Out of range");
+    if (xi < x(0) - EPS || xi > x(x.size() - 1) + EPS) throw std::runtime_error("Out of range");
     ComputeFirstIndex();
     ComputeWeights();
   }
 
   void LagrangeInterpolator::ComputeFirstIndex() {
-    const double* start = x_.data();
-    const double* end = x_.data() + x_.size();
-    auto it = std::lower_bound(start, end, xi_);
-    i0_ = (it - start) - order_ / 2;
-    if (i0_ < 0) i0_ = 0;
-
-    // minimize abs(x(i0) + x(i0+order) - 2*xi)
-    double min_diff = std::abs(x_(i0_) + x_(i0_ + order_) - 2 * xi_);
-
-    double diff;
-    // Decrease i0 until the difference is increasing
-    for (int i = i0_ - 1; i >= 0; --i) {
-      diff = std::abs(x_(i) + x_(i + order_) - 2 * xi_);
-      if (diff > min_diff) break;
-      min_diff = diff;
-      i0_ = i;
-    }
+    // Minimize distance to mid point: |(x(i0) + x(i0+order))/ 2 - xi|
+    i0_ = 0;
+    double d_best = std::abs(x_(i0_) + x_(i0_ + order_) - 2 * xi_);
     for (int i = i0_ + 1; i < x_.size() - order_; ++i) {
-      diff = std::abs(x_(i) + x_(i + order_) - 2 * xi_);
-      if (diff > min_diff) break;
-      min_diff = diff;
-      i0_ = i;
+      double d = std::abs(x_(i) + x_(i + order_) - 2 * xi_);
+      if (d < d_best) {
+        i0_ = i;
+        d_best = d;
+      } else {
+        break;
+      }
     }
-
-    if (i0_ < 0 || i0_ + order_ >= x_.size()) throw std::runtime_error("Invalid index");
   }
 
   void LagrangeInterpolator::ComputeWeights() {

@@ -40,7 +40,7 @@ MatX3 CreateTestMatrix3() {
 }
 
 // Test cases for frame conversion
-TEST_CASE("Frame_Converter") {
+TEST_CASE("physics.ConvertFrame") {
   Vec6 rv_init = CreateTestVector6();
   Vec3 r_init = CreateTestVector3();
 
