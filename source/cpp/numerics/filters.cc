@@ -27,7 +27,7 @@ namespace lupnt {
     Q_ = f_proc_(x_, t_, t_end);
     x_ = f_dyn_(x_, t_, t_end, &F_);
 
-    P_ = P_ * P_ * F_.transpose() + Q_;
+    P_ = F_ * P_ * F_.transpose() + Q_;
     x_prior_ = x_;
     P_prior_ = P_;
     t_ = t_end;
@@ -52,14 +52,14 @@ namespace lupnt {
     int m = z_true_.size();
     if (m == 0) return;  // no measurement, nothing to update
 
-    // allocate memory (without this, VecXd will cause segfault)
+    // Prior measurement
     z_prior_ = f_meas_(x_, &H_, &R_);
 
     S_ = R_ + H_ * P_ * H_.transpose();  // Measurement information
     dy_ = z_true_ - z_prior_;
 
     // Remove outliers
-    // m = RemoveOutliers(m, debug);
+    m = RemoveOutliers(m);
     if (m == 0) return;  // all measurements are outliers
 
     // Update step
