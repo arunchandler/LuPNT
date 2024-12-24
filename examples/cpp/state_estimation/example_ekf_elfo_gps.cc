@@ -204,9 +204,8 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 };
 
 void PrintProgressHeader() {
-  std::cout << "Run Simulation" << std::endl;
   std::cout << " " << std::endl;
-  std::cout << " " << std::endl;
+  std::cout << "--------------------------------------------------------------" << std::endl;
   std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [m]" << std::endl;
   std::cout << "--------------------------------------------------------------" << std::endl;
 }
@@ -594,10 +593,6 @@ int main() {
   dyn_clk_true.SetNoise(true);
   dyn_clk_est.SetNoise(false);
 
-  // Print Time
-  std::string epoch_string = sp::TAItoStringUTC(epoch0, 3);
-  std::cout << "Initial Epoch: " << epoch_string << std::endl;
-
   // Set dynamics integration time
   dyn_earth_tb->SetTimeStep(dt);
   dyn_est->SetTimeStep(dt);
@@ -766,14 +761,22 @@ int main() {
   Real t = t0;
 
   double epoch = epoch0;
-  PrintProgressHeader();
 
   int time_index = 0;
   // tf = 50 * Dt;
 
   // Compute Estimation
   est_err = ComputeEstimationErrors(moon_sat, &ekf);  // pos, vel, clkb, clkd error
+
+  // Print Time
+  std::string epoch_string = sp::TAItoStringUTC(epoch0, 3);
+  std::cout << " " << std::endl;
+  std::cout << "Initial Epoch    : " << epoch_string << std::endl;
+  std::cout << "Simulation Length: " << (tf - t0)/60 << " min" << std::endl;
+  std::cout << " " << std::endl;
+  PrintProgressHeader();
   PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
+
   for (t = t0; t < tf; t += Dt) {
     time_index += 1;
     epoch += Dt;  // first propagate to the next epoch
