@@ -268,4 +268,8 @@ namespace lupnt {
     GETSET_ELEM(adiy, 5);
   };
 
+  static void CheckOrbitStateRepres(const OrbitState &state, OrbitStateRepres repres) {
+    if (state.GetOrbitStateRepres() != repres) throw std::runtime_error("OrbitState type must be");
+  }
+
 }  // namespace lupnt

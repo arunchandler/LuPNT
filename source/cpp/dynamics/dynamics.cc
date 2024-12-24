@@ -4,6 +4,7 @@
 #include "lupnt/physics/orbit_state.h"
 
 namespace lupnt {
+
   Ptr<IState> IOrbitDynamics::PropagateState(const Ptr<IState> &state, Real t0, Real tf,
                                              MatXd *stm) {
     int repres = (int)state->GetStateType();
@@ -17,7 +18,7 @@ namespace lupnt {
       OrbitState orbit_state_new = PropagateState(orbit_state, t0, tf);
       state_new = std::make_shared<OrbitState>(orbit_state_new);
     } else {
-      assert(stm->rows() == 6 && stm->cols() == 6 && "Invalid STM size");
+      if (stm->rows() != 6 || stm->cols() != 6) throw std::runtime_error("Invalid STM size");
       Mat6d stm_6;
       OrbitState orbit_state_new = PropagateState(orbit_state, t0, tf, &stm_6);
       *stm = stm_6;
@@ -27,13 +28,13 @@ namespace lupnt {
   }
 
   VecX IOrbitDynamics::Propagate(const VecX &x0, Real t0, Real tf, MatXd *stm) {
-    assert(x0.size() == 6 && "Invalid state size");
+    if (x0.size() != 6) throw std::runtime_error("Invalid state size");
     Vec6 x0_6 = x0;
     Vec6 xf;
     if (stm == nullptr) {
       xf = Propagate(x0_6, t0, tf);
     } else {
-      assert(stm->rows() == 6 && stm->cols() == 6 && "Invalid STM size");
+      if (stm->rows() != 6 || stm->cols() != 6) throw std::runtime_error("Invalid STM size");
       Mat6d stm_6;
       xf = Propagate(x0_6, t0, tf, &stm_6);
       *stm = stm_6;

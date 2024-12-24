@@ -77,7 +77,8 @@ namespace lupnt {
       const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elevation,
       const bool use_elev_mask1 = false, const bool use_elev_mask2 = false) {
     // Check if the input vectors have the same size
-    assert(bodies.size() == atm_h.size() && "bodies and atm_h must have the same size");
+    if (bodies.size() != atm_h.size())
+      throw std::runtime_error("bodies and atm_h must have the same size");
 
     // Convert to ICRF
     Vec3 r1_icrf = ConvertFrame(epoch, r1, cs1, Frame::ICRF);
@@ -151,9 +152,10 @@ namespace lupnt {
       Real epoch, const Mat<-1, 3>& r1, const Mat<-1, 3>& r2, Frame cs1, Frame cs2,
       const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elev,
       const bool use_elev_mask1 = false, const bool use_elev_mask2 = false) {
-    assert((r1.rows() == r2.rows() || r1.rows() == 1 || r2.rows() == 1) &&
-         "r1 and r2 must have the same number of rows or one of them must have "
-         "only one row");
+    if (!(r1.rows() == r2.rows() || r1.rows() == 1 || r2.rows() == 1))
+      throw std::runtime_error(
+          "r1 and r2 must have the same number of rows or one of them must have only one row");
+
     std::vector<std::map<std::string, bool>> vis;
 
     for (int i = 0; i < std::max(r1.rows(), r2.rows()); i++) {
@@ -169,10 +171,11 @@ namespace lupnt {
       const VecX& epoch, const Mat<-1, 3>& r1, const Mat<-1, 3>& r2, Frame cs1, Frame cs2,
       const std::vector<NaifId>& bodies, const VecXd& atm_h, const VecXd& min_elev,
       const bool use_elev_mask1 = false, const bool use_elev_mask2 = false) {
-    assert((epoch.size() == r1.rows() || r1.rows() == 1)
-           && "epoch and r1 must have the same size or r1 must have only one row");
-    assert((epoch.size() == r2.rows() || r2.rows() == 1)
-           && "epoch and r2 must have the same size or r2 must have only one row");
+    if (!(epoch.size() == r1.rows() || r1.rows() == 1))
+      throw std::runtime_error("epoch and r1 must have the same size or r1 must have only one row");
+    if (!(epoch.size() == r2.rows() || r2.rows() == 1))
+      throw std::runtime_error("epoch and r2 must have the same size or r2 must have only one row");
+
     std::vector<std::map<std::string, bool>> vis;
     for (int i = 0; i < epoch.size(); i++) {
       Vec3 r1_vec = r1.rows() == 1 ? r1.row(0) : r1.row(i);

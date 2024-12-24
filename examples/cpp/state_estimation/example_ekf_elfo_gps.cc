@@ -19,25 +19,18 @@ namespace sp = spice;
 
 class MyFile {
 private:
-  std::ofstream file;
+  std::ofstream file_;
 
 public:
-  MyFile(const std::string& filepath) {
-    file.open(filepath);
-    if (!file.is_open()) {
-      throw std::runtime_error("Could not open file: " + filepath);
-    }
-  }
+  MyFile(const std::string& filepath) { file_ = OpenFile<std::ofstream>(filepath); }
 
   ~MyFile() {
-    if (file.is_open()) {
-      file.close();
-    }
+    if (file_.is_open()) file_.close();
   }
 
   // Operator <<
   template <typename T> MyFile& operator<<(const T& data) {
-    file << data;
+    file_ << data;
     return *this;
   }
 };

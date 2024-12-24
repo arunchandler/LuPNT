@@ -72,9 +72,8 @@ namespace lupnt {
     }
 
     // File
-    std::filesystem::path filePath = GetFilePath(name_);
-    std::ifstream file(filePath, std::ifstream::in);
-    assert(file.is_open() && "File not found.");
+    std::filesystem::path filepath = GetFilePath(name_);
+    std::ifstream file = OpenFile<std::ifstream>(filepath);
 
     // Header
     std::string line;

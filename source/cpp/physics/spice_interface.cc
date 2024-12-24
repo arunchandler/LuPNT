@@ -20,7 +20,7 @@
 #include <iostream>
 #include <mutex>
 
-#include "lupnt/core/user_file_path.h"
+#include "lupnt/core/file.h"
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/physics/cheby.h"
 #include "lupnt/physics/spice_interface.h"
@@ -63,9 +63,11 @@ namespace lupnt {
 
       // Load Chebyshev coefficients
       cheby_s = spk_extract("de440.bsp", &cheby_n);
-      assert(cheby_s != nullptr &&
-         "Could not load SPK file - Please Download the SPK file. See "
-         "data/ephemeris/readme.md for instructions");
+      if (cheby_s == nullptr) {
+        throw std::runtime_error(
+            "Could not load SPK file - Please Download the SPK file. See "
+            "data/ephemeris/readme.md for instructions");
+      }
 
       std::filesystem::current_path(orig_dir);
       spice_loaded = true;
@@ -403,8 +405,8 @@ namespace lupnt {
       // Earth-Moon system
       const int i_moon = 10;                   // EMB-MOON
       const double emr = 81.3005682214972154;  // Earth/Moon mass ratio (DE440)
-      assert(cheby_s[i_moon].target == int(NaifId::MOON)
-             && cheby_s[i_moon].center == int(NaifId::EMB));
+      if (cheby_s[i_moon].target != int(NaifId::MOON) || cheby_s[i_moon].center != int(NaifId::EMB))
+        throw std::runtime_error("Chebyshev coefficients for EMB-MOON not found");
 
       if (center == NaifId::EARTH && target == NaifId::MOON)
         return cheby_posvel_ad(t_tdb, cheby_s[i_moon].seg, cheby_s[i_moon].len) * (emr + 1.) / emr;
@@ -436,7 +438,7 @@ namespace lupnt {
         }
         if (found_center && found_target) break;
       }
-      assert(found_center && found_target && "Chebyshev coefficients not found");
+      throw std::runtime_error("Chebyshev coefficients not found");
 
       Vec6 rv = rv_target - rv_center;
       return rv;

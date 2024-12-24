@@ -189,26 +189,26 @@
   VecX func(Real x, const VecX &y); \
   VecX func(const VecX &x, const VecX &y);
 
-#define VEC_IMP_REAL_REAL(func)                      \
-  VecX func(const VecX &x, Real y) {                 \
-    VecX out(x.size());                              \
-    for (int i = 0; i < x.size(); i++) {             \
-      out(i) = func(x(i), y);                        \
-    }                                                \
-    return out;                                      \
-  }                                                  \
-  VecX func(Real x, const VecX &y) {                 \
-    VecX out(y.size());                              \
-    for (int i = 0; i < y.size(); i++) {             \
-      out(i) = func(x, y(i));                        \
-    }                                                \
-    return out;                                      \
-  }                                                  \
-  VecX func(const VecX &x, const VecX &y) {          \
-    assert(x.size() == y.size() && "Size mismatch"); \
-    VecX out(x.size());                              \
-    for (int i = 0; i < x.size(); i++) {             \
-      out(i) = func(x(i), y(i));                     \
-    }                                                \
-    return out;                                      \
+#define VEC_IMP_REAL_REAL(func)                                          \
+  VecX func(const VecX &x, Real y) {                                     \
+    VecX out(x.size());                                                  \
+    for (int i = 0; i < x.size(); i++) {                                 \
+      out(i) = func(x(i), y);                                            \
+    }                                                                    \
+    return out;                                                          \
+  }                                                                      \
+  VecX func(Real x, const VecX &y) {                                     \
+    VecX out(y.size());                                                  \
+    for (int i = 0; i < y.size(); i++) {                                 \
+      out(i) = func(x, y(i));                                            \
+    }                                                                    \
+    return out;                                                          \
+  }                                                                      \
+  VecX func(const VecX &x, const VecX &y) {                              \
+    if (x.size() != y.size()) throw std::runtime_error("Size mismatch"); \
+    VecX out(x.size());                                                  \
+    for (int i = 0; i < x.size(); i++) {                                 \
+      out(i) = func(x(i), y(i));                                         \
+    }                                                                    \
+    return out;                                                          \
   }

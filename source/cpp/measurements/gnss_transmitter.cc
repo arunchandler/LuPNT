@@ -12,7 +12,7 @@
 #include "lupnt/measurements/gnss_transmitter.h"
 
 #include "lupnt/agents/agent.h"
-#include "lupnt/core/user_file_path.h"
+#include "lupnt/core/file.h"
 #include "lupnt/data/kernels.h"
 #include "lupnt/measurements/gnss_channel.h"
 #include "lupnt/numerics/string_utils.h"
@@ -20,19 +20,18 @@
 namespace lupnt {
 
   void GnssTransmitter::InitializeGnssTransmitter() {
-        if (gnss_type_.find("GPS") != std::string::npos) {
-            InitializeGPSTransmitter();
-        } else if (gnss_type_.find("COSMOS") != std::string::npos) {
-            InitializeGLONASSTransmitter();
-        } else if (gnss_type_.find("GSAT") != std::string::npos) {
-            InitializeGALILEOTransmitter();
-        } else if (gnss_type_.find("BEIDOU") != std::string::npos) {
-            InitializeBEIDOUTransmitter();
-        } else {
-            throw std::runtime_error("Invalid GNSS type");
-        }
+    if (gnss_type_.find("GPS") != std::string::npos) {
+      InitializeGPSTransmitter();
+    } else if (gnss_type_.find("COSMOS") != std::string::npos) {
+      InitializeGLONASSTransmitter();
+    } else if (gnss_type_.find("GSAT") != std::string::npos) {
+      InitializeGALILEOTransmitter();
+    } else if (gnss_type_.find("BEIDOU") != std::string::npos) {
+      InitializeBEIDOUTransmitter();
+    } else {
+      throw std::runtime_error("Invalid GNSS type");
     }
-
+  }
 
   /**
    * @brief Initialize the GPS transmitter

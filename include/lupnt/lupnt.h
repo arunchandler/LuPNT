@@ -19,7 +19,6 @@
 #include "lupnt/core/plot.h"
 #include "lupnt/core/progress_bar.h"
 #include "lupnt/core/scheduler.h"
-#include "lupnt/core/user_file_path.h"
 
 // data
 #include "lupnt/data/crater_data.h"

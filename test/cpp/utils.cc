@@ -49,19 +49,16 @@ static void NumericalJacobian(std::function<void(VecX&, Real)> propagate_functio
 static std::ifstream OpenTestDataFile(const std::string& filename) {
   std::filesystem::path lupnt_data_path = GetDataPath();
   std::filesystem::path test_data_path = lupnt_data_path.parent_path() / "test" / "data";
-  std::filesystem::path file_path = test_data_path / filename;
-  // Open text file
-  std::ifstream file(file_path, std::ios::in);
-  assert(file.is_open() && "Could not open file");
-  return file;
+  std::filesystem::path filepath = test_data_path / filename;
+  return OpenFile<std::ifstream>(filepath);
 }
 
 static std::vector<double> ReadVector(std::ifstream& file, bool skip_line = false) {
   std::string line;
-  if (skip_line) {
-    assert(std::getline(file, line));
-  }
-  assert(std::getline(file, line));
+  if (skip_line)
+    if (!std::getline(file, line)) throw std::runtime_error("Failed to read line");
+
+  if (!std::getline(file, line)) throw std::runtime_error("Failed to read line");
   std::istringstream iss(line);
   std::vector<double> vec;
   double val;

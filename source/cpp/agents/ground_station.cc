@@ -9,6 +9,7 @@
  *
  */
 #include <lupnt/agents/ground_station.h>
+#include <lupnt/core/file.h>
 
 #include <fstream>
 
@@ -17,11 +18,7 @@ namespace lupnt {
   GroundStationDataMap LoadGroundStationData() {
     // Path to the ground station data file
     std::string gs_data_file = GetGroundStationDataDir() / "ground_stations.csv";
-    std::ifstream file(gs_data_file);
-    if (!file.is_open()) {
-      throw std::runtime_error("Could not open file: " + gs_data_file);
-    }
-
+    std::ifstream file = OpenFile<std::ifstream>(gs_data_file);
     std::string line;
     std::getline(file, line);  // Skip the header
     // gs_id, name, location, dish_size, lat_deg, lon_deg, alt_m, eirp_min, eirp_max,

@@ -530,7 +530,7 @@ namespace lupnt {
       F2 = F(eta2, m, l);
       ++it;
     }
-    assert(it < max_it && "Hansen's method did not converge");
+    if (it >= max_it) throw std::runtime_error("Hansen's method did not converge");
     return eta2;
   }
 

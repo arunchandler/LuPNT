@@ -75,8 +75,7 @@ namespace lupnt {
 
   OrbitState CartesianTwoBodyDynamics::PropagateState(const OrbitState &state, Real t0, Real tf,
                                                       Mat6d *stm) {
-    assert(state.GetOrbitStateRepres() == OrbitStateRepres::CARTESIAN
-           && "OrbitState type not supported");
+    CheckOrbitStateRepres(state, OrbitStateRepres::CARTESIAN);
     Vec6 xf = Propagate(state.GetVec(), t0, tf, stm);
     return CartesianOrbitState(xf, state.GetFrame());
   }
@@ -115,8 +114,7 @@ namespace lupnt {
 
   OrbitState J2CartTwoBodyDynamics::PropagateState(const OrbitState &state, Real t0, Real tf,
                                                    Mat6d *stm) {
-    assert(state.GetOrbitStateRepres() == OrbitStateRepres::CARTESIAN
-           && "OrbitState type not supported");
+    CheckOrbitStateRepres(state, OrbitStateRepres::CARTESIAN);
     Vec6 xf = Propagate(state.GetVec(), t0, tf, stm);
     return CartesianOrbitState(xf, state.GetFrame());
   }
@@ -150,8 +148,7 @@ namespace lupnt {
 
   OrbitState J2KeplerianDynamics::PropagateState(const OrbitState &state, Real t0, Real tf,
                                                  Mat6d *stm) {
-    assert(state.GetOrbitStateRepres() == OrbitStateRepres::CLASSICAL_OE
-           && "OrbitState type not supported");
+    CheckOrbitStateRepres(state, OrbitStateRepres::CLASSICAL_OE);
     Vec6 xf = Propagate(state.GetVec(), t0, tf, stm);
     return CartesianOrbitState(xf, state.GetFrame());
   }
@@ -200,8 +197,7 @@ namespace lupnt {
 
   OrbitState MoonMeanDynamics::PropagateState(const OrbitState &state, Real t0, Real tf,
                                               Mat6d *stm) {
-    assert(state.GetOrbitStateRepres() == OrbitStateRepres::CLASSICAL_OE
-           && "OrbitState type not supported");
+    CheckOrbitStateRepres(state, OrbitStateRepres::CLASSICAL_OE);
     Vec6 xf = Propagate(state.GetVec(), t0, tf, stm);
     return CartesianOrbitState(xf, state.GetFrame());
   }

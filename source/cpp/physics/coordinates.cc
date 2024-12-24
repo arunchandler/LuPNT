@@ -65,7 +65,7 @@ namespace lupnt {
       delta_z = N * e2 * sin_phi;
       it++;
     }
-    assert(it < max_iterations && "Cart2LatLonAlt did not converge");
+    if (it >= max_iterations) throw std::runtime_error("Cart2LatLonAlt did not converge");
 
     Real lon = atan2(y, x);
     Real lat = atan2(z + delta_z, sqrt(x * x + y * y));
