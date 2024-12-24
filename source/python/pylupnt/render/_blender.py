@@ -5,7 +5,6 @@ try:
 except ImportError:
     pass
 import os
-import mathutils
 import numpy as np
 from .. import _pylupnt as _pnt
 from scipy.spatial.transform import Rotation as R
@@ -121,7 +120,16 @@ class Blender:
 
         self.SUN.rotation_mode = "QUATERNION"
         self.SUN.location = r_s_pa * SUN_DISTANCE * self.SCALE_BU
-        self.SUN.rotation_quaternion = mathutils.Vector(r_s_pa).to_track_quat("Z", "Y")
+        # self.SUN.rotation_quaternion = mathutils.Vector(r_s_pa).to_track_quat("Z", "Y")
+        ez = r_s_pa
+        ex = np.cross(np.array([0, 0, 1]), ez)
+        ex /= np.linalg.norm(ex)
+        ey = np.cross(ez, ex)
+        ey /= np.linalg.norm(ey)
+        rot = np.array([ex, ey, ez]).T
+        quat = pnt.rot2quat(rot)
+        quat = np.concatenate([quat[3:], quat[:3]])
+        self.SUN.rotation_quaternion = quat
 
         bpy.context.view_layer.update()
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
