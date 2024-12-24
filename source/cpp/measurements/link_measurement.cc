@@ -54,10 +54,9 @@ namespace lupnt {
     linkparams_.Tc = rx_param.modulation_type;
     linkparams_.T_I_doppler = rx_param.T_I_doppler;
     linkparams_.T_I_range = rx_param.T_I_range;
-    linkparams_.elevation =
 
-        // Singals
-        linkparams_.CN0_linear = trans.CN0_linear;
+    // Singals
+    linkparams_.CN0_linear = trans.CN0_linear;
   }
 
   /********************** One way Link ***************************/
