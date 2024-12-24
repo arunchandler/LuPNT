@@ -61,15 +61,24 @@ namespace lupnt {
 
       // Occultation
       std::string tx_planet = "";
-      std::map<std::string, bool> vis = Occultation::ComputeOccultationGnss(
+      std::map<std::string, bool> occult = Occultation::ComputeOccultationGnss(
           rv_tx_gcrf.r().cast<double>(), rv_tx_mi.r().cast<double>(), rv_rx_gcrf.r().cast<double>(),
           rv_rx_mi.r().cast<double>(), tx_planet, 10.0 * RAD);
 
-      if (vis["EARTH"] || vis["MOON"]) continue;  // quit if occulted
+      if (occult["earth"] || occult["moon"]) {
+        // std::cout << "Earth or Moon occultation" << std::endl;
+        continue;  // quit if occulted
+      }
 
       // Transmitter and Receiver Antenna gain
       double At = tx->GetTransmitterAntennaGain(t_tx, rv_tx_gcrf.r().cast<double>(),
                                                 rv_rx_gcrf.r().cast<double>());
+
+      if (std::isnan(At)) {
+        // std::cout << "Transmitter antenna gain is NaN" << std::endl;
+        continue;
+      }
+
       double Ar = rx.GetReceiverAntennaGain(t_rx, rv_tx_gcrf.r().cast<double>(),
                                             rv_rx_gcrf.r().cast<double>());
 
@@ -86,50 +95,49 @@ namespace lupnt {
                          - (10.0 * log10(rx.rx_param_.Tsys)) + 228.6 + rx.rx_param_.L;
         trans.CN0 = At + Ar + Ad + scalars;
 
-        if (At <= -499.0 || vis["earth"] || vis["moon"] || trans.CN0 < rx.rx_param_.CN0threshold) {
+        if (std::isnan(At) || occult["earth"] || occult["moon"] || trans.CN0 < rx.rx_param_.CN0threshold) {
           // not visible
           continue;
-          trans.CN0 = NAN;
-          trans.AP = NAN;
-          trans.RP = NAN;
-          trans.vis_antenna = true;
-        } else {
+        } 
+        else {
           trans.AP = tx->P_tx + At + Ad + rx.rx_param_.Ae;
           trans.RP = trans.AP + Ar + rx.rx_param_.As;
-          trans.vis_antenna = false;
+          trans.vis_antenna = true;
+
+          // TX
+          trans.t_tx = t_tx;
+          trans.freq = freq;
+          trans.freq_label = freq_name;
+          trans.chip_rate = tx->rc_map[freq_name];
+          trans.dt_tx = 0.0;      // Todo: Get this from ephemeris
+          trans.dt_tx_dot = 0.0;  // Todo: Get this from ephemeris
+          trans.r_tx = rv_tx_gcrf.r().cast<double>();
+          trans.v_tx = rv_tx_gcrf.v().cast<double>();
+
+          // Channel
+          trans.I_rx = 0.0;
+          trans.T_rx = 0.0;
+          trans.vis_atmos = 1 - occult["atmos"];
+          trans.vis_ionos = 1 - occult["ionos"];
+          trans.vis_earth = 1 - occult["earth"];
+          trans.vis_moon = 1 - occult["moon"];
+
+          trans.ID_tx = tx->GetPRN();
+
+          // RX
+          trans.t_rx = t_rx;
+          trans.dt_rx = rx.GetAgent()->GetClockState().GetValue(0).val();
+          trans.dt_rx_dot = rx.GetAgent()->GetClockState().GetValue(1).val();
+          trans.r_rx = rv_rx_gcrf.r().cast<double>();
+          trans.v_rx = rv_rx_gcrf.v().cast<double>();
+
+          // receiver chip param
+          trans.gnssr_param = rx.gnssr_param_;
+
+          // std::cout << "prn: " << tx->GetPRN() << " freq: " << freq_name << " At:" << At << "  Ar:" << Ar << "  C/N0:" << trans.CN0 << std::endl;
+
+          received_transs.push_back(trans);
         }
-
-        // TX
-        trans.t_tx = t_tx;
-        trans.freq = freq;
-        trans.freq_label = freq_name;
-        trans.chip_rate = tx->rc_map[freq_name];
-        trans.dt_tx = 0.0;      // Todo: Get this from ephemeris
-        trans.dt_tx_dot = 0.0;  // Todo: Get this from ephemeris
-        trans.r_tx = rv_tx_gcrf.r().cast<double>();
-        trans.v_tx = rv_tx_gcrf.v().cast<double>();
-
-        // Channel
-        trans.I_rx = 0.0;
-        trans.T_rx = 0.0;
-        trans.vis_atmos = vis["atmos"];
-        trans.vis_ionos = vis["ionos"];
-        trans.vis_earth = vis["earth"];
-        trans.vis_moon = vis["moon"];
-
-        trans.ID_tx = tx->GetPRN();
-
-        // RX
-        trans.t_rx = t_rx;
-        trans.dt_rx = rx.GetAgent()->GetClockState().GetValue(0).val();
-        trans.dt_rx_dot = rx.GetAgent()->GetClockState().GetValue(1).val();
-        trans.r_rx = rv_rx_gcrf.r().cast<double>();
-        trans.v_rx = rv_rx_gcrf.v().cast<double>();
-
-        // receiver chip param
-        trans.gnssr_param = rx.gnssr_param_;
-
-        received_transs.push_back(trans);
       }
     }
     return received_transs;

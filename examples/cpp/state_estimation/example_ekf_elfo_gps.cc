@@ -200,7 +200,7 @@ void PrintProgressHeader() {
   std::cout << "Run Simulation" << std::endl;
   std::cout << " " << std::endl;
   std::cout << " " << std::endl;
-  std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [ms]" << std::endl;
+  std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [m]" << std::endl;
   std::cout << "--------------------------------------------------------------" << std::endl;
 }
 
@@ -472,7 +472,11 @@ int main() {
    * Simulation Parameters
    *********************************************/
   // Get initial epoch
-  auto gps_const = GnssConstellation();
+  GnssConstellation gps_const = GnssConstellation();
+  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
+  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
+  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel);  // example gps file
   double epoch0 = gps_const.GetEpoch();
 
   // Time
@@ -521,16 +525,21 @@ int main() {
   double vel_err = 1e-3;        // Initial Velocity error [km/s]
   double clk_bias_err = 1e-6;   // Initial Clock bias error [s]
   double clk_drift_err = 1e-9;  // Initial Clock drift error [s/s]
-  double sigma_acc = 1e-12;     // Process noise Acceleration [km/s^2]  <-- tune
+  double sigma_acc = 1e-10;     // Process noise Acceleration [km/s^2]  <-- tune
                                 // this for optimal performance!
 
   // Debug mode
   bool plot_results = false;
   bool debug_jacobian = false;
-  bool print_debug = false;
-  bool debug_ekf = false;
-  bool debug_ekf_error_only = true;  // Print only error for EKF debugging
+  bool print_debug =false;
+  bool debug_ekf = false;            // Print EKF debug info
+  bool debug_ekf_error_only = false;  // Print only error for EKF debugging
   bool no_meas = false;              // set to true to turn off measurements
+
+  if (print_debug) {
+    tf = t0 + 2 * Dt;
+    print_every = Dt;
+  }
 
   /**********************************************
    * Setup
@@ -551,8 +560,6 @@ int main() {
   iparams.abstol = 1e-12;
   iparams.reltol = 1e-12;
 
-  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
-      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
   auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
   auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics
 
@@ -579,12 +586,6 @@ int main() {
   auto dyn_clk_est = ClockDynamics(cmodel);
   dyn_clk_true.SetNoise(true);
   dyn_clk_est.SetNoise(false);
-
-  // GPS constellation
-  auto channel = std::make_shared<GnssChannel>();
-  gps_const.SetChannel(channel);
-  gps_const.SetDynamics(dyn_earth_tb);
-  gps_const.LoadTleFile("gps");  // example gps file
 
   // Print Time
   std::string epoch_string = sp::TAItoStringUTC(epoch0, 3);
@@ -765,7 +766,7 @@ int main() {
 
   // Compute Estimation
   est_err = ComputeEstimationErrors(moon_sat, &ekf);  // pos, vel, clkb, clkd error
-  PrintProgress(t.val(), est_err(0), est_err(1), est_err(2));
+  PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
   for (t = t0; t < tf; t += Dt) {
     time_index += 1;
     epoch += Dt;  // first propagate to the next epoch
@@ -777,8 +778,10 @@ int main() {
     // Get True Measurement
     VecX z_true;
     auto measall = receiver->GetMeasurement(epoch);
+
     auto meas = measall.ExtractSignal("L1");
     int num_sat = meas.GetTrackedSatelliteNum();
+
     num_meas(time_index) = num_sat;
 
     if (!no_meas) {
@@ -805,13 +808,15 @@ int main() {
     error_mat.col(time_index) = est_err;
 
     // Print progress
-    if (fmod(t.val(), print_every) < 1e-3) {
-      PrintProgress(t.val(), est_err(0), est_err(1), est_err(2));
-      PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
+    if (fmod((t-t0).val(), print_every) < 1e-3) {
+      PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
+      // PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
     }
 
     // print measurement residuals
     if ((print_debug) && (!no_meas)) {
+      std::cout << "z_true: " << z_true.transpose() << std::endl;
+      std::cout << "z_pred: " << ekf.z_prior_.transpose() << std::endl;
       PrintEKFDebugInfo(time_index, moon_sat, &ekf, debug_ekf_error_only);
     }
   }

@@ -55,8 +55,8 @@ namespace lupnt {
       // furnsh_c("moon_pa_de440_200625.bpc");
 
       // Earth
-      furnsh_c("earth_200101_990825_predict.bpc");  // long
-      furnsh_c("earth_000101_241014_240722.bpc");   // short
+      // furnsh_c("earth_200101_990825_predict.bpc");  // long
+      // furnsh_c("earth_000101_241014_240722.bpc");   // short
 
       // Mars
       if (std::filesystem::exists("mars097.bsp")) furnsh_c("mars097.bsp");

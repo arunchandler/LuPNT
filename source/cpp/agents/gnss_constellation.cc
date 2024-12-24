@@ -20,7 +20,13 @@
 
 namespace lupnt {
 
-  void GnssConstellation::LoadTleFile(std::string_view filename) {
+  void GnssConstellation::InitializeWithTle(std::string gnss_type, std::string tle_filename, Ptr<IDynamics> dynamics, Ptr<GnssChannel> channel) {
+    SetChannel(channel);
+    SetDynamics(dynamics);
+    LoadTleFile(gnss_type, tle_filename);
+  }
+
+  void GnssConstellation::LoadTleFile(std::string_view gnss_type, std::string filename) {
     // std::filesystem::path path = GetFilePath(filename);
 
     bool is_first = true;
@@ -30,6 +36,8 @@ namespace lupnt {
       if (is_first) {
         epoch_ = tle.epoch_tai;
       }
+      // std::cout << "Loaded satellite: " << tle.name << " PRN: " << tle.prn << std::endl;
+
       double dt_epoch = epoch_ - tle.epoch_tai;
 
       double T = SECS_DAY / tle.mean_motion;
@@ -56,7 +64,7 @@ namespace lupnt {
       sat->SetBodyId(NaifId::EARTH);
 
       if (channel_) {
-        auto transmitter = MakePtr<GnssTransmitter>(tle.name, tle.prn);
+        auto transmitter = MakePtr<GnssTransmitter>(std::string(gnss_type), tle.prn);
         sat->AddDevice(transmitter);
         transmitter->SetAgent(sat);
         channel_->AddTransmitter(transmitter);
