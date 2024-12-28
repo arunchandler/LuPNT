@@ -90,10 +90,10 @@ namespace lupnt {
       SpiceDouble record[120];
       int rsize;
       int pdeg;
-      double ra;
-      double dec;
-      double w;
-      double lambda;
+      // double ra;
+      // double dec;
+      // double w;
+      // double lambda;
       static char bref[32];
       double eulang[6];
 
