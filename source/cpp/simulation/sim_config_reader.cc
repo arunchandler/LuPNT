@@ -141,8 +141,9 @@ namespace lupnt {
             std::string fieldStr = "time.epoch0[" + std::to_string(i) + "]";
             epoch0_vec[i] = LoadRequiredField<double>(epoch0_array[i], fieldStr);
         }
-        double epoch0_tai = Gregorian2Time(epoch0_vec[0],epoch0_vec[1], epoch0_vec[2],epoch0_vec[3],
-                                           epoch0_vec[4], epoch0_vec[5]).val();
+        Real epoch0_utc = Gregorian2Time(epoch0_vec[0],epoch0_vec[1], epoch0_vec[2],epoch0_vec[3],
+                                         epoch0_vec[4], Real(epoch0_vec[5]));
+        double epoch0_tai = UTC2TAI(epoch0_utc).val();
         time_config_.epoch0 = epoch0_tai;
 
         time_config_.dt_integ = LoadRequiredField<double>(time_node["dt_integ"], "time.dt_integ");

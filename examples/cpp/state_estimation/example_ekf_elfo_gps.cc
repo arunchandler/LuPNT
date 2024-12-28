@@ -471,8 +471,8 @@ int main() {
    * Simulation Parameters
    *********************************************/
   // Time
-  double t0 = Gregorian2Time(2023, 6, 9, 8, 30, 0).val();
-  double epoch0 = t0;
+  Real et0_utc = Gregorian2Time(2023, 6, 9, 8, 30, 0).val(); // in UTC
+  double et0 = UTC2TAI(et0_utc).val();  // in TAI
   double dt = 1.0;  // Integration time step [s]
   double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
@@ -483,7 +483,7 @@ int main() {
   Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
       GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
   Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
-  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel, t0);  // example gps file
+  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel, et0);  // example gps file
 
   // Simulation seed
   int seed = 1;
@@ -502,9 +502,9 @@ int main() {
   // Set simulation to 1 orbit
   int n_orbit = 2;  // number of orbits to simulate
   Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
-  double tf = t0 + n_orbit * period.val();
-  int time_step_num = int((tf - t0) / Dt) + 1;
-  tf = t0 + (time_step_num - 1) * Dt;
+  double tf = et0 + n_orbit * period.val();
+  int time_step_num = int((tf - et0) / Dt) + 1;
+  tf = et0 + (time_step_num - 1) * Dt;
 
   // Dynamics Model   Todo: Refine this to a more high fidelity model
   int moon_sph_true = 8;  // moon spherical harmonics order in true dynamics
@@ -536,7 +536,7 @@ int main() {
   bool no_meas = false;              // set to true to turn off measurements
 
   if (print_debug) {
-    tf = t0 + 2 * Dt;
+    tf = et0 + 2 * Dt;
     print_every = Dt;
   }
 
@@ -594,7 +594,7 @@ int main() {
   // Moon spacecraft
   ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_OP);
   CartesianOrbitState cart_op = Classical2Cart(coe_moon, GM_MOON);
-  CartesianOrbitState cart_mci = ConvertOrbitStateFrame(cart_op, epoch0, Frame::MOON_CI);
+  CartesianOrbitState cart_mci = ConvertOrbitStateFrame(cart_op, et0, Frame::MOON_CI);
   auto cart_state_moon = MakePtr<CartesianOrbitState>(cart_mci.GetVec6(), Frame::MOON_CI);
 
   Vec2 clock_vec{clk_bias, clk_drift};  // [s, s/s]
@@ -607,7 +607,7 @@ int main() {
   moon_sat->SetDynamics(dyn_true);
   moon_sat->SetClock(clock_state);
   moon_sat->SetOrbitState(cart_state_moon);
-  moon_sat->SetEpoch(epoch0);
+  moon_sat->SetEpoch(et0);
   moon_sat->SetBodyId(NaifId::MOON);
   moon_sat->SetClockDynamics(dyn_clk_true);
 
@@ -701,7 +701,7 @@ int main() {
 
   // Initilization
   VecX x_est = SampleMVN(joint_state.GetJointStateValue(), P0, 1, seed);
-  ekf.Initialize(t0, x_est, P0);
+  ekf.Initialize(et0, x_est, P0);
   VecXd est_err = ComputeEstimationErrors(moon_sat, &ekf);
   error_mat.col(0) = est_err;
 
@@ -726,9 +726,9 @@ int main() {
   /***********************************************
    * Main loop
    **********************************************/
-  Real t = t0;
+  Real t = et0;
 
-  double epoch = epoch0;
+  double epoch = et0;
 
   int time_index = 0;
   // tf = 50 * Dt;
@@ -737,15 +737,15 @@ int main() {
   est_err = ComputeEstimationErrors(moon_sat, &ekf);  // pos, vel, clkb, clkd error
 
   // Print Time
-  std::string epoch_string = sp::TAItoStringUTC(epoch0, 3);
+  std::string epoch_string = sp::TAItoStringUTC(et0, 3);
   std::cout << " " << std::endl;
   std::cout << "Initial Epoch    : " << epoch_string << std::endl;
-  std::cout << "Simulation Length: " << (tf - t0)/60 << " min" << std::endl;
+  std::cout << "Simulation Length: " << (tf - et0)/60 << " min" << std::endl;
   std::cout << " " << std::endl;
   PrintProgressHeader();
-  PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
+  PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2));
 
-  for (t = t0; t < tf; t += Dt) {
+  for (t = et0; t < tf; t += Dt) {
     time_index += 1;
     epoch += Dt;  // first propagate to the next epoch
 
@@ -786,8 +786,8 @@ int main() {
     error_mat.col(time_index) = est_err;
 
     // Print progress
-    if (fmod((t-t0).val(), print_every) < 1e-3) {
-      PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
+    if (fmod((t-et0).val(), print_every) < 1e-3) {
+      PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2));
       // PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
     }
 
