@@ -31,6 +31,7 @@ namespace lupnt {
   std::filesystem::path GetCspiceKernelDir();
   std::filesystem::path GetAsciiKernelDir();
   std::filesystem::path GetGroundStationDataDir();
+  std::filesystem::path GetConfigFileDir();
 
   std::chrono::time_point<std::chrono::high_resolution_clock> GetSystemTime();
   std::string PrintDuration(const std::chrono::duration<double>& duration);

@@ -50,6 +50,7 @@ namespace lupnt {
   std::filesystem::path GetCspiceKernelDir() { return GetDataPath() / "ephemeris"; }
   std::filesystem::path GetAsciiKernelDir() { return GetDataPath() / "ephemeris" / "ascii"; }
   std::filesystem::path GetGroundStationDataDir() { return GetDataPath() / "ground_station"; }
+  std::filesystem::path GetConfigFileDir() { return GetDataPath() / ".." / "config"; }
 
   std::chrono::time_point<std::chrono::high_resolution_clock> GetSystemTime() {
     return std::chrono::high_resolution_clock::now();

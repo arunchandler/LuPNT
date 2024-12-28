@@ -27,6 +27,8 @@ namespace lupnt {
 
   class ICommDevice;
 
+  class Application;
+
   /**
    * @brief Agent base class
    *
@@ -45,10 +47,13 @@ namespace lupnt {
     Frame dynamics_frame_ = Frame::NONE;
 
     Ptr<AttitudeState> attitude_;
+
     std::vector<Ptr<ICommDevice>> devices_;
 
     ClockState clock_;
-    std::unique_ptr<ClockDynamics> clock_dynamics_;
+    Ptr<ClockDynamics> clock_dynamics_;
+
+    std::vector<Ptr<Application>> applications_;
 
   public:
     Agent() : id_(id_counter_++), clock_(ClockState(2)) {};
@@ -63,8 +68,12 @@ namespace lupnt {
     Ptr<IDynamics> GetDynamics() const { return dynamics_; }
     Ptr<AttitudeState> GetAttitudeState() const { return attitude_; }
     ClockState GetClockState() const { return clock_; }
+    Ptr<ClockDynamics> GetClockDynamics() const { return clock_dynamics_; }
+    std::vector<Ptr<ICommDevice>> GetDevices() const { return devices_; }
+    std::vector<Ptr<Application>> GetApplications() const { return applications_; }
 
     // Setters
+    void SetName(std::string name) { name_ = name; }
     void SetIsBodyFixed(bool is_bodyfixed) { is_bodyfixed_ = is_bodyfixed; }
     void SetDynamicsFrame(Frame frame) { dynamics_frame_ = frame; }
     void GetDynamicsFrame(Frame frame) { dynamics_frame_ = frame; }
@@ -76,6 +85,8 @@ namespace lupnt {
     void SetClockDynamics(ClockDynamics& clock_dyn) {
       clock_dynamics_ = std::make_unique<ClockDynamics>(clock_dyn);
     }
+    void SetClockDynamics(Ptr<ClockDynamics> clock_dyn) { clock_dynamics_ = clock_dyn; }
+    void SetApplication(Ptr<Application> app) { applications_.push_back(app); }
 
     // Comm Device
     void AddDevice(Ptr<ICommDevice> device) { devices_.push_back(device); }

@@ -197,9 +197,8 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 };
 
 void PrintProgressHeader() {
-  std::cout << "Run Simulation" << std::endl;
   std::cout << " " << std::endl;
-  std::cout << " " << std::endl;
+  std::cout << "--------------------------------------------------------------" << std::endl;
   std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [m]" << std::endl;
   std::cout << "--------------------------------------------------------------" << std::endl;
 }
@@ -471,20 +470,20 @@ int main() {
   /**********************************************
    * Simulation Parameters
    *********************************************/
-  // Get initial epoch
-  GnssConstellation gps_const = GnssConstellation();
-  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
-      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
-  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
-  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel);  // example gps file
-  double epoch0 = gps_const.GetEpoch();
-
   // Time
-  double t0 = epoch0;
+  Real et0_utc = Gregorian2Time(2023, 6, 9, 8, 30, 0).val(); // in UTC
+  double et0 = UTC2TAI(et0_utc).val();  // in TAI
   double dt = 1.0;  // Integration time step [s]
   double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
+
+  // Gps constellation
+  GnssConstellation gps_const = GnssConstellation();
+  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
+  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
+  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel, et0);  // example gps file
 
   // Simulation seed
   int seed = 1;
@@ -503,9 +502,9 @@ int main() {
   // Set simulation to 1 orbit
   int n_orbit = 2;  // number of orbits to simulate
   Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
-  double tf = t0 + n_orbit * period.val();
-  int time_step_num = int((tf - t0) / Dt) + 1;
-  tf = t0 + (time_step_num - 1) * Dt;
+  double tf = et0 + n_orbit * period.val();
+  int time_step_num = int((tf - et0) / Dt) + 1;
+  tf = et0 + (time_step_num - 1) * Dt;
 
   // Dynamics Model   Todo: Refine this to a more high fidelity model
   int moon_sph_true = 8;  // moon spherical harmonics order in true dynamics
@@ -537,7 +536,7 @@ int main() {
   bool no_meas = false;              // set to true to turn off measurements
 
   if (print_debug) {
-    tf = t0 + 2 * Dt;
+    tf = et0 + 2 * Dt;
     print_every = Dt;
   }
 
@@ -587,30 +586,28 @@ int main() {
   dyn_clk_true.SetNoise(true);
   dyn_clk_est.SetNoise(false);
 
-  // Print Time
-  std::string epoch_string = sp::TAItoStringUTC(epoch0, 3);
-  std::cout << "Initial Epoch: " << epoch_string << std::endl;
-
   // Set dynamics integration time
   dyn_earth_tb->SetTimeStep(dt);
   dyn_est->SetTimeStep(dt);
   dyn_true->SetTimeStep(dt);
 
   // Moon spacecraft
-  ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_CI);
-  auto cart_state_moon = std::make_shared<CartesianOrbitState>(Classical2Cart(coe_moon, GM_MOON));
+  ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_OP);
+  CartesianOrbitState cart_op = Classical2Cart(coe_moon, GM_MOON);
+  CartesianOrbitState cart_mci = ConvertOrbitStateFrame(cart_op, et0, Frame::MOON_CI);
+  auto cart_state_moon = MakePtr<CartesianOrbitState>(cart_mci.GetVec6(), Frame::MOON_CI);
 
   Vec2 clock_vec{clk_bias, clk_drift};  // [s, s/s]
   ClockState clock_state(clock_vec);
 
-  auto moon_sat = std::make_shared<Spacecraft>();
-  auto receiver = std::make_shared<GnssReceiver>("moongpsr");
+  auto moon_sat = MakePtr<Spacecraft>();
+  auto receiver = MakePtr<GnssReceiver>("moongpsr");
 
   moon_sat->AddDevice(receiver);
   moon_sat->SetDynamics(dyn_true);
   moon_sat->SetClock(clock_state);
   moon_sat->SetOrbitState(cart_state_moon);
-  moon_sat->SetEpoch(epoch0);
+  moon_sat->SetEpoch(et0);
   moon_sat->SetBodyId(NaifId::MOON);
   moon_sat->SetClockDynamics(dyn_clk_true);
 
@@ -633,7 +630,7 @@ int main() {
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, meas_types, debug_jacobian](
+      = [moon_sat, receiver, state_size, no_meas, meas_types](
             const VecX x, MatXd* H, MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
@@ -655,33 +652,6 @@ int main() {
 
     VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
                                               frame_in);  // Jacobian with autodiff
-
-    if (debug_jacobian) {
-      // Compute Numerical Jacobian
-      MatXd H_num = MatXd::Zero(mtot, x.size());
-      MatXd H_dum = MatXd::Zero(mtot, x.size());
-
-      for (int i = 0; i < x.size(); i++) {
-        Real eps = x(i) * 1e-6;
-        VecX x_p = x;
-        VecX x_m = x;
-        x_p(i) += eps;
-        x_m(i) -= eps;
-        VecX z_p = meas.GetPredictedGnssMeasurement(epoch, x_p.head(6), x_p.tail(2), x_N, H_dum,
-                                                    meas_types,
-                                                    frame_in);  // Jacobian with autodiff
-        VecX z_m = meas.GetPredictedGnssMeasurement(epoch, x_m.head(6), x_m.tail(2), x_N, H_dum,
-                                                    meas_types,
-                                                    frame_in);  // Jacobian with autodiff
-        H_num.col(i) = ((z_p - z_m) / (2 * eps)).cast<double>();
-      }
-
-      std::cout << " " << std::endl;
-      std::cout << "AutoDiff Jacobian: " << std::endl << H << std::endl;
-      std::cout << "Numerical Jacobian: " << std::endl << H_num << std::endl;
-      std::cout << "Jacobian Error: " << (*H - H_num).norm() << std::endl;
-      std::cout << " " << std::endl;
-    }
 
     // Get the Measurement Noise
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
@@ -731,7 +701,7 @@ int main() {
 
   // Initilization
   VecX x_est = SampleMVN(joint_state.GetJointStateValue(), P0, 1, seed);
-  ekf.Initialize(t0, x_est, P0);
+  ekf.Initialize(et0, x_est, P0);
   VecXd est_err = ComputeEstimationErrors(moon_sat, &ekf);
   error_mat.col(0) = est_err;
 
@@ -756,18 +726,26 @@ int main() {
   /***********************************************
    * Main loop
    **********************************************/
-  Real t = t0;
+  Real t = et0;
 
-  double epoch = epoch0;
-  PrintProgressHeader();
+  double epoch = et0;
 
   int time_index = 0;
   // tf = 50 * Dt;
 
   // Compute Estimation
   est_err = ComputeEstimationErrors(moon_sat, &ekf);  // pos, vel, clkb, clkd error
-  PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
-  for (t = t0; t < tf; t += Dt) {
+
+  // Print Time
+  std::string epoch_string = sp::TAItoStringUTC(et0, 3);
+  std::cout << " " << std::endl;
+  std::cout << "Initial Epoch    : " << epoch_string << std::endl;
+  std::cout << "Simulation Length: " << (tf - et0)/60 << " min" << std::endl;
+  std::cout << " " << std::endl;
+  PrintProgressHeader();
+  PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2));
+
+  for (t = et0; t < tf; t += Dt) {
     time_index += 1;
     epoch += Dt;  // first propagate to the next epoch
 
@@ -808,8 +786,8 @@ int main() {
     error_mat.col(time_index) = est_err;
 
     // Print progress
-    if (fmod((t-t0).val(), print_every) < 1e-3) {
-      PrintProgress((t-t0).val(), est_err(0), est_err(1), est_err(2));
+    if (fmod((t-et0).val(), print_every) < 1e-3) {
+      PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2));
       // PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
     }
 

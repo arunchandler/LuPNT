@@ -58,6 +58,8 @@ namespace lupnt {
     static BodyT Mars(int n = 0, int m = 0, std::string gravity_file = "GMM1.cof");
     static BodyT Jupiter();
     static BodyT Saturn();
+    static BodyT Uranus();
+    static BodyT Neptune();
   };
 
   using Body = BodyT<double>;
@@ -72,5 +74,10 @@ namespace lupnt {
   std::string GetBodyName(NaifId body);
   Frame GetInertialFrameName(NaifId body);
   Frame GetBodyFixedFrameName(NaifId body);
+
+  template <typename T> BodyT<T> CreateBody(NaifId body, int n = 0, int m = 0);
+  template <typename T> BodyT<T> CreateBody(std::string body_s, int n = 0, int m = 0);
+  NaifId GetBodyId(std::string name);
+
 
 }  // namespace lupnt

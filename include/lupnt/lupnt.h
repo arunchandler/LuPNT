@@ -78,3 +78,7 @@
 #include "lupnt/physics/spice_interface.h"
 #include "lupnt/physics/state.h"
 #include "lupnt/physics/time_converter.h"
+
+// simulation
+#include "lupnt/simulation/sim_config_reader.h"
+#include "lupnt/simulation/simulation.h"

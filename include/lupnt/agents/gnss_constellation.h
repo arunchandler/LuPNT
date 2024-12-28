@@ -29,6 +29,7 @@ namespace lupnt {
     Ptr<IDynamics> dynamics_;
     Ptr<GnssChannel> channel_;
     double epoch_;  // in TAI
+    bool is_first_sat = true;
 
     // Setters
     void SetChannel(Ptr<GnssChannel> ch) { 
@@ -38,8 +39,17 @@ namespace lupnt {
     void LoadTleFile(std::string_view gnss_type, std::string filename);
 
   public:
+    GnssConstellation() {
+      is_first_sat = true;
+    }
+
     void InitializeWithTle(std::string gnss_type, std::string tle_filename, 
-                           Ptr<IDynamics> dynamics, Ptr<GnssChannel> channel);
+                           Ptr<IDynamics> dynamics, Ptr<GnssChannel> channel, 
+                           double epoch0_tai);
+    
+    void AddSatellitesWithTle(std::string gnss_type, std::string tle_filename) {
+      LoadTleFile(gnss_type, tle_filename);
+    }
 
     double GetEpoch() { return epoch_; }
 
