@@ -68,6 +68,11 @@ namespace lupnt {
 
         public:
             ConfigReader() = default;
+
+            ConfigReader(std::string filename) {
+                LoadConfigYaml(filename);
+            }
+            
             ~ConfigReader() = default;
 
             void LoadConfigYaml(std::string filename, bool print_val=false);

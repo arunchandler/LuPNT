@@ -127,8 +127,10 @@ namespace lupnt {
 
     GnssMeasurement ExtractSignal(std::string freq_label);
 
+    GnssMeasurement ApplyIonoMask();
+
     // Transmission data
-    int GetTrackedSatelliteNum() const { return n_meas; }
+    int GetTrackedSignalNum() const { return n_meas; }
 
     std::vector<int> GetTxIds() const { return ID_tx; }
     VecX GetCN0() const { return CN0; }

@@ -105,6 +105,17 @@ namespace lupnt {
     return GnssMeasurement(transmissions_freq);
   }
 
+  GnssMeasurement GnssMeasurement::ApplyIonoMask() {
+    std::vector<GnssTransmission> transmissions_iono;
+    for (auto &tx: trans_store) {
+      if (tx.vis_ionos) {
+        transmissions_iono.push_back(tx);
+      }
+    }
+
+    return GnssMeasurement(transmissions_iono);
+  }
+
   /***********************************************************
    * General Methods for computing Measurements
    ***********************************************************/

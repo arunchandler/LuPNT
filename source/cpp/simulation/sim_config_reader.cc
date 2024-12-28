@@ -117,7 +117,13 @@ namespace lupnt {
     //==============================================================================
 
     void ConfigReader::LoadConfigYaml(std::string filename, bool print_val) {
-        YAML::Node config = YAML::LoadFile(filename);
+        std::filesystem::path config_dir_path = GetConfigFileDir();
+        auto filepath = FindFileInDir(config_dir_path, filename);
+        if (!filepath) {
+            std::cerr << "Config file not found: " << filename << "\n";
+            throw std::runtime_error("Config file not found: " + filename);
+        }
+        YAML::Node config = YAML::LoadFile(filepath->string());
 
         // This order is important! 
         LoadTimeConfig(config["time"], print_val);
