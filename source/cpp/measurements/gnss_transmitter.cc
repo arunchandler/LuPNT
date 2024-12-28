@@ -19,34 +19,33 @@
 
 namespace lupnt {
 
-  bool StringInCandidates(std::vector<std::string>& candidates, std::string str) {
-    for (size_t i = 0; i < candidates.size(); i++) {
-      if (str.find(candidates[i]) != std::string::npos) {
-        return true;
-      }
+bool StringInCandidates(std::vector<std::string>& candidates, std::string str) {
+  for (size_t i = 0; i < candidates.size(); i++) {
+    if (str.find(candidates[i]) != std::string::npos) {
+      return true;
     }
-    return false;
   }
+  return false;
+}
 
-  void GnssTransmitter::InitializeGnssTransmitter() {
-    std::cout << "GNSS Transmitter: " << gnss_type_ << std::endl;
+void GnssTransmitter::InitializeGnssTransmitter() {
+  std::cout << "GNSS Transmitter: " << gnss_type_ << std::endl;
 
-    std::vector<std::string> gps_strings = {"GPS", "gps"};
-    std::vector<std::string> glonass_strings = {"COSMOS", "cosmos", "GLONASS", "glonass"};
-    std::vector<std::string> galileo_strings = {"GSAT", "gsat", "GALILEO", "galileo"};
-    std::vector<std::string> beidou_strings = {"BEIDOU", "beidou"};
+  std::vector<std::string> gps_strings = {"GPS", "gps"};
+  std::vector<std::string> glonass_strings = {"COSMOS", "cosmos", "GLONASS", "glonass"};
+  std::vector<std::string> galileo_strings = {"GSAT", "gsat", "GALILEO", "galileo"};
+  std::vector<std::string> beidou_strings = {"BEIDOU", "beidou"};
 
-    if (StringInCandidates(gps_strings, gnss_type_)) {
-      InitializeGPSTransmitter();
-    } else if (StringInCandidates(glonass_strings, gnss_type_)) {
-      InitializeGLONASSTransmitter();
-    } else if (StringInCandidates(galileo_strings, gnss_type_)) {
-      InitializeGALILEOTransmitter();
-    } else if (StringInCandidates(beidou_strings, gnss_type_)) {
-      InitializeBEIDOUTransmitter();
-    } else {
-      throw std::runtime_error("Invalid GNSS type");
-    }
+  if (StringInCandidates(gps_strings, gnss_type_)) {
+    InitializeGPSTransmitter();
+  } else if (StringInCandidates(glonass_strings, gnss_type_)) {
+    InitializeGLONASSTransmitter();
+  } else if (StringInCandidates(galileo_strings, gnss_type_)) {
+    InitializeGALILEOTransmitter();
+  } else if (StringInCandidates(beidou_strings, gnss_type_)) {
+    InitializeBEIDOUTransmitter();
+  } else {
+    throw std::runtime_error("Invalid GNSS type");
   }
 }
 

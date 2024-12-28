@@ -28,17 +28,17 @@ namespace lupnt {
     virtual ~ICommDevice() = default;
     std::string txrx = "none";
     std::string name = "none";
-    inline Ptr<Agent> GetAgent() const { return agent_; };
+    inline Ptr<Agent> GetAgent() const { return agent_.lock(); };
     inline Ptr<SpaceChannel> GetChannel() const {
-      return std::static_pointer_cast<SpaceChannel>(channel_);
+      return std::static_pointer_cast<SpaceChannel>(channel_.lock());
     };
     inline void SetAgent(Ptr<Agent> agent) { agent_ = agent; };
     inline void SetTxRx(std::string txrx_in) { txrx = txrx_in; };
     virtual void SetChannel(Ptr<SpaceChannel> channel) { channel_ = channel; };
 
   private:
-    Ptr<Agent> agent_;
-    Ptr<SpaceChannel> channel_;
+    std::weak_ptr<Agent> agent_;
+    std::weak_ptr<SpaceChannel> channel_;
   };
 
   class Transmitter : public ICommDevice {

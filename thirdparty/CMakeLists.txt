@@ -68,6 +68,25 @@ CPMAddPackage(
   OPTIONS "EIGENRAND_BUILD_TEST OFF" "EIGENRAND_BUILD_BENCHMARK OFF"
 )
 
+# Yaml-cpp
+CPMAddPackage(
+  NAME yaml-cpp
+  GITHUB_REPOSITORY jbeder/yaml-cpp
+  GIT_TAG 0.8.0              # or the version you want
+  OPTIONS
+    "YAML_CPP_INSTALL ON"        # Turn on installation of yaml-cpp 
+    "YAML_CPP_BUILD_TESTS OFF"   # Turn off tests
+    "YAML_CPP_BUILD_CONTRIB OFF" # Turn off 'contrib'
+    "YAML_CPP_BUILD_TOOLS OFF"   # Turn off the yaml-cpp parser executable
+    "YAML_CPP_FORMAT_SOURCE OFF"  # Turn off clang-format
+)
+install(
+  TARGETS yaml-cpp
+  EXPORT yaml-cppTargets
+  INCLUDES
+  DESTINATION include
+)
+
 set_target_properties(cspice PROPERTIES FOLDER thirdparty)
 set_target_properties(matplot PROPERTIES FOLDER thirdparty)
 set_target_properties(nodesoup PROPERTIES FOLDER thirdparty)
@@ -76,6 +95,6 @@ set_target_properties(uninstall PROPERTIES FOLDER thirdparty)
 
 # LuPNT dependencies used for installing
 set(LUPNT_DEPENDENCIES
-    "Eigen3 3.4;autodiff 1.1;cspice;Matplot++ 1.2;OpenMP;HighFive 2.10;Boost"
+    "Eigen3 3.4;autodiff 1.1;cspice;Matplot++ 1.2;OpenMP;HighFive 2.10;Boost;yaml-cpp 0.8.0"
     PARENT_SCOPE
 )

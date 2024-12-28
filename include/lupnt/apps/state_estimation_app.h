@@ -75,21 +75,22 @@ namespace lupnt {
     FilterDynamicsFunction GetFilterDynamicsFunction();
   };
 
+  /**
+   * @brief State Estimation Application
+   * 
+   */
   class StateEstimationApp : public Application {
-  private:
+  protected:
     double epoch0_;  // start epoch in TAU
     double epoch_;   // curent epoch
     double t_;       // Current time [s]
 
-    Ptr<Agent> agent_;
     Ptr<IFilter> filter_;
     FilterDynamicsFunction dynamics_func_;
     FilterMeasurementFunction meas_func_;
     JointState state_vec_;
 
   public:
-    void SetAgent(Ptr<Agent> agent) { this->agent_ = agent; }
-
     double GetInitialEpoch() { return epoch0_; };
     double GetCurrentEpoch() { return epoch_; };
     double GetCurrrentTime() { return t_; };

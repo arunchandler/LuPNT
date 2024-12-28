@@ -470,20 +470,20 @@ int main() {
   /**********************************************
    * Simulation Parameters
    *********************************************/
-  // Get initial epoch
-  GnssConstellation gps_const = GnssConstellation();
-  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
-      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
-  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
-  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel);  // example gps file
-  double epoch0 = gps_const.GetEpoch();
-
   // Time
-  double t0 = epoch0;
+  double t0 = Gregorian2Time(2023, 6, 9, 8, 30, 0).val();
+  double epoch0 = t0;
   double dt = 1.0;  // Integration time step [s]
   double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
+
+  // Gps constellation
+  GnssConstellation gps_const = GnssConstellation();
+  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
+  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
+  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel, t0);  // example gps file
 
   // Simulation seed
   int seed = 1;
@@ -592,14 +592,16 @@ int main() {
   dyn_true->SetTimeStep(dt);
 
   // Moon spacecraft
-  ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_CI);
-  auto cart_state_moon = std::make_shared<CartesianOrbitState>(Classical2Cart(coe_moon, GM_MOON));
+  ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_OP);
+  CartesianOrbitState cart_op = Classical2Cart(coe_moon, GM_MOON);
+  CartesianOrbitState cart_mci = ConvertOrbitStateFrame(cart_op, epoch0, Frame::MOON_CI);
+  auto cart_state_moon = MakePtr<CartesianOrbitState>(cart_mci.GetVec6(), Frame::MOON_CI);
 
   Vec2 clock_vec{clk_bias, clk_drift};  // [s, s/s]
   ClockState clock_state(clock_vec);
 
-  auto moon_sat = std::make_shared<Spacecraft>();
-  auto receiver = std::make_shared<GnssReceiver>("moongpsr");
+  auto moon_sat = MakePtr<Spacecraft>();
+  auto receiver = MakePtr<GnssReceiver>("moongpsr");
 
   moon_sat->AddDevice(receiver);
   moon_sat->SetDynamics(dyn_true);
@@ -628,7 +630,7 @@ int main() {
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, meas_types, debug_jacobian](
+      = [moon_sat, receiver, state_size, no_meas, meas_types](
             const VecX x, MatXd* H, MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
@@ -650,33 +652,6 @@ int main() {
 
     VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
                                               frame_in);  // Jacobian with autodiff
-
-    if (debug_jacobian) {
-      // Compute Numerical Jacobian
-      MatXd H_num = MatXd::Zero(mtot, x.size());
-      MatXd H_dum = MatXd::Zero(mtot, x.size());
-
-      for (int i = 0; i < x.size(); i++) {
-        Real eps = x(i) * 1e-6;
-        VecX x_p = x;
-        VecX x_m = x;
-        x_p(i) += eps;
-        x_m(i) -= eps;
-        VecX z_p = meas.GetPredictedGnssMeasurement(epoch, x_p.head(6), x_p.tail(2), x_N, H_dum,
-                                                    meas_types,
-                                                    frame_in);  // Jacobian with autodiff
-        VecX z_m = meas.GetPredictedGnssMeasurement(epoch, x_m.head(6), x_m.tail(2), x_N, H_dum,
-                                                    meas_types,
-                                                    frame_in);  // Jacobian with autodiff
-        H_num.col(i) = ((z_p - z_m) / (2 * eps)).cast<double>();
-      }
-
-      std::cout << " " << std::endl;
-      std::cout << "AutoDiff Jacobian: " << std::endl << H << std::endl;
-      std::cout << "Numerical Jacobian: " << std::endl << H_num << std::endl;
-      std::cout << "Jacobian Error: " << (*H - H_num).norm() << std::endl;
-      std::cout << " " << std::endl;
-    }
 
     // Get the Measurement Noise
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);

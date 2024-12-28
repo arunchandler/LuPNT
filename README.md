@@ -45,7 +45,7 @@ If using this project in your own work please cite the following:
 - Code coverage via [codecov](https://codecov.io)
 - Code formatting enforced by [clang-format](https://clang.llvm.org/docs/ClangFormat.html) and [cmake-format](https://github.com/cheshirekow/cmake_format) via [Format.cmake](https://github.com/Stanford-NavLab/Format.cmake)
 - Reproducible dependency management via [CPM.cmake](https://github.com/Stanford-NavLab/CPM.cmake)
-- Installable target with automatic versioning information and header generation via [PackageProject.cmake](https://github.com/Stanford-NavLab/PackageProject.cmake)
+- Installable target with automatic versioning information and header generation via [PackageProject.cmake](https://github.com/TheLartians/PackageProject.cmake)
 - Automatic [documentation](https://Stanford-NavLab.github.io/LuPNT) and deployment with [Doxygen](https://www.doxygen.nl) and [GitHub Pages](https://pages.github.com)
 - Support for [sanitizer tools, and more](#additional-tools)
 

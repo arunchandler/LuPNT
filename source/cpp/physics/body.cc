@@ -120,6 +120,30 @@ namespace lupnt {
   template BodyT<double> BodyT<double>::Saturn();
   template BodyT<Real> BodyT<Real>::Saturn();
 
+  template <typename T> BodyT<T> BodyT<T>::Uranus() {
+    BodyT<T> uranus;
+    uranus.name = "URANUS";
+    uranus.id = NaifId::URANUS;
+    uranus.fixed_frame = Frame::URANUS_FIXED;
+    uranus.GM = GM_URANUS;
+    uranus.R = R_URANUS;
+    return uranus;
+  }
+  template BodyT<double> BodyT<double>::Uranus();
+  template BodyT<Real> BodyT<Real>::Uranus();
+
+  template <typename T> BodyT<T> BodyT<T>::Neptune() {
+    BodyT<T> neptune;
+    neptune.name = "NEPTUNE";
+    neptune.id = NaifId::NEPTUNE;
+    neptune.fixed_frame = Frame::NEPTUNE_FIXED;
+    neptune.GM = GM_NEPTUNE;
+    neptune.R = R_NEPTUNE;
+    return neptune;
+  }
+  template BodyT<double> BodyT<double>::Neptune();
+  template BodyT<Real> BodyT<Real>::Neptune();
+
   BodyData GetBodyData(NaifId id) {
     switch (id) {
       case NaifId::SUN:
@@ -182,6 +206,40 @@ namespace lupnt {
   Frame GetBodyFixedFrameName(NaifId body) {
     BodyData data = GetBodyData(body);
     return data.fixed_frame;
+  }
+
+  template <typename T> BodyT<T> CreateBody(NaifId body, int n, int m) {
+    if (body == NaifId::SUN) return BodyT<T>::Sun();
+    if (body == NaifId::EARTH) return BodyT<T>::Earth(n, m);
+    if (body == NaifId::MOON) return BodyT<T>::Moon(n, m);
+    if (body == NaifId::MARS) return BodyT<T>::Mars(n, m);
+    if (body == NaifId::VENUS) return BodyT<T>::Venus(n, m);
+    if (body == NaifId::JUPITER) return BodyT<T>::Jupiter();
+    if (body == NaifId::SATURN) return BodyT<T>::Saturn();
+    if (body == NaifId::URANUS) return BodyT<T>::Uranus();
+    if (body == NaifId::NEPTUNE) return BodyT<T>::Neptune();
+    throw std::runtime_error("Body not found");
+  }
+  template BodyT<double> CreateBody(NaifId body, int n, int m);
+  template BodyT<Real> CreateBody(NaifId body, int n, int m);
+
+  NaifId GetBodyId(std::string name) {
+    if (((name == "SUN") && (name =="Sun")) && (name == "sun")) return NaifId::SUN;
+    if (((name == "MERCURY") && (name =="Mercury")) && (name == "mercury")) return NaifId::MERCURY;
+    if (((name == "VENUS") && (name =="Venus")) && (name == "venus")) return NaifId::VENUS;
+    if (((name == "EARTH") && (name =="Earth")) && (name == "earth")) return NaifId::EARTH;
+    if (((name == "MOON") && (name =="Moon")) && (name == "moon")) return NaifId::MOON;
+    if (((name == "MARS") && (name =="Mars")) && (name == "mars")) return NaifId::MARS;
+    if (((name == "JUPITER") && (name =="Jupiter")) && (name == "jupiter")) return NaifId::JUPITER;
+    if (((name == "SATURN") && (name =="Saturn")) && (name == "saturn")) return NaifId::SATURN;
+    if (((name == "URANUS") && (name =="Uranus")) && (name == "uranus")) return NaifId::URANUS;
+    if (((name == "NEPTUNE") && (name =="Neptune")) && (name == "neptune")) return NaifId::NEPTUNE;
+    throw std::runtime_error("Body not found");
+  }
+
+  template <typename T> BodyT<T> CreateBody(std::string body_s, int n, int m) {
+    NaifId body = GetBodyId(body_s);
+    return CreateBody<T>(body, n, m);
   }
 
   /// @brief Kronecker delta function
