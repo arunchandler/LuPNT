@@ -148,9 +148,9 @@ namespace lupnt {
   static constexpr double J2_MARS = 1.96045e-3;  // J2 value for Mars
 
   // Transformations Between GCRF and Mean Equator and Equinox at J2000
-  static constexpr double FRAME_BIAS_XI0 = -8.0561e-8;     // [rad]
-  static constexpr double FRAME_BIAS_ETA0 = -3.3060e-8;    // [rad]
-  static constexpr double FRAME_BIAS_DALPHA0 = 7.0783e-8;  // [rad]
+  static constexpr double FRAME_BIAS_XI0 = -16.6170e-3 * RAD_ARCSEC;   // [rad]
+  static constexpr double FRAME_BIAS_ETA0 = -6.8192e-3 * RAD_ARCSEC;   // [rad]
+  static constexpr double FRAME_BIAS_DALPHA0 = -14.6e-3 * RAD_ARCSEC;  // [rad]
 
   // Solar Radiation Pressure Constants
   static constexpr double AU = 149597970;               // AU [km]

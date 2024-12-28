@@ -153,16 +153,16 @@ namespace lupnt {
     const double da = FRAME_BIAS_DALPHA0;
     const double xi = FRAME_BIAS_XI0;
     const double eta = FRAME_BIAS_ETA0;
-    Mat3d B_e{{1 - 0.5 * (da * da + xi * xi), da, -xi},
-              {-da - eta * xi, 1 - 0.5 * (da * da + eta * eta), -eta},
-              {xi - eta * da, eta + xi * da, 1 - 0.5 * (eta * eta + xi * xi)}};
+    Mat3d B_e{{1. - 0.5 * (da * da + xi * xi), da, -xi},
+              {-da - eta * xi, 1. - 0.5 * (da * da + eta * eta), -eta},
+              {xi - eta * da, eta + xi * da, 1. - 0.5 * (eta * eta + xi * xi)}};
     return B_e;
   }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 39
   Vec6 GCRF2EME(Real t_tai, const Vec6& rv_gcrf) {
     (void)t_tai;
-    Mat3d B_e = RotGCRF2EME();
+    Mat3d B_e = RotGCRF2EMESecondOrder();
     Vec3 r_gcrf = rv_gcrf.head(3);
     Vec3 v_gcrf = rv_gcrf.tail(3);
 
@@ -177,7 +177,7 @@ namespace lupnt {
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 39
   Vec6 EME2GCRF(Real t_tai, const Vec6& rv_eme) {
     (void)t_tai;
-    Mat3d B_e = RotGCRF2EME();
+    Mat3d B_e = RotGCRF2EMESecondOrder();
     Vec3 r_eme = rv_eme.head(3);
     Vec3 v_eme = rv_eme.tail(3);
 
