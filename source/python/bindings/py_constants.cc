@@ -20,10 +20,6 @@ void init_constants(py::module& m) {
   m.attr("RAD_ARCSEC") = py::float_(RAD_ARCSEC);
   m.attr("ARCSEC_RAD") = py::float_(ARCSEC_RAD);
 
-  // Mass
-  m.attr("LBM_TO_KG") = py::float_(LBM_TO_KG);
-  m.attr("SLUG_TO_KG") = py::float_(SLUG_TO_KG);
-
   // Length
   m.attr("INCH_M") = py::float_(INCH_M);
   m.attr("FOOT_M") = py::float_(FOOT_M);
@@ -42,19 +38,18 @@ void init_constants(py::module& m) {
   m.attr("DAYS_YEAR") = py::float_(DAYS_YEAR);
   m.attr("DAYS_CENTURY") = py::float_(DAYS_CENTURY);
   m.attr("DAYS_SEC") = py::float_(DAYS_SEC);
-  m.attr("TIME_OF_J2000") = py::float_(TIME_OF_J2000);
-  m.attr("JD_J2000") = py::float_(JD_J2000);
-  m.attr("MJD_J2000") = py::float_(MJD_J2000);
-  m.attr("JD_T0") = py::float_(JD_T0);
+
+  m.attr("JD_CCSDS_TAI") = py::float_(JD_CCSDS_TAI);
+  m.attr("JD_J2000_TT") = py::float_(JD_J2000_TT);
+  m.attr("MJD_CCSDS_TAI") = py::float_(MJD_CCSDS_TAI);
+  m.attr("MJD_J2000_TT") = py::float_(MJD_J2000_TT);
+
   m.attr("JD_MJD_OFFSET") = py::float_(JD_MJD_OFFSET);
   m.attr("TT_TAI_OFFSET") = py::float_(TT_TAI_OFFSET);
   m.attr("A1_TAI_OFFSET") = py::float_(A1_TAI_OFFSET);
-  m.attr("JD_JAN_5_1941") = py::float_(JD_JAN_5_1941);
-  m.attr("JD_NOV_17_1858") = py::float_(JD_NOV_17_1858);
+
   m.attr("L_B") = py::float_(L_B);
   m.attr("L_G") = py::float_(L_G);
-  m.attr("NUM_SECS") = py::float_(NUM_SECS);
-  m.attr("JULIAN_DATE_OF_010541") = py::int_(JULIAN_DATE_OF_010541);
 
   // Coordinate system constants
   m.attr("GM_SUN") = py::float_(GM_SUN);

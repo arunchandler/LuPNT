@@ -29,6 +29,7 @@ TEST_CASE("physics.ConvertTime") {
     }
   }
 
+  // Spice
   std::vector<std::vector<double>> dates = {{2000, 1, 1, 12, 0, 0.0}, {2022, 12, 18, 18, 0, 0.0}};
   std::vector<std::string> dates_str = {"2000 Jan 01, 12:00:00 TDB", "2022 Dec 18, 18:00:00 TDB"};
   for (int i = 0; i < dates.size(); i++) {
@@ -44,5 +45,15 @@ TEST_CASE("physics.ConvertTime") {
     Real t_tt = ConvertTime(t_tai, Time::TAI, Time::TT);
     Real t_tt_sp = spice::ConvertTime(t_tai, Time::TAI, Time::TT);
     RequireNear(t_tt, t_tt_sp, epsilon);
+  }
+
+  // Orekit
+  auto file = OpenTestDataFile("time_converter_orekit.txt");
+  std::string line;
+  while (std::getline(file, line)) {
+    std::string time, date;
+    std::istringstream iss(line);
+    iss >> time >> date;
+    std::cout << time << " " << date << std::endl;
   }
 }

@@ -289,7 +289,7 @@ namespace lupnt {
 
     // Acceleration due to harmonic gravity field
     Real mjd_ut1 = mjd_tt;
-    Mat3 T = NutationMatrix(mjd_tt) * PrecessionMatrix(MJD_J2000, mjd_tt);
+    Mat3 T = NutationMatrix(mjd_tt) * PrecessionMatrix(MJD_J2000_TT, mjd_tt);
     Mat3 E = GreenwichHourAngleMatrix(mjd_ut1) * T;
     Vec3 r_bf = E * r;
     Vec3 a_bf = AccelarationGravityField(r_bf, grav.GM, grav.R, grav.CS, grav.n, grav.m);

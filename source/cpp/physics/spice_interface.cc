@@ -31,6 +31,12 @@ namespace lupnt {
   namespace spice {
     bool spice_loaded = false;
 
+    const std::map<Time, std::string> time2string = {
+        {Time::UT1, "UT1"},     {Time::UTC, "UTC"},      {Time::TAI, "TAI"}, {Time::TDB, "TDB"},
+        {Time::TT, "TT"},       {Time::TCG, "TCG"},      {Time::TCB, "TCB"}, {Time::GPS, "GPS"},
+        {Time::JD_TT, "JDTDT"}, {Time::JD_TDB, "JDTDB"},
+    };
+
     /**
      * @brief load the Spice kernels
      *
@@ -55,8 +61,8 @@ namespace lupnt {
       // furnsh_c("moon_pa_de440_200625.bpc");
 
       // Earth
-      // furnsh_c("earth_200101_990825_predict.bpc");  // long
-      // furnsh_c("earth_000101_241014_240722.bpc");   // short
+      furnsh_c("earth_200101_990825_predict.bpc");  // long
+      furnsh_c("earth_000101_241014_240722.bpc");   // short
 
       // Mars
       if (std::filesystem::exists("mars097.bsp")) furnsh_c("mars097.bsp");
@@ -140,7 +146,7 @@ namespace lupnt {
       //    pckr02_c(handle, target)
     }
 
-    Vec3d GetBodyPosSpice(Real t_tai, NaifId obs, NaifId target, Frame refFrame,
+    Vec3d GetBodyPosSpice(Real t_tai, NaifId obs, NaifId target, const std::string& refFrame,
                           const std::string& abCorrection) {
       if (!spice_loaded) {
         LoadSpiceKernel();
@@ -148,14 +154,13 @@ namespace lupnt {
 
       std::string targ_str = std::to_string((int)target);
       std::string obs_str = std::to_string((int)obs);
-      std::string frame_str(frame2string.at(refFrame));
 
       // TODO: this cuts the relatonship between t_tdb and matrix
       Real t_tdb = spice::ConvertTime(t_tai, Time::TAI, Time::TDB);
       SpiceDouble ptarg[3];
       SpiceDouble et = t_tdb.val();
       const char* targ = strcpy(new char[targ_str.length() + 1], targ_str.c_str());
-      const char* ref = strcpy(new char[frame_str.length() + 1], frame_str.c_str());
+      const char* ref = strcpy(new char[refFrame.length() + 1], refFrame.c_str());
       const char* abcorr = strcpy(new char[abCorrection.length() + 1], abCorrection.c_str());
       const char* obs_spice = strcpy(new char[obs_str.length() + 1], obs_str.c_str());
       SpiceDouble lt;
@@ -171,7 +176,7 @@ namespace lupnt {
       return r;
     }
 
-    Vec6d GetBodyPosVelSpice(Real t_tai, NaifId obs, NaifId target, Frame refFrame,
+    Vec6d GetBodyPosVelSpice(Real t_tai, NaifId obs, NaifId target, const std::string& refFrame,
                              const std::string& abCorrection) {
       if (!spice_loaded) LoadSpiceKernel();
 
@@ -180,13 +185,12 @@ namespace lupnt {
 
       std::string targ_str = std::to_string((int)target);
       std::string obs_str = std::to_string((int)obs);
-      std::string frame_str(frame2string.at(refFrame));
 
       // TODO: this cuts the relatonship between t_tdb and matrix
       Real t_tdb = spice::ConvertTime(t_tai, Time::TAI, Time::TDB);
       SpiceDouble et = t_tdb.val();
       const char* targ = strcpy(new char[targ_str.length() + 1], targ_str.c_str());
-      const char* ref = strcpy(new char[frame_str.length() + 1], frame_str.c_str());
+      const char* ref = strcpy(new char[refFrame.length() + 1], refFrame.c_str());
       const char* abcorr = strcpy(new char[abCorrection.length() + 1], abCorrection.c_str());
       const char* obs_spice = strcpy(new char[obs_str.length() + 1], obs_str.c_str());
       SpiceDouble lt;
@@ -212,7 +216,8 @@ namespace lupnt {
      * @param to_frame
      * @return VecXd
      */
-    Mat6d GetFrameConversionMat(Real t_tai, Frame from_frame, Frame to_frame) {
+    Mat6d GetFrameConversionMat(Real t_tai, const std::string& from_frame,
+                                const std::string& to_frame) {
       if (!spice_loaded) LoadSpiceKernel();
 
       Real t_tdb = spice::ConvertTime(t_tai, Time::TAI, Time::TDB);
@@ -221,12 +226,8 @@ namespace lupnt {
       double xform[6][6];
       Mat6d M_rot;
 
-      std::string from_frame_str(frame2string.at(from_frame));
-      std::string to_frame_str(frame2string.at(to_frame));
-
-      const char* from_frame_char
-          = strcpy(new char[from_frame_str.length() + 1], from_frame_str.c_str());
-      const char* to_frame_char = strcpy(new char[to_frame_str.length() + 1], to_frame_str.c_str());
+      const char* from_frame_char = strcpy(new char[from_frame.length() + 1], from_frame.c_str());
+      const char* to_frame_char = strcpy(new char[to_frame.length() + 1], to_frame.c_str());
 #pragma omp critical
       sxform_c(from_frame_char, to_frame_char, et_spice, xform);
 

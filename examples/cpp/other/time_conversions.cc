@@ -10,10 +10,10 @@ int main() {
   Real t_tdb = TT2TDB(t_tt);
   Real t_tai_spice = ConvertTime(t_tt, Time::TT, Time::TAI);
   Real t_tdb_spice = ConvertTime(t_tt, Time::TT, Time::TDB);
-  Real mjd_tt = t_tt / SECS_DAY + MJD_J2000;
-  Real mjd_tai = t_tai / SECS_DAY + MJD_J2000;
-  Real mjd_utc = t_utc / SECS_DAY + MJD_J2000;
-  Real mjd_tdb = t_tdb / SECS_DAY + MJD_J2000;
+  Real mjd_tt = t_tt / SECS_DAY + MJD_J2000_TT;
+  Real mjd_tai = t_tai / SECS_DAY + MJD_J2000_TT;
+  Real mjd_utc = t_utc / SECS_DAY + MJD_J2000_TT;
+  Real mjd_tdb = t_tdb / SECS_DAY + MJD_J2000_TT;
   int prec1 = 12;
   int prec2 = 13;
   int prec3 = 9;

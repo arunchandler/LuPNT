@@ -22,18 +22,13 @@
 
 namespace lupnt {
 
-  const std::map<Time, std::string> time2string = {
-      {Time::UT1, "UT1"},     {Time::UTC, "UTC"},      {Time::TAI, "TAI"}, {Time::TDB, "TDB"},
-      {Time::TT, "TT"},       {Time::TCG, "TCG"},      {Time::TCB, "TCB"}, {Time::GPS, "GPS"},
-      {Time::JD_TT, "JDTDT"}, {Time::JD_TDB, "JDTDB"},
-  };
-
   namespace spice {
     static segment_t* cheby_s;
     static long cheby_n;
     void LoadSpiceKernel(void);
     void ExtractPckCoeffs(void);
-    Mat6d GetFrameConversionMat(Real t_tai, Frame from_frame, Frame to_frame);
+    Mat6d GetFrameConversionMat(Real t_tai, const std::string& from_frame,
+                                const std::string& to_frame);
 
     Real String2TDB(const std::string& str);
     Real String2TAI(const std::string& str);
@@ -46,9 +41,11 @@ namespace lupnt {
     Vec6 GetBodyPosVel(const Real t_tai, NaifId center, NaifId target);
     MatX6 GetBodyPosVel(const VecX& t_tai, NaifId center, NaifId target);
 
-    Vec3d GetBodyPosSpice(Real t_tai, NaifId obs, NaifId target, Frame refFrame = Frame::GCRF,
+    Vec3d GetBodyPosSpice(Real t_tai, NaifId obs, NaifId target,
+                          const std::string& refFrame = "J2000",
                           const std::string& abCorrection = "NONE");
-    Vec6d GetBodyPosVelSpice(Real t_tai, NaifId obs, NaifId target, Frame refFrame = Frame::GCRF,
+    Vec6d GetBodyPosVelSpice(Real t_tai, NaifId obs, NaifId target,
+                             const std::string& refFrame = "J2000",
                              const std::string& abCorrection = "NONE");
   }  // namespace spice
 }  // namespace lupnt
