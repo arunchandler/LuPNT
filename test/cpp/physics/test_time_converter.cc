@@ -62,12 +62,22 @@ TEST_CASE("physics.ConvertTime") {
     Real t_j2000 = ConvertTime(0, Time::TT, string2time.at(time));
     Real t_diff = t - t_j2000;
     Real mjd = Time2MJD(t);
-    std::string date = Time2GregorianString(t, precision);
     RequireNear(mjd, mjd_in, epsilon);
     RequireNear(t_diff, t_diff_in, epsilon);
-    int len = date_in.size();
-    if (date.size() < len) len = date.size();
-    len--;
-    REQUIRE_THAT(date.substr(0, len), Equals(date_in.substr(0, len)));
+  }
+  file.close();
+
+  // GMAT
+  file = OpenTestDataFile("time_converter_gmat.txt");
+  while (std::getline(file, line)) {
+    std::string time, date_in;
+    double t_diff_in;
+    std::istringstream iss(line);
+    iss >> time >> date_in >> t_diff_in;
+    if (time == "UTC") t_utc = Gregorian2Time(date_in);
+    Real t = ConvertTime(t_utc, Time::UTC, string2time.at(time));
+    Real t_j2000 = ConvertTime(0, Time::TT, string2time.at(time));
+    Real t_diff = t - t_j2000;
+    RequireNear(t_diff, t_diff_in, epsilon);
   }
 }

@@ -318,7 +318,7 @@ namespace lupnt {
     ss << std::setw(2) << std::setfill('0') << floor(sec);
     if (precision > 0) {
       ss << "." << std::fixed << std::setprecision(0) << std::setw(precision) << std::setfill('0')
-         << round((sec - floor(sec)) * pow(10, precision));
+         << floor((sec - floor(sec)) * pow(10, precision));
     }
     return ss.str();
   }
