@@ -71,9 +71,9 @@ namespace lupnt {
   static constexpr double MJD_J2000_TT = 51544.5;    // [days]
 
   // Vallado page 194
-  static constexpr double JD_COORDINATE_TAI = 2443144.5;  // [days]
-  static constexpr double JD_COORDINATE_TT_TCG_TCB
-      = JD_COORDINATE_TAI + TT_TAI_OFFSET / SECS_DAY;  // [days]
+  static constexpr double MJD_COORDINATE_TAI = 2443144.5 - JD_MJD_OFFSET;  // [days]
+  static constexpr double MJD_COORDINATE_TT_TCG_TCB
+      = MJD_COORDINATE_TAI + TT_TAI_OFFSET / SECS_DAY;  // [days]
 
   static constexpr double L_B = 1.550505e-8;
   static constexpr double L_G = 6.969290134e-10;

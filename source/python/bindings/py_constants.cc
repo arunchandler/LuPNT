@@ -39,14 +39,17 @@ void init_constants(py::module& m) {
   m.attr("DAYS_CENTURY") = py::float_(DAYS_CENTURY);
   m.attr("DAYS_SEC") = py::float_(DAYS_SEC);
 
+  m.attr("JD_MJD_OFFSET") = py::float_(JD_MJD_OFFSET);
+  m.attr("TT_TAI_OFFSET") = py::float_(TT_TAI_OFFSET);
+  m.attr("A1_TAI_OFFSET") = py::float_(A1_TAI_OFFSET);
+
   m.attr("JD_CCSDS_TAI") = py::float_(JD_CCSDS_TAI);
   m.attr("JD_J2000_TT") = py::float_(JD_J2000_TT);
   m.attr("MJD_CCSDS_TAI") = py::float_(MJD_CCSDS_TAI);
   m.attr("MJD_J2000_TT") = py::float_(MJD_J2000_TT);
 
-  m.attr("JD_MJD_OFFSET") = py::float_(JD_MJD_OFFSET);
-  m.attr("TT_TAI_OFFSET") = py::float_(TT_TAI_OFFSET);
-  m.attr("A1_TAI_OFFSET") = py::float_(A1_TAI_OFFSET);
+  m.attr("MJD_COORDINATE_TAI") = py::float_(MJD_COORDINATE_TAI);
+  m.attr("MJD_COORDINATE_TT_TCG_TCB") = py::float_(MJD_COORDINATE_TT_TCG_TCB);
 
   m.attr("L_B") = py::float_(L_B);
   m.attr("L_G") = py::float_(L_G);

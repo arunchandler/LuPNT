@@ -31,12 +31,6 @@ namespace lupnt {
   namespace spice {
     bool spice_loaded = false;
 
-    const std::map<Time, std::string> time2string = {
-        {Time::UT1, "UT1"},     {Time::UTC, "UTC"},      {Time::TAI, "TAI"}, {Time::TDB, "TDB"},
-        {Time::TT, "TT"},       {Time::TCG, "TCG"},      {Time::TCB, "TCB"}, {Time::GPS, "GPS"},
-        {Time::JD_TT, "JDTDT"}, {Time::JD_TDB, "JDTDB"},
-    };
-
     /**
      * @brief load the Spice kernels
      *

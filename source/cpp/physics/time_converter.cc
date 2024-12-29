@@ -36,6 +36,18 @@ namespace lupnt {
   // GPS Epoch              1980-01-06T00:00:00 UTC
   // J2000 Epoch            2000-01-01T12:00:00 TT
 
+  const std::map<Time, std::string> time2string = {
+      {Time::UT1, "UT1"},     {Time::UTC, "UTC"},      {Time::TAI, "TAI"}, {Time::TDB, "TDB"},
+      {Time::TT, "TT"},       {Time::TCG, "TCG"},      {Time::TCB, "TCB"}, {Time::GPS, "GPS"},
+      {Time::JD_TT, "JDTDT"}, {Time::JD_TDB, "JDTDB"},
+  };
+
+  const std::map<std::string, Time> string2time = {
+      {"UT1", Time::UT1},     {"UTC", Time::UTC},      {"TAI", Time::TAI}, {"TDB", Time::TDB},
+      {"TT", Time::TT},       {"TCG", Time::TCG},      {"TCB", Time::TCB}, {"GPS", Time::GPS},
+      {"JDTDT", Time::JD_TT}, {"JDTDB", Time::JD_TDB},
+  };
+
   /// @brief Convert time from one time system to another
   /// @param t Time in the original time system
   /// @param from Original time system
@@ -139,14 +151,14 @@ namespace lupnt {
   Real TT2TAI(Real t_tt) { return t_tt - TT_TAI_OFFSET; }
 
   Real TT2TCG(Real t_tt) {
-    Real jd_tt = Time2JD(t_tt);
-    Real tt_tcg = -L_G / (1.0 - L_G) * (jd_tt - JD_COORDINATE_TT_TCG_TCB) * SECS_DAY;
+    Real mjd_tt = Time2MJD(t_tt);
+    Real tt_tcg = -L_G / (1.0 - L_G) * (mjd_tt - MJD_COORDINATE_TT_TCG_TCB) * SECS_DAY;
     return t_tt - tt_tcg;
   }
 
   Real TCG2TT(Real t_tcg) {
-    Real jd_tcg = Time2JD(t_tcg);
-    Real tt_tcg = -L_G * (jd_tcg - JD_COORDINATE_TT_TCG_TCB) * SECS_DAY;
+    Real mjd_tcg = Time2MJD(t_tcg);
+    Real tt_tcg = -L_G * (mjd_tcg - MJD_COORDINATE_TT_TCG_TCB) * SECS_DAY;
     return t_tcg + tt_tcg;
   }
 
@@ -168,14 +180,12 @@ namespace lupnt {
   /// @param t_tt
   /// @return
   /// @ref
-  /// https://gssc.esa.int/navipedia/index.php/Transformations_between_Time_Systems#TDT_-_TDB.2C_TCB
-  /// @note Accurate to about 30 microseconds
+  /// Astrodynamics Convention and Modeling Reference for Lunar, Cislunar, and Libration Point
+  /// Orbits
   Real TT2TDB(Real t_tt) {
-    double k = 1.657e-3;
-    double eb = 1.671e-2;
-    Real mean_anom = 6.239996 + 1.99096871e-7 * t_tt;
-    Real ecc_anom = mean_anom + eb * sin(mean_anom);
-    Real t_tdb = t_tt + k * sin(ecc_anom);
+    Real days_j2000_tt = t_tt / SECS_DAY;
+    Real me = (357.53 + 0.9856003 * days_j2000_tt) * RAD;
+    Real t_tdb = t_tt + 0.001658 * sin(me) + 0.000014 * sin(2 * me);
     return t_tdb;
   }
 
@@ -191,15 +201,18 @@ namespace lupnt {
 
   Real TCB2TDB(Real t_tcb) {
     const double tdb0 = -6.55e-5;
-    Real jd_tcb = Time2JD(t_tcb);
-    Real t_tdb = t_tcb - (1.55051976772e-8 * (jd_tcb - JD_COORDINATE_TT_TCG_TCB) * SECS_DAY + tdb0);
+    Real mjd_tcb = Time2MJD(t_tcb);
+    Real t_tdb
+        = t_tcb - (1.55051976772e-8 * (mjd_tcb - MJD_COORDINATE_TT_TCG_TCB) * SECS_DAY + tdb0);
     return t_tdb;
   }
 
   Real TT2TCB(Real t_tt) {
     Real t_tai = TT2TAI(t_tt);
-    Real jd_tai = Time2JD(t_tai);
-    Real t_tcb = t_tt + 1.5505197677e-8 * (jd_tai - JD_COORDINATE_TAI) * SECS_DAY;
+    Real t_tdb = TT2TDB(t_tt);
+    const double L_B = 1.550519768e-8;
+    Real offset = t_tai + TT2TAI(0) + (MJD_J2000_TT - MJD_COORDINATE_TAI) * SECS_DAY;
+    Real t_tcb = t_tdb + L_B * offset;
     return t_tcb;
   }
 
@@ -255,6 +268,13 @@ namespace lupnt {
     return MJD2Time(mjd);
   }
 
+  Real Gregorian2Time(const std::string& date) {
+    int year, month, day, hour, min;
+    double sec;
+    sscanf(date.c_str(), "%d-%d-%dT%d:%d:%lf", &year, &month, &day, &hour, &min, &sec);
+    return Gregorian2Time(year, month, day, hour, min, sec);
+  }
+
   /// @brief Greenwich Mean Sidereal Time
   /// @param mjd_ut1 UT1 (Modified Julian Date)
   /// @return GMST [rad]
@@ -292,7 +312,7 @@ namespace lupnt {
     sec = round(sec, precision);
     ss << year << "-";
     ss << std::setw(2) << std::setfill('0') << month << "-";
-    ss << std::setw(2) << std::setfill('0') << day << " ";
+    ss << std::setw(2) << std::setfill('0') << day << "T";
     ss << std::setw(2) << std::setfill('0') << hour << ":";
     ss << std::setw(2) << std::setfill('0') << min << ":";
     ss << std::setw(2) << std::setfill('0') << floor(sec);
