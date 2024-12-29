@@ -29,6 +29,7 @@
 
 // dynamics
 #include "lupnt/dynamics/dynamics.h"
+#include "lupnt/dynamics/dynamics_params.h"
 #include "lupnt/dynamics/forces.h"
 #include "lupnt/dynamics/propagator.h"
 

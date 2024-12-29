@@ -16,10 +16,10 @@ using namespace lupnt;
 int main() {
   // Read config file
   std::string config_file = "config/ekf_elfo_gps.yaml";
-  ConfigReader reader(config_file);
+  // ConfigReader reader(config_file);
 
   // Initialize simulation
-  NavSimulation sim;
+  // NavSimulation sim;
 
   return 0;
 }

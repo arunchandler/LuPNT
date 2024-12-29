@@ -31,12 +31,12 @@ namespace lupnt {
                                                             int m_max);
 
   Vec3 AccelerationPointMass(const Vec3& r, const Vec3& s, Real GM);
-  Vec3 AccelerationSolarRadiation(const Vec3& r, const Vec3& r_sun, Real area, Real mass, Real CR,
+  Vec3 AccelerationSolarRadiation(const Vec3& r, const Vec3& r_sun, Real bcoeff_srp,
                                   Real P0, Real AU);
-  Vec3 AccelerationDrag(Real mjd_tt, const Vec6& rv, const Mat3& T, Real area, Real mass, Real CD);
+  Vec3 AccelerationDrag(Real mjd_tt, const Vec6& rv, const Mat3& T, Real bcoeff_drag);
 
   Real Illumination(const Vec3& r, const Vec3& r_sun, Real R_body);
   Real DensityHarrisPriester(Real mjd_tt, const Vec3& r_tod);
-  Vec3 AccelerationEarthSpacecraft(Real mjd_tt, const Vec6& rv, Real area, Real mass, Real CR,
-                                   Real CD, GravityField<double> grav);
+  Vec3 AccelerationEarthSpacecraft(Real  mjd_tt, const Vec6& rv, Real bcoeff_srp, 
+                                  Real bcoeff_drag, GravityField<Real> grav);
 }  // namespace lupnt

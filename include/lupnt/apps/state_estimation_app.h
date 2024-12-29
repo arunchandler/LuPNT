@@ -22,14 +22,16 @@
 
 namespace lupnt {
 
+
   /**
    * @brief Stack of multiple state types (example: orbit and clock)
    *
    */
   class JointState {
   private:
-    std::vector<IState*> state_vec_;
-    std::vector<IDynamics*> dynamics_vec_;
+    std::vector<Ptr<IState>> state_vec_;
+    std::vector<Ptr<IDynamics>> dynamics_vec_;
+    std::vector<Ptr<VecX>> params_vec_;  
     std::vector<std::vector<int>> dynamics_to_state_map_;
 
     VecX state_vec_value_;
@@ -45,7 +47,7 @@ namespace lupnt {
       state_sizes_.clear();
     };
 
-    JointState(std::vector<IState*> state_vec) {
+    JointState(std::vector<Ptr<IState>> state_vec) {
       int state_vec_size = 0;
       for (int i = 0; state_vec.size(); i++) {
         state_vec_.push_back(state_vec[i]);
@@ -67,12 +69,13 @@ namespace lupnt {
     };
 
     int GetSize() const { return state_vec_size_; };
-    std::vector<IState*> GetJointState() { return state_vec_; };
+    std::vector<Ptr<IState>> GetJointState() { return state_vec_; };
     VecX GetJointStateValue() { return state_vec_value_; };
 
-    void PushBackStateAndDynamics(IState* state, IDynamics* dynamics);
+    void PushBackStateAndDynamics(Ptr<IState> state, Ptr<IDynamics> dynamics);
 
     FilterDynamicsFunction GetFilterDynamicsFunction();
+    FilterProcessNoiseFunction GetFilterProcessNoiseFunction();
   };
 
   /**

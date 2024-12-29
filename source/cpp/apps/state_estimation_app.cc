@@ -13,7 +13,9 @@
 
 namespace lupnt {
 
-  void JointState::PushBackStateAndDynamics(IState* state, IDynamics* dynamics) {
+  // Todo: Pushback also parameters and proc noise unctions
+  void JointState::PushBackStateAndDynamics(Ptr<IState> state, 
+                                            Ptr<IDynamics> dynamics) {
     state_vec_.push_back(state);
     state_vec_size_ += state->GetSize();
     state_types_ += 1;
@@ -34,7 +36,7 @@ namespace lupnt {
 
   FilterDynamicsFunction JointState::GetFilterDynamicsFunction() {
     FilterDynamicsFunction dynfunc = [this](VecX x, Real t_curr, Real t_end, MatXd* Phi = nullptr) {
-      std::vector<IState*> state_vec = this->GetJointState();
+      std::vector<Ptr<IState>> state_vec = this->GetJointState();
       Phi->resize(state_vec_size_, state_vec_size_);
       Phi->setZero();
 

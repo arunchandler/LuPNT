@@ -251,8 +251,8 @@ int main() {
     moon_sat->SetBodyId(NaifId::MOON);
     moon_sat->SetClockDynamics(dyn_clk_true);
 
-    joint_state.PushBackStateAndDynamics(cart_state.get(), dyn_est.get());
-    joint_state.PushBackStateAndDynamics(&clock_state, &dyn_clk_est);
+    joint_state.PushBackStateAndDynamics(cart_state, dyn_est);
+    joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state), MakePtr<ClockDynamics>(dyn_clk_est));
 
     moon_sats.push_back(moon_sat);
   }

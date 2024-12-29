@@ -12,6 +12,9 @@
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/physics/frame_converter.h"
 #include "lupnt/measurements/gnss_receiver.h"
+#include "lupnt/measurements/space_channel.h"
+#include "lupnt/numerics/filters.h"
+#include "lupnt/apps/state_estimation_app.h"
 #include "lupnt/physics/time_converter.h"
 
 namespace lupnt {
@@ -131,6 +134,7 @@ namespace lupnt {
         LoadChannelConfig(config["channels"], print_val);
         LoadGnssConfig(config["gnss"], print_val);
         LoadSatelliteConfig(config["agents"], print_val);
+        LoadFiltersConfig(config["filters"], print_val);
     }
 
     //==============================================================================
@@ -219,20 +223,24 @@ namespace lupnt {
         }
 
         // SRP
-        if (child_node["srp"] && child_node["srp"]["enable"]) {
+        if (child_node["srp"] && child_node["srp"]["enable"].as<bool>()) {
             dyn->SetUseSrp(true);
 
-            dyn->SetArea(LoadRequiredField<Real>(child_node["srp"]["area"], "dynamics.{}.srp.area"));
-            dyn->SetSrpCoeff(LoadRequiredField<Real>(child_node["srp"]["cr"], "dynamics.{}.srp.cr"));
-            dyn->SetMass(LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass"));
+            Real area = LoadRequiredField<Real>(child_node["srp"]["area"], "dynamics.{}.srp.area");
+            Real cr = LoadRequiredField<Real>(child_node["srp"]["cr"], "dynamics.{}.srp.cr");
+            Real mass = LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass");
+
+            dyn->SetSrpCoeff(cr, area, mass);
         }
         // Drag
         if (child_node["drag"] && child_node["drag"]["enable"]) {
             dyn->SetUseDrag(true);
 
-            dyn->SetArea(LoadRequiredField<Real>(child_node["drag"]["area"], "dynamics.{}.drag.area"));
-            dyn->SetDragCoeff(LoadRequiredField<Real>(child_node["drag"]["cd"], "dynamics.{}.drag.cd"));
-            dyn->SetMass(LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass"));
+            Real area_d = LoadRequiredField<Real>(child_node["drag"]["area"], "dynamics.{}.drag.area");
+            Real cd = LoadRequiredField<Real>(child_node["drag"]["cd"], "dynamics.{}.drag.cd");
+            Real mass_d = LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass");
+
+            dyn->SetDragCoeff(cd, area_d, mass_d);
         }
 
         // Integrator options
@@ -617,6 +625,9 @@ namespace lupnt {
                 }
             }
 
+            // ToDO: Add Applications
+
+
             // Insert to map (Spacecraft)
             InsertMap<Spacecraft>(satellites_map_, satellites_[idx]->GetName(), satellites_[idx]);
             idx++;
@@ -629,6 +640,71 @@ namespace lupnt {
                 std::cout << "  Agent Name: " << sat->GetName() << "\n";
             }
         }
+    }
+
+    //==============================================================================
+    // LoadFiltersConfig
+    //==============================================================================
+
+    Ptr<JointState> ConfigReader::CreateJointState(YAML::Node dynamics_list, std::string field_prior) {
+
+        Ptr<JointState> joint_state = MakePtr<JointState>();
+
+        for (YAML::const_iterator it = dynamics_list.begin(); it != dynamics_list.end(); ++it) {
+            std::string name = it->first.as<std::string>();
+            YAML::Node child_node = it->second;
+
+            // state
+            std::string state_str = LoadRequiredField<std::string>(child_node["state"], field_prior + ".state");
+            Ptr<IState> state = FindMap<IState>(state_map_, state_str);
+
+            // dynamics
+            std::string dyn_str = LoadRequiredField<std::string>(child_node["dynamics"], field_prior + ".dynamics");
+            Ptr<IDynamics> dyn = FindMap<IDynamics>(dynamics_map_, dyn_str);
+
+            // params: Todo
+
+            // params_option: Todo
+
+            joint_state->PushBackStateAndDynamics(state, dyn);
+            
+        }
+
+        return joint_state;
+    }
+
+    void ConfigReader::LoadFiltersConfig(YAML::Node filtersNode, bool print_val) {
+        for (YAML::const_iterator it = filtersNode.begin(); it != filtersNode.end(); ++it) {
+            std::string name = it->first.as<std::string>();
+            YAML::Node child_node = it->second;
+
+            // Construct filter
+            Ptr<IFilter> filter;
+
+            // We assume 'type' is mandatory
+            std::string filter_type = LoadRequiredField<std::string>(child_node["type"], "filter." + name + ".type");
+
+            // if (filter_type == "EKF") {
+            //     filter = MakePtr<EKF>();
+            // }
+            // else {
+            //     std::cerr << "Invalid Filter type at '" << name << "'.\n"
+            //                 << "Currently accepted are EKF.\n";
+            // }
+
+            // // Create joint state
+            // if (child_node["dynamics_list"]) {
+            //     auto joint_state = CreateJointState(child_node["dynamics_list"], "filter." + name + ".dynamics_list");
+            //     FilterDynamicsFunction filter_joint_dyn = joint_state->GetFilterDynamicsFunction();
+            //     FilterProcessNoiseFunction filter_proc_func = joint_state->GetFilterProcessNoiseFunction();
+            //     filter->SetDynamicsFunction(filter_joint_dyn);
+            //     filter->SetProcessNoiseFunction(filter_proc_func)
+            // }
+            // else {
+            //     std::cerr << "Not Found: filter." << name << ".dynamics_list\n";
+            // }
+        } 
+
     }
 
 } // namespace lupnt

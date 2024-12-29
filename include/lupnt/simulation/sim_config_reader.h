@@ -18,6 +18,12 @@
 #include "lupnt/agents/gnss_constellation.h"
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/measurements/space_channel.h"
+#include "lupnt/measurements/gnss_channel.h"
+#include "lupnt/physics/clock.h"
+#include "lupnt/physics/orbit_state.h"
+#include "lupnt/physics/frame_converter.h"
+#include "lupnt/numerics/filters.h"
+#include "lupnt/apps/state_estimation_app.h"
 
 namespace lupnt {
 
@@ -41,6 +47,7 @@ namespace lupnt {
             std::map<std::string, Ptr<IDynamics>> dynamics_map_;
             std::map<std::string, Ptr<ClockDynamics>> clock_dynamics_map_;
             std::map<std::string, Ptr<IState>> state_map_;
+            std::map<std::string, Ptr<IFilter>> filter_map_;
 
             // Yaml node loaders
             void LoadTimeConfig(YAML::Node time_node, bool print_val=false);
@@ -48,6 +55,7 @@ namespace lupnt {
             void LoadChannelConfig(YAML::Node channel_node, bool print_val=false);
             void LoadDynamicsConfig(YAML::Node dynamics_node, bool print_val=false);
             void LoadSatelliteConfig(YAML::Node satellite_node, bool print_val=false);
+            void LoadFiltersConfig(YAML::Node filter_node, bool print_val=false);
 
             // state, device, dynamics generators
             void CreateSatCommDevice(YAML::Node device_node, std::string device_name, Ptr<Spacecraft> sat);
@@ -56,6 +64,7 @@ namespace lupnt {
                                 bool &orbit_defined, bool &clock_defined);
             void CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat);
             void CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat);
+            Ptr<JointState> CreateJointState(YAML::Node state_node, std::string field_prior);
 
             // util functions
             template<typename T> T LoadRequiredField(const YAML::Node& node, const std::string& field_name);
@@ -72,7 +81,7 @@ namespace lupnt {
             ConfigReader(std::string filename) {
                 LoadConfigYaml(filename);
             }
-            
+
             ~ConfigReader() = default;
 
             void LoadConfigYaml(std::string filename, bool print_val=false);

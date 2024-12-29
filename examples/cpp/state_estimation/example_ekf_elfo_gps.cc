@@ -621,8 +621,8 @@ int main() {
 
   // Joint state and dynamics
   JointState joint_state;
-  joint_state.PushBackStateAndDynamics(cart_state_moon.get(), dyn_est.get());
-  joint_state.PushBackStateAndDynamics(&clock_state, &dyn_clk_est);
+  joint_state.PushBackStateAndDynamics(cart_state_moon, dyn_est);
+  joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state), MakePtr<ClockDynamics>(dyn_clk_est));
 
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 

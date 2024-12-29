@@ -22,11 +22,49 @@ namespace lupnt {
   // Base Dyanmics Classes
   // ****************************************************************************
 
+  typedef std::map<std::string, VecX> DynamicsParam;
+
   // Dynamics Interface
   class IDynamics {
+  protected:
+    DynamicsParam params_ = {};  // empty initialization
+
   public:
     virtual ~IDynamics() = default;
 
+    // Parameter 
+    bool ParamsEmpty() const {
+      return params_.empty();
+    }
+
+    void AddParam(std::string key, VecX value) {
+      params_[key] = value;
+    }
+
+    void SetParam(std::string key, VecX value) {
+      if (ParamsEmpty()) return;
+
+      if (params_.find(key) != params_.end()) {
+        params_[key] = value;
+        return;
+      }
+      else {
+        throw std::invalid_argument("Parameter" + key + " not found");
+      }
+    }
+
+    void SetParams(DynamicsParam params) {
+      if (params.empty()) return;
+
+      for (auto const& [key, val] : params) {
+        SetParam(key, val);
+      }
+    }
+
+    DynamicsParam GetParams() const {
+      return params_;
+    }
+    
     // Interface
     virtual Ptr<IState> PropagateState(const Ptr<IState> &state, Real t0, Real tf,
                                        MatXd *stm = nullptr)
@@ -225,15 +263,6 @@ namespace lupnt {
                               Mat6d *stm = nullptr) override;
   };
 
-  struct NBodyDynamicsParams {
-    Real mass;  // [kg] Spacecraft mass
-    Real area;  // [m^2] Cross-sectional area
-    Real CR;    // [-] Radiation pressure coefficient
-    Real CD;    // [-] Drag coefficient
-    bool use_srp = false;
-    bool use_drag = false;
-  };
-
   template <typename T = double> class NBodyDynamics : public NumericalOrbitDynamics {
   private:
     Frame frame_ = Frame::NONE;
@@ -242,11 +271,10 @@ namespace lupnt {
     ODE odefunc;
     bool use_srp_ = false;
     bool use_drag_ = false;
-
-    Real mass_;  // [kg] Spacecraft mass
-    Real area_;  // [m^2] Cross-sectional area
-    Real CR_;    // [-] Radiation pressure coefficient
-    Real CD_;    // [-] Drag coefficient
+    DynamicsParam params_ = {
+      {"bcoeff_drag", VecX::Zero(1)},
+      {"bcoeff_srp", VecX::Zero(1)},
+    };
 
   public:
     NBodyDynamics(IntegratorType integ = default_integrator);
@@ -274,11 +302,16 @@ namespace lupnt {
 
     void SetFrame(Frame frame) { frame_ = frame; }
     void GetFrame(Frame &frame) { frame = frame_; }
-
-    void SetMass(Real mass) { mass_ = mass; }
-    void SetArea(Real area) { area_ = area; }
-    void SetSrpCoeff(Real CR) { CR_ = CR; }
-    void SetDragCoeff(Real CD) { CD_ = CD; }
+    void SetSrpCoeff(Real bcoeff) { SetParam("bcoeff_srp", VecX::Constant(1, bcoeff)); }
+    void SetDragCoeff(Real bcoeff) { SetParam("bcoeff_drag", VecX::Constant(1, bcoeff)); }
+    void SetSrpCoeff(Real CR, Real area, Real mass) {
+      Real bcoeff = (CR * area) / mass;
+      SetParam("bcoeff_srp", VecX::Constant(1, bcoeff));
+    }
+    void SetDragCoeff(Real CD, Real area, Real mass) {
+      Real bcoeff = (CD * area) / mass;
+      SetParam("bcoeff_drag", VecX::Constant(1, bcoeff));
+    }
 
     void SetUseSrp(bool use_srp) { use_srp_ = use_srp; }
     void SetUseDrag(bool use_drag) { use_drag_ = use_drag; }

@@ -119,7 +119,7 @@ namespace lupnt {
   /// @param r_sun Sun position [km]
   /// @param area Cross-section [m^2]
   /// @param mass Spacecraft mass [kg]
-  /// @param CR Solar radiation pressure coefficient [N/m^2]
+  /// @param CR Solar radiation pressure coefficient (0: translucent, 1: black body 2: perfect mirror)
   /// @param P0 Solar radiation pressure at 1 AUa
   /// @param AU Length of one Astronomical Unit
   /// @return Acceleration [km/s^2]
@@ -127,10 +127,13 @@ namespace lupnt {
   /// O. Montenbruck and G. Eberhard, Satellite orbits: models, methods, and
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
-  Vec3 AccelerationSolarRadiation(const Vec3& r, const Vec3& r_sun, Real area, Real mass, Real CR,
+  Vec3 AccelerationSolarRadiation(const Vec3& r, const Vec3& r_sun, Real bcoeff_srp,
                                   Real P0, Real AU) {
     Vec3 d = r - r_sun;
-    Vec3 a = CR * (area / mass) * P0 * (AU * AU) * d / pow(d.norm(), 3);
+
+    // Vec3 a = CR * (area / mass) * P0 * (AU * AU) * d / pow(d.norm(), 3);
+    Vec3 a = bcoeff_srp * P0 * (AU * AU) * d / pow(d.norm(), 3);
+
     return a;
   }
 
@@ -146,7 +149,7 @@ namespace lupnt {
   /// O. Montenbruck and G. Eberhard, Satellite orbits: models, methods, and
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
-  Vec3 AccelerationDrag(Real mjd_tt, const Vec6& rv, const Mat3& T, Real area, Real mass, Real CD) {
+  Vec3 AccelerationDrag(Real mjd_tt, const Vec6& rv, const Mat3& T, Real bcoeff_drag) {
     const Vec3 omega(0, 0, 7.29212e-5);  // Earth angular velocity [rad/s]
     Vec3 r = rv.head(3);
     Vec3 v = rv.tail(3);
@@ -163,7 +166,8 @@ namespace lupnt {
     Real dens = DensityHarrisPriester(mjd_tt, r_tod);
 
     // Acceleration
-    Vec3 a_tod = -0.5 * CD * (area / mass) * dens * v_abs * v_rel * KM_M;
+    // Vec3 a_tod = -0.5 * CD * (area / mass) * dens * v_abs * v_rel * KM_M;
+    Vec3 a_tod = -0.5 * bcoeff_drag * dens * v_abs * v_rel * KM_M;
 
     // Transformation  to ICRF/EME2000 system
     return T.transpose() * a_tod;
@@ -283,8 +287,7 @@ namespace lupnt {
   /// O. Montenbruck and G. Eberhard, Satellite orbits: models, methods, and
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
-  Vec3 AccelerationEarthSpacecraft(Real mjd_tt, const Vec6& rv, Real area, Real mass, Real CR,
-                                   Real CD, GravityField<Real> grav) {
+  Vec3 AccelerationEarthSpacecraft(Real mjd_tt, const Vec6& rv, Real bcoeff_srp, Real bcoeff_drag, GravityField<Real> grav) {
     Vec3 r = rv.head(3);
 
     // Acceleration due to harmonic gravity field
@@ -303,10 +306,10 @@ namespace lupnt {
 
     // Solar radiation pressure
     a += Illumination(r, r_sun, R_EARTH)
-         * AccelerationSolarRadiation(r, r_sun, area, mass, CR, P_SUN, AU);
+         * AccelerationSolarRadiation(r, r_sun, bcoeff_srp, P_SUN, AU);
 
     // Atmospheric drag
-    a += AccelerationDrag(mjd_tt, rv, T, area, mass, CD);
+    a += AccelerationDrag(mjd_tt, rv, T, bcoeff_drag);
 
     return a;
   }
