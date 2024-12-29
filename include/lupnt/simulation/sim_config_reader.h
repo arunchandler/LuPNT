@@ -59,11 +59,11 @@ namespace lupnt {
 
             // state, device, dynamics generators
             void CreateSatCommDevice(YAML::Node device_node, std::string device_name, Ptr<Spacecraft> sat);
-            template<typename T> Ptr<NBodyDynamics<T>> CreateNBodyDynamics(const YAML::Node child_node, bool print_val);
+            template<typename T> Ptr<NBodyDynamics<T>> CreateNBodyDynamics(const YAML::Node child_node, std::string name, bool print_val);
             void CreateSatState(YAML::Node state_node, std::string state_name, Ptr<Spacecraft> sat, 
                                 bool &orbit_defined, bool &clock_defined);
-            void CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat);
-            void CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat);
+            void CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat, std::string prior_field);
+            void CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat, std::string prior_field);
             Ptr<JointState> CreateJointState(YAML::Node state_node, std::string field_prior);
 
             // util functions
@@ -78,8 +78,8 @@ namespace lupnt {
         public:
             ConfigReader() = default;
 
-            ConfigReader(std::string filename) {
-                LoadConfigYaml(filename);
+            ConfigReader(std::string filename, bool print_val=false) {
+                LoadConfigYaml(filename, print_val);
             }
 
             ~ConfigReader() = default;

@@ -315,6 +315,11 @@ namespace lupnt {
 
     void SetUseSrp(bool use_srp) { use_srp_ = use_srp; }
     void SetUseDrag(bool use_drag) { use_drag_ = use_drag; }
+
+    bool GetUseSrp() { return use_srp_; }
+    bool GetUseDrag() { return use_drag_; }
+    Real GetSrpCoeff() { return params_.at("bcoeff_srp")(0); }
+    Real GetDragCoeff() { return params_.at("bcoeff_drag")(0); }
   };
 
   // ****************************************************************************

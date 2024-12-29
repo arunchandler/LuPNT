@@ -43,7 +43,6 @@ namespace lupnt {
 
     T GM;
     T R;
-    int n, m;
 
     Frame fixed_frame;
     Frame inertial_frame;
