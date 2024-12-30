@@ -133,7 +133,7 @@ namespace lupnt {
           switch (frame_out) {
             case Frame::GCRF: {
               // Convert to GCRF
-              Mat6 Rrv_itrf2gcrf = GetFrameConversionMat(t_tai, Frame::ITRF, Frame::GCRF);
+              Mat6 Rrv_itrf2gcrf = GetFrameConversionMat(t_tai, "ITRF93", "J2000");
               Vec6 rv_gcrf = Rrv_itrf2gcrf * rv_in;
               return rv_gcrf;
             }
@@ -188,7 +188,7 @@ namespace lupnt {
               return rv_me;
             }
             case Frame::MOON_CI: {  // Convert to Moon Inertial
-              Mat6 Mrot = GetFrameConversionMat(t_tai, Frame::MOON_PA, Frame::GCRF);
+              Mat6 Mrot = GetFrameConversionMat(t_tai, "IAU_MOON", "J2000");
               Vec6 rv_mi = Mrot * rv_in;
               return rv_mi;
             }
@@ -209,7 +209,7 @@ namespace lupnt {
               return rv_icrf;
             }
             case Frame::ITRF: {
-              Mat6 Rrv_gcrf2itrf = GetFrameConversionMat(t_tai, Frame::GCRF, Frame::ITRF);
+              Mat6 Rrv_gcrf2itrf = GetFrameConversionMat(t_tai, "J2000", "ITRF93");
               Vec6 rv_itrf = Rrv_gcrf2itrf * rv_in;
               return rv_itrf;
             }
@@ -242,7 +242,7 @@ namespace lupnt {
               return rv_gcrf;
             }
             case Frame::MOON_PA: {
-              Mat6 Mrot = GetFrameConversionMat(t_tai, Frame::GCRF, Frame::MOON_PA);
+              Mat6 Mrot = GetFrameConversionMat(t_tai, "J2000", "IAU_MOON");
               Vec6 rv_pa = Mrot * rv_in;
               return rv_pa;
             }

@@ -8,14 +8,14 @@ namespace py = pybind11;
 
 class SpiceInterface {};  // dummy class
 
-void init_spice_interface(py::module &m) {
+void init_spice_interface(py::module& m) {
   auto m_spice = m.def_submodule("spice", "This is A.");
 
   m_spice.def("load_spice_kernel", &lupnt::spice::LoadSpiceKernel)
       .def("extract_pck_coeffs", &lupnt::spice::ExtractPckCoeffs)
       .def(
           "get_frame_conversion_mat",
-          [](double t_tai, lupnt::Frame from, lupnt::Frame to) -> lupnt::Mat6d {
+          [](double t_tai, const std::string& from, const std::string& to) -> lupnt::Mat6d {
             return lupnt::spice::GetFrameConversionMat(t_tai, from, to).cast<double>();
           },
           py::arg("t_tai"), py::arg("from"), py::arg("to"))
@@ -51,8 +51,8 @@ void init_spice_interface(py::module &m) {
           py::arg("t_tai"), py::arg("center"), py::arg("target"))
       .def(
           "get_body_pos_spice",
-          [](double t_tai, lupnt::NaifId obs, lupnt::NaifId target, lupnt::Frame ref_frame,
-             std::string ab_orrection) -> lupnt::Vec3d {
+          [](double t_tai, lupnt::NaifId obs, lupnt::NaifId target, const std::string& ref_frame,
+             const std::string& ab_orrection) -> lupnt::Vec3d {
             return lupnt::spice::GetBodyPosSpice(t_tai, obs, target, ref_frame, ab_orrection)
                 .cast<double>();
           },

@@ -9,6 +9,9 @@
 
 namespace lupnt {
 
+  extern const std::map<Time, std::string> time2string;
+  extern const std::map<std::string, Time> string2time;
+
   Real ConvertTime(Real t, Time from, Time to);
   VecX ConvertTime(VecX t, Time from, Time to);
 
@@ -42,6 +45,7 @@ namespace lupnt {
   Real EarthRotationAngle(Real t_ut1);
   Real Gregorian2MJD(int year, int month, int day, int hour = 0, int min = 0, Real sec = 0);
   Real Gregorian2Time(int year, int month, int day, int hour = 0, int min = 0, Real sec = 0);
+  Real Gregorian2Time(const std::string& date);
 
   Real GreenwichMeanSiderealTime(Real mjd_ut1);
   Real GreenwichApparentSiderealTime(Real mjd_ut1);

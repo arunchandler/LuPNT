@@ -29,61 +29,54 @@ namespace lupnt {
 
   // Math constants
   static constexpr double PI = 3.14159265358979323846264338327950288419716939937511;
-  static constexpr double TWO_PI = 6.28318530717958647692528676655900576839433879875022;
-  static constexpr double PI_OVER_TWO = 1.57079632679489661923132169163975144209858469968756;
+  static constexpr double TWO_PI = 2.0 * PI;
+  static constexpr double PI_OVER_TWO = PI / 2.0;
   static constexpr double E = 2.71828182845904523536028747135266249775724709369996;
   static constexpr double EPS = 1.0e-16;
 
   // Angle conversion
-  static constexpr double RAD = 3.14159265358979323846264338327950288419716939937511 / 180.0;
-  static constexpr double DEG = 180.0 / 3.14159265358979323846264338327950288419716939937511;
-  static constexpr double ARCSEC_DEG = 3600.0;
-  static constexpr double DEG_ARCSEC = 1.0 / ARCSEC_DEG;
-  static constexpr double RAD_ARCSEC = DEG_ARCSEC * RAD;
-  static constexpr double ARCSEC_RAD = 1.0 / RAD_ARCSEC;
-
-  // Mass
-  static constexpr double LBM_TO_KG = 0.45359237;
-  static constexpr double SLUG_TO_KG = 14.59390294;
+  static constexpr double RAD = PI / 180.0;               // [rad/deg]
+  static constexpr double DEG = 180.0 / PI;               // [deg/rad]
+  static constexpr double ARCSEC_DEG = 3600.0;            // [arcsec/deg]
+  static constexpr double DEG_ARCSEC = 1.0 / ARCSEC_DEG;  // [deg/arcsec]
+  static constexpr double RAD_ARCSEC = DEG_ARCSEC * RAD;  // [rad/arcsec]
+  static constexpr double ARCSEC_RAD = 1.0 / RAD_ARCSEC;  // [arcsec/rad]
 
   // Length
-  static constexpr double INCH_M = 0.0254;
-  static constexpr double FOOT_M = 0.3048;
-  static constexpr double MILE_M = 1609.344;
-  static constexpr double KM_M = 0.001;
-  static constexpr double M_KM = 1000.0;
+  static constexpr double INCH_M = 0.0254;    // [in/m]
+  static constexpr double FOOT_M = 0.3048;    // [ft/m]
+  static constexpr double MILE_M = 1609.344;  // [mile/m]
+  static constexpr double KM_M = 0.001;       // [km/m]
+  static constexpr double M_KM = 1000.0;      // [m/km]
 
   // Time system constants ******************************************************
-  static constexpr double SECS_DAY = 86400.0;
-  static constexpr double SECS_HOUR = 3600.0;
-  static constexpr double SECS_MINUTE = 60.0;
+  static constexpr double SECS_DAY = 86400.0;         // [s/day]
+  static constexpr double SECS_HOUR = 3600.0;         // [s/hour]
+  static constexpr double SECS_MINUTE = 60.0;         // [s/minute]
+  static constexpr double MINS_HOUR = 60.0;           // [min/hour]
+  static constexpr double MINS_DAY = 1440.0;          // [min/day]
+  static constexpr double HOURS_DAY = 24.0;           // [hour/day]
+  static constexpr double DAYS_SEC = 1.0 / SECS_DAY;  // [day/s]
+  static constexpr double DAYS_WEEK = 7.0;            // [days/week]
+  static constexpr double DAYS_YEAR = 365.25;         // [days/year]
+  static constexpr double DAYS_CENTURY = 36525.00;    // [days/century]
 
-  static constexpr double MINS_HOUR = 60.0;
-  static constexpr double MINS_DAY = 1440.0;
-  static constexpr double HOURS_DAY = 24.0;
-  static constexpr double DAYS_WEEK = 7.0;
+  static constexpr double JD_MJD_OFFSET = 2400000.5;  // [days]
+  static constexpr double TT_TAI_OFFSET = 32.184;     // [s]
+  static constexpr double A1_TAI_OFFSET = 0.0343817;  // [s]
 
-  static constexpr double DAYS_YEAR = 365.25;
-  static constexpr double DAYS_CENTURY = 36525.00;
-  static constexpr double DAYS_SEC = 1.1574074074074074074074074074074e-5;
+  static constexpr double JD_CCSDS_TAI = 2436203.5;  // [days]
+  static constexpr double JD_J2000_TT = 2451545.0;   // [days]
+  static constexpr double MJD_CCSDS_TAI = 36203.0;   // [days]
+  static constexpr double MJD_J2000_TT = 51544.5;    // [days]
 
-  static constexpr double TIME_OF_J2000 = 883655990.850000;  // 2000/01/01 43167.85
-  static constexpr double JD_J2000 = 2451545.0;              // JD of J2000 epoch
-  static constexpr double MJD_J2000 = 51544.5;               // MJD of J2000 epoch
-
-  // Vallado page 94
-  static constexpr double JD_T0 = 2443144.5003725;
-  static constexpr double JD_MJD_OFFSET = 2400000.5;
-  static constexpr double TT_TAI_OFFSET = 32.184;
-  static constexpr double A1_TAI_OFFSET = 0.0343817;
-  static constexpr double JD_JAN_5_1941 = 2430000.0;
-  static constexpr double JD_NOV_17_1858 = 2400000.5;
+  // Vallado page 194
+  static constexpr double MJD_COORDINATE_TAI = 2443144.5 - JD_MJD_OFFSET;  // [days]
+  static constexpr double MJD_COORDINATE_TT_TCG_TCB
+      = MJD_COORDINATE_TAI + TT_TAI_OFFSET / SECS_DAY;  // [days]
 
   static constexpr double L_B = 1.550505e-8;
   static constexpr double L_G = 6.969290134e-10;
-  static constexpr double NUM_SECS = SECS_DAY;
-
-  static constexpr int JULIAN_DATE_OF_010541 = 2430000;
 
   // Coordinate system constants DE440 *******************************************
   static constexpr double GM_SUN = 132712440041.279419;          // [km^3/s^2]

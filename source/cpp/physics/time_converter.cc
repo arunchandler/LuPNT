@@ -27,6 +27,27 @@
 
 namespace lupnt {
 
+  // Julian Epoch          -4712-01-01T12:00:00 TT
+  // Modified Julian Epoch  1858-11-17T00:00:00 TT
+  // Fifties Epoch          1950-01-01T00:00:00 TT
+  // CCSDS Epoch            1958-01-01T00:00:00 TAI
+  // Coordinate Time Epoch  1977-01-01T00:00:00 TAI
+  // Galileo Epoch          1999-08-22T00:00:00 UTC
+  // GPS Epoch              1980-01-06T00:00:00 UTC
+  // J2000 Epoch            2000-01-01T12:00:00 TT
+
+  const std::map<Time, std::string> time2string = {
+      {Time::UT1, "UT1"},     {Time::UTC, "UTC"},      {Time::TAI, "TAI"}, {Time::TDB, "TDB"},
+      {Time::TT, "TT"},       {Time::TCG, "TCG"},      {Time::TCB, "TCB"}, {Time::GPS, "GPS"},
+      {Time::JD_TT, "JDTDT"}, {Time::JD_TDB, "JDTDB"},
+  };
+
+  const std::map<std::string, Time> string2time = {
+      {"UT1", Time::UT1},     {"UTC", Time::UTC},      {"TAI", Time::TAI}, {"TDB", Time::TDB},
+      {"TT", Time::TT},       {"TCG", Time::TCG},      {"TCB", Time::TCB}, {"GPS", Time::GPS},
+      {"JDTDT", Time::JD_TT}, {"JDTDB", Time::JD_TDB},
+  };
+
   /// @brief Convert time from one time system to another
   /// @param t Time in the original time system
   /// @param from Original time system
@@ -56,8 +77,6 @@ namespace lupnt {
           case Time::TCG: return TT2TCG(TAI2TT(t));
           case Time::TDB: return TT2TDB(TAI2TT(t));
           case Time::TCB: return TT2TCB(TAI2TT(t));
-          case Time::JD_TT: return Time2JD(TAI2TT(t));
-          case Time::JD_TDB: return Time2JD(TT2TDB(TAI2TT(t)));
           default: break;
         }
       }
@@ -67,8 +86,6 @@ namespace lupnt {
           case Time::TCB: return TT2TCB(TDB2TT(t));
           case Time::TCG: return TT2TCG(TDB2TT(t));
           case Time::TAI: return TT2TAI(TDB2TT(t));
-          case Time::JD_TDB: return Time2JD(t);
-          case Time::JD_TT: return Time2JD(TDB2TT(t));
           default: return ConvertTime(TT2TAI(TDB2TT(t)), Time::TAI, to);
         }
       }
@@ -81,8 +98,6 @@ namespace lupnt {
           case Time::UTC: return TAI2UTC(TT2TAI(t));
           case Time::UT1: return UTC2UT1(TAI2UTC(TT2TAI(t)));
           case Time::GPS: return TAI2GPS(TT2TAI(t));
-          case Time::JD_TT: return Time2JD(t);
-          case Time::JD_TDB: return Time2JD(TT2TDB(t));
           default: break;
         }
       }
@@ -104,28 +119,28 @@ namespace lupnt {
   }
 
   Real UTC2UT1(Real t_utc) {
-    Real mjd_utc = t_utc / SECS_DAY + MJD_J2000;
+    Real mjd_utc = t_utc / SECS_DAY + MJD_J2000_TT;
     Real ut1_utc = GetUt1UtcDifference(mjd_utc);
     Real t_ut1 = t_utc + ut1_utc;
     return t_ut1;
   }
 
   Real UT12UTC(Real t_ut1) {
-    Real mjd_ut1 = t_ut1 / SECS_DAY + MJD_J2000;
+    Real mjd_ut1 = t_ut1 / SECS_DAY + MJD_J2000_TT;
     Real ut1_utc = GetUt1UtcDifference(mjd_ut1);
     Real t_utc = t_ut1 - ut1_utc;
     return t_utc;
   }
 
   Real UTC2TAI(Real t_utc) {
-    Real mjd_utc = t_utc / SECS_DAY + MJD_J2000;
+    Real mjd_utc = t_utc / SECS_DAY + MJD_J2000_TT;
     Real tai_utc = GetTaiUtcDifference(mjd_utc.val());
     Real t_tai = t_utc + tai_utc;
     return t_tai;
   }
 
   Real TAI2UTC(Real t_tai) {
-    Real mjd_tai = t_tai / SECS_DAY + MJD_J2000;
+    Real mjd_tai = t_tai / SECS_DAY + MJD_J2000_TT;
     Real tai_utc = GetTaiUtcDifference(mjd_tai.val());
     Real t_utc = t_tai - tai_utc;
     return t_utc;
@@ -136,14 +151,14 @@ namespace lupnt {
   Real TT2TAI(Real t_tt) { return t_tt - TT_TAI_OFFSET; }
 
   Real TT2TCG(Real t_tt) {
-    Real jd_tt = JD_J2000 + t_tt / SECS_DAY;
-    Real tt_tcg = -L_G / (1.0 - L_G) * (jd_tt - JD_T0) * SECS_DAY;
+    Real mjd_tt = Time2MJD(t_tt);
+    Real tt_tcg = -L_G / (1.0 - L_G) * (mjd_tt - MJD_COORDINATE_TT_TCG_TCB) * SECS_DAY;
     return t_tt - tt_tcg;
   }
 
   Real TCG2TT(Real t_tcg) {
-    Real jd_tcg = JD_J2000 + t_tcg / SECS_DAY;
-    Real tt_tcg = -L_G * (jd_tcg - JD_T0) * SECS_DAY;
+    Real mjd_tcg = Time2MJD(t_tcg);
+    Real tt_tcg = -L_G * (mjd_tcg - MJD_COORDINATE_TT_TCG_TCB) * SECS_DAY;
     return t_tcg + tt_tcg;
   }
 
@@ -165,14 +180,12 @@ namespace lupnt {
   /// @param t_tt
   /// @return
   /// @ref
-  /// https://gssc.esa.int/navipedia/index.php/Transformations_between_Time_Systems#TDT_-_TDB.2C_TCB
-  /// @note Accurate to about 30 microseconds
+  /// Astrodynamics Convention and Modeling Reference for Lunar, Cislunar, and Libration Point
+  /// Orbits
   Real TT2TDB(Real t_tt) {
-    double k = 1.657e-3;
-    double eb = 1.671e-2;
-    Real mean_anom = 6.239996 + 1.99096871e-7 * t_tt;
-    Real ecc_anom = mean_anom + eb * sin(mean_anom);
-    Real t_tdb = t_tt + k * sin(ecc_anom);
+    Real days_j2000_tt = t_tt / SECS_DAY;
+    Real me = (357.53 + 0.9856003 * days_j2000_tt) * RAD;
+    Real t_tdb = t_tt + 0.001658 * sin(me) + 0.000014 * sin(2 * me);
     return t_tdb;
   }
 
@@ -187,17 +200,19 @@ namespace lupnt {
   }
 
   Real TCB2TDB(Real t_tcb) {
-    // TODO: Verify JD_J2000 TCB
     const double tdb0 = -6.55e-5;
-    Real jd_tcb = JD_J2000 + t_tcb / SECS_DAY;
-    Real t_tdb = t_tcb - (1.55051976772e-8 * (jd_tcb - JD_T0) * SECS_DAY + tdb0);
+    Real mjd_tcb = Time2MJD(t_tcb);
+    Real t_tdb
+        = t_tcb - (1.55051976772e-8 * (mjd_tcb - MJD_COORDINATE_TT_TCG_TCB) * SECS_DAY + tdb0);
     return t_tdb;
   }
 
   Real TT2TCB(Real t_tt) {
     Real t_tai = TT2TAI(t_tt);
-    Real jd_tai = JD_J2000 + t_tai / SECS_DAY;
-    Real t_tcb = t_tt + 1.5505197677e-8 * (jd_tai - JD_T0) * SECS_DAY;
+    Real t_tdb = TT2TDB(t_tt);
+    const double L_B = 1.550519768e-8;
+    Real offset = t_tai + TT2TAI(0) + (MJD_J2000_TT - MJD_COORDINATE_TAI) * SECS_DAY;
+    Real t_tcb = t_tdb + L_B * offset;
     return t_tcb;
   }
 
@@ -211,7 +226,7 @@ namespace lupnt {
   Real Gregorian2MJD(int year, int month, int day, int hour, int min, Real sec) {
     if (month <= 2) {
       month += 12;
-      --year;
+      year--;
     }
     int b;
     if ((10000L * year + 100L * month + day) <= 15821004L)
@@ -219,7 +234,7 @@ namespace lupnt {
     else
       b = (year / 400) - (year / 100) + (year / 4);  // Gregorian calendar
 
-    Real mjd_midnight = 365L * year - 679004L + b + int(30.6001 * (month + 1)) + day;
+    double mjd_midnight = 365L * year - 679004L + b + int(30.6001 * (month + 1)) + day;
     Real frac_of_day = (hour + min / 60.0 + sec / 3600.0) / 24.0;
     return mjd_midnight + frac_of_day;
   }
@@ -253,6 +268,13 @@ namespace lupnt {
     return MJD2Time(mjd);
   }
 
+  Real Gregorian2Time(const std::string& date) {
+    int year, month, day, hour, min;
+    double sec;
+    sscanf(date.c_str(), "%d-%d-%dT%d:%d:%lf", &year, &month, &day, &hour, &min, &sec);
+    return Gregorian2Time(year, month, day, hour, min, sec);
+  }
+
   /// @brief Greenwich Mean Sidereal Time
   /// @param mjd_ut1 UT1 (Modified Julian Date)
   /// @return GMST [rad]
@@ -260,8 +282,9 @@ namespace lupnt {
     Real mjd0 = floor(mjd_ut1);
     Real ut1 = SECS_DAY * (mjd_ut1 - mjd0);  // [s]
     // TODO: Verify JD_J2000 UT1
-    Real T0 = (mjd0 - MJD_J2000) / DAYS_CENTURY;
-    Real T = (mjd_ut1 - MJD_J2000) / DAYS_CENTURY;
+    throw std::runtime_error("Not implemented");
+    Real T0 = (mjd0 - MJD_J2000_TT) / DAYS_CENTURY;
+    Real T = (mjd_ut1 - MJD_J2000_TT) / DAYS_CENTURY;
 
     Real gmst = 24110.54841 + 8640184.812866 * T0 + 1.002737909350795 * ut1
                 + (0.093104 - 6.2e-6 * T) * T * T;  // [s]
@@ -269,13 +292,13 @@ namespace lupnt {
     return TWO_PI * frac(gmst / SECS_DAY);  // [rad]
   }
 
-  Real MJD2Time(Real mjd) { return (mjd - MJD_J2000) * SECS_DAY; }
+  Real MJD2Time(Real mjd) { return (mjd - MJD_J2000_TT) * SECS_DAY; }
 
-  Real Time2MJD(Real t) { return t / SECS_DAY + MJD_J2000; }
+  Real Time2MJD(Real t) { return t / SECS_DAY + MJD_J2000_TT; }
 
-  Real JD2Time(Real jd) { return (jd - JD_J2000) * SECS_DAY; }
+  Real JD2Time(Real jd) { return (jd - JD_J2000_TT) * SECS_DAY; }
 
-  Real Time2JD(Real t) { return t / SECS_DAY + JD_J2000; }
+  Real Time2JD(Real t) { return t / SECS_DAY + JD_J2000_TT; }
 
   /// @brief Convert Modified Julian Date to date string
   /// @param mjd Modified Julian Date
@@ -289,13 +312,13 @@ namespace lupnt {
     sec = round(sec, precision);
     ss << year << "-";
     ss << std::setw(2) << std::setfill('0') << month << "-";
-    ss << std::setw(2) << std::setfill('0') << day << " ";
+    ss << std::setw(2) << std::setfill('0') << day << "T";
     ss << std::setw(2) << std::setfill('0') << hour << ":";
     ss << std::setw(2) << std::setfill('0') << min << ":";
     ss << std::setw(2) << std::setfill('0') << floor(sec);
     if (precision > 0) {
       ss << "." << std::fixed << std::setprecision(0) << std::setw(precision) << std::setfill('0')
-         << round((sec - floor(sec)) * pow(10, precision));
+         << floor((sec - floor(sec)) * pow(10, precision));
     }
     return ss.str();
   }

@@ -32,7 +32,7 @@ TEST_CASE("SpiceInterface.GetBodyPosSpice") {
   // 2. GetBodyPosSpice: Get Body Position via SPICE
   auto target = NaifId::MOON;
   auto observer = NaifId::EARTH;
-  auto refframe = Frame::GCRF;
+  std::string refframe = "J2000";
   std::string abcorr = "NONE";
 
   Vec3d pos = spice::GetBodyPosSpice(t_tai, observer, target, refframe, abcorr);
@@ -61,7 +61,7 @@ TEST_CASE("SpiceInterface.GetFrameConversionMat") {
                       {1.47075571708085e-10, 5.94642717972108e-11, -3.31788286899988e-13,
                        0.00224357543019373, 3.04773366301969e-05, 0.999997482717042}};
 
-  xform = spice::GetFrameConversionMat(t_tai, Frame::GCRF, Frame::ITRF);
+  xform = spice::GetFrameConversionMat(t_tai, "J2000", "ITRF93");
   RequireNear(xform, xform_expected, 1e-6);
 }
 

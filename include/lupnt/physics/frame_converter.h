@@ -65,7 +65,7 @@ namespace lupnt {
   extern const std::map<Frame, NaifId> frame_centers;
   extern const std::map<std::string, Frame> string2frame;
   extern const std::map<Frame, std::string> frame2string;
-  
+
   extern std::map<std::pair<Frame, Frame>, std::function<Vec6(Real, const Vec6 &rv)>>
       frame_conversions;
 

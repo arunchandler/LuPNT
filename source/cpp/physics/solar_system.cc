@@ -13,7 +13,7 @@ namespace lupnt {
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
   Real MeanObliquity(Real mjd_tt) {
-    const Real T = (mjd_tt - MJD_J2000) / 36525.0;
+    const Real T = (mjd_tt - MJD_J2000_TT) / 36525.0;
     return (23.43929111 - (46.8150 + (0.00059 - 0.001813 * T) * T) * T / 3600.0) * RAD;
   }
 
@@ -35,7 +35,7 @@ namespace lupnt {
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
   Mat3 PrecessionMatrix(Real mjd_1, Real mjd_2) {
-    Real T = (mjd_1 - MJD_J2000) / 36525.0;
+    Real T = (mjd_1 - MJD_J2000_TT) / 36525.0;
     Real dT = (mjd_2 - mjd_1) / 36525.0;
 
     // Precession angles
@@ -62,7 +62,7 @@ namespace lupnt {
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
   std::pair<Real, Real> NutAngles(Real mjd_tt) {
-    const Real T = (mjd_tt - MJD_J2000) / 36525.0;
+    const Real T = (mjd_tt - MJD_J2000_TT) / 36525.0;
     const Real T2 = T * T;
     const Real T3 = T2 * T;
     const Real rev = 360.0 * 3600.0;  // arcsec/revolution
@@ -234,7 +234,7 @@ namespace lupnt {
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
   Mat3 NutationMatrixLowPrecision(Real mjd_tt) {
-    Real T = (mjd_tt - MJD_J2000) / 36525.0;
+    Real T = (mjd_tt - MJD_J2000_TT) / 36525.0;
 
     // Mean arguments of luni-solar motion
     //   ls  mean anomaly of the Sun
@@ -286,8 +286,8 @@ namespace lupnt {
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
   Vec3 SunPositionLowPrecision(Real mjd_tt) {
-    const Real eps = 23.43929111 * RAD;             // Obliquity of J2000 ecliptic
-    const Real T = (mjd_tt - MJD_J2000) / 36525.0;  // Julian cent. since J2000
+    const Real eps = 23.43929111 * RAD;                // Obliquity of J2000 ecliptic
+    const Real T = (mjd_tt - MJD_J2000_TT) / 36525.0;  // Julian cent. since J2000
 
     // Mean anomaly, ecliptic longitude and radius
     Real M = TWO_PI * frac(0.9931267 + 99.9973583 * T);  // [rad]
@@ -311,8 +311,8 @@ namespace lupnt {
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
   Vec3 MoonPositionLowPrecision(Real mjd_tt) {
-    const Real eps = 23.43929111 * RAD;             // Obliquity of J2000 ecliptic
-    const Real T = (mjd_tt - MJD_J2000) / 36525.0;  // Julian cent. since J2000
+    const Real eps = 23.43929111 * RAD;                // Obliquity of J2000 ecliptic
+    const Real T = (mjd_tt - MJD_J2000_TT) / 36525.0;  // Julian cent. since J2000
 
     // Mean elements of lunar orbit
     Real L_0 = frac(0.606433 + 1336.851344 * T);  // Mean longitude [rev] w.r.t. J2000 equinox

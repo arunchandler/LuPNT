@@ -5,7 +5,7 @@ using namespace std;
 
 int main() {
   Real mjd_utc = Gregorian2MJD(2004, 5, 14, 16, 43, 0);
-  Real t_utc = MJD2Time(mjd_utc);
+  Real t_utc = (mjd_utc - MJD_CCSDS_TAI) * SECS_DAY;
   Real t_ut1 = UTC2UT1(t_utc);
   Real t_tai = UTC2TAI(t_utc);
   Real t_gps = TAI2GPS(t_tai);

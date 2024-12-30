@@ -11,3 +11,4 @@ projects/*
 /output
 /profiling
 /*venv*/
+orekit-data.zip

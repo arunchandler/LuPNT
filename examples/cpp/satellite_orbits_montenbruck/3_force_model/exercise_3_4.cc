@@ -12,7 +12,7 @@ using namespace std;
 int main() {
   // Time
   Real mjd0_utc = Gregorian2MJD(1999, 03, 01, 00, 00, 0.0);  // [days]
-  Real t_tai0 = MJD2Time(mjd0_utc);                          // [s]
+  Real t_tai0 = (mjd0_utc - MJD_CCSDS_TAI) * SECS_DAY;       // [s]
 
   // Real t_tai0 = ConvertTime(mjd0_utc, Time::MJD_UTC, Time::TAI);  //
   // [s]
