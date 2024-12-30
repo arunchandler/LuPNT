@@ -5,7 +5,7 @@ using namespace lupnt;
 int main() {
   std::string body = "Mars";
   NaifId id = NaifId::MARS;
-  Frame fixed_frame = Frame::MARS_FIXED;
+  std::string fixed_frame = "IAU_VENUS";
 
   //   std::string body = "Venus";
   //   NaifId id = NaifId::VENUS;
@@ -27,7 +27,7 @@ int main() {
   std::cout << " " << std::endl;
 
   // Body to Inertial
-  Mat6d b2i_spice = spice::GetFrameConversionMat(t_tai, fixed_frame, Frame::GCRF);
+  Mat6d b2i_spice = spice::GetFrameConversionMat(t_tai, fixed_frame, "J2000");
   std::cout << "PLANET FIXED to GCRF (SPICE)" << std::endl;
   // Print with clean formatting
   std::cout << b2i_spice.format(
@@ -44,7 +44,7 @@ int main() {
   std::cout << " " << std::endl;
 
   // Inertial to Body
-  Mat6d i2b_spice = spice::GetFrameConversionMat(t_tai, Frame::GCRF, fixed_frame);
+  Mat6d i2b_spice = spice::GetFrameConversionMat(t_tai, "J2000", fixed_frame);
   std::cout << "GCRF to PLANET FIXED (SPICE)" << std::endl;
   // Print with clean formatting
   std::cout << i2b_spice.format(
