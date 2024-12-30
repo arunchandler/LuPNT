@@ -48,7 +48,7 @@ namespace lupnt {
       furnsh_c("de440.bsp");     // planetary ephemeris
       furnsh_c("pck00011.tpc");  // planetary constants
 
-      // furnsh_c("moon_assoc_pa.tf");      // assing pa as default moon orientation
+      // furnsh_c("moon_assoc_pa.tf");  // assing pa as default moon orientation
       // furnsh_c("moon_de440_220930.tf");  // add moon_pa
       // high fidelity lunar and earth orientation parameters
       // http://spiftp.esac.esa.int/workshops/2012_04_ESAC_WORKSHOP/Tutorials/27_lunar-earth_pck-fk.pdf

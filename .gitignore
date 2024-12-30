@@ -12,3 +12,5 @@ projects/*
 /profiling
 /*venv*/
 orekit-data.zip
+orekit-data-master
+*.log

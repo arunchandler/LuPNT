@@ -72,13 +72,12 @@ CPMAddPackage(
 CPMAddPackage(
   NAME yaml-cpp
   GITHUB_REPOSITORY jbeder/yaml-cpp
-  GIT_TAG 0.8.0              # or the version you want
-  OPTIONS
-    "YAML_CPP_INSTALL ON"        # Turn on installation of yaml-cpp 
-    "YAML_CPP_BUILD_TESTS OFF"   # Turn off tests
-    "YAML_CPP_BUILD_CONTRIB OFF" # Turn off 'contrib'
-    "YAML_CPP_BUILD_TOOLS OFF"   # Turn off the yaml-cpp parser executable
-    "YAML_CPP_FORMAT_SOURCE OFF"  # Turn off clang-format
+  GIT_TAG 0.8.0 # or the version you want
+  OPTIONS "YAML_CPP_INSTALL ON" # Turn on installation of yaml-cpp
+          "YAML_CPP_BUILD_TESTS OFF" # Turn off tests
+          "YAML_CPP_BUILD_CONTRIB OFF" # Turn off 'contrib'
+          "YAML_CPP_BUILD_TOOLS OFF" # Turn off the yaml-cpp parser executable
+          "YAML_CPP_FORMAT_SOURCE OFF" # Turn off clang-format
 )
 install(
   TARGETS yaml-cpp
@@ -88,6 +87,7 @@ install(
 )
 
 set_target_properties(cspice PROPERTIES FOLDER thirdparty)
+set_target_properties(yaml-cpp PROPERTIES FOLDER thirdparty)
 set_target_properties(matplot PROPERTIES FOLDER thirdparty)
 set_target_properties(nodesoup PROPERTIES FOLDER thirdparty)
 set_target_properties(demos PROPERTIES FOLDER thirdparty)

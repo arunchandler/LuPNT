@@ -191,6 +191,32 @@ namespace lupnt {
     NEPTUNE = 899,
   };
 
+  std::map<NaifId, std::string> naifId2string
+      = {{NaifId::SSB, "SSB"},
+         {NaifId::SOLAR_SYSTEM_BARYCENTER, "SOLAR_SYSTEM_BARYCENTER"},
+         {NaifId::MERCURY_BARYCENTER, "MERCURY_BARYCENTER"},
+         {NaifId::VENUS_BARYCENTER, "VENUS_BARYCENTER"},
+         {NaifId::EMB, "EMB"},
+         {NaifId::EARTH_MOON_BARYCENTER, "EARTH_MOON_BARYCENTER"},
+         {NaifId::MARS_BARYCENTER, "MARS_BARYCENTER"},
+         {NaifId::JUPITER_BARYCENTER, "JUPITER_BARYCENTER"},
+         {NaifId::SATURN_BARYCENTER, "SATURN_BARYCENTER"},
+         {NaifId::URANUS_BARYCENTER, "URANUS_BARYCENTER"},
+         {NaifId::NEPTUNE_BARYCENTER, "NEPTUNE_BARYCENTER"},
+         {NaifId::PLUTO_BARYCENTER, "PLUTO_BARYCENTER"},
+         {NaifId::SUN, "SUN"},
+         {NaifId::MERCURY, "MERCURY"},
+         {NaifId::VENUS, "VENUS"},
+         {NaifId::EARTH, "EARTH"},
+         {NaifId::MOON, "MOON"},
+         {NaifId::MARS, "MARS"},
+         {NaifId::PHOBOS, "PHOBOS"},
+         {NaifId::DEIMOS, "DEIMOS"},
+         {NaifId::JUPITER, "JUPITER"},
+         {NaifId::SATURN, "SATURN"},
+         {NaifId::URANUS, "URANUS"},
+         {NaifId::NEPTUNE, "NEPTUNE"}};
+
   double GetBodyRadius(NaifId body);
   const std::ostream& operator<<(std::ostream& os, NaifId id);
 

@@ -4,10 +4,10 @@ namespace lupnt {
 
   const std::ostream& operator<<(std::ostream& os, NaifId id) {
     switch (id) {
-      case NaifId::SOLAR_SYSTEM_BARYCENTER: os << "SOLAR_SYSTEM_BARYCENTER"; break;
+      case NaifId::SSB: os << "SSB"; break;
+      case NaifId::EMB: os << "EMB"; break;
       case NaifId::MERCURY_BARYCENTER: os << "MERCURY_BARYCENTER"; break;
       case NaifId::VENUS_BARYCENTER: os << "VENUS_BARYCENTER"; break;
-      case NaifId::EARTH_MOON_BARYCENTER: os << "EARTH_MOON_BARYCENTER"; break;
       case NaifId::MARS_BARYCENTER: os << "MARS_BARYCENTER"; break;
       case NaifId::JUPITER_BARYCENTER: os << "JUPITER_BARYCENTER"; break;
       case NaifId::SATURN_BARYCENTER: os << "SATURN_BARYCENTER"; break;

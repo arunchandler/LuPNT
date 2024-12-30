@@ -81,8 +81,8 @@ void init_constants(py::module& m) {
   m.attr("C") = py::float_(C);
 
   py::enum_<NaifId>(m, "NaifId")
-      .value("SOLAR_SYSTEM_BARYCENTER", NaifId::SOLAR_SYSTEM_BARYCENTER)
       .value("SSB", NaifId::SSB)
+      .value("SOLAR_SYSTEM_BARYCENTER", NaifId::SOLAR_SYSTEM_BARYCENTER)
       .value("MERCURY_BARYCENTER", NaifId::MERCURY_BARYCENTER)
       .value("VENUS_BARYCENTER", NaifId::VENUS_BARYCENTER)
       .value("EMB", NaifId::EMB)

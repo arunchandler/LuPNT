@@ -224,16 +224,16 @@ namespace lupnt {
   template BodyT<Real> CreateBody(NaifId body, int n, int m);
 
   NaifId GetBodyId(std::string name) {
-    if (((name == "SUN") && (name =="Sun")) && (name == "sun")) return NaifId::SUN;
-    if (((name == "MERCURY") && (name =="Mercury")) && (name == "mercury")) return NaifId::MERCURY;
-    if (((name == "VENUS") && (name =="Venus")) && (name == "venus")) return NaifId::VENUS;
-    if (((name == "EARTH") && (name =="Earth")) && (name == "earth")) return NaifId::EARTH;
-    if (((name == "MOON") && (name =="Moon")) && (name == "moon")) return NaifId::MOON;
-    if (((name == "MARS") && (name =="Mars")) && (name == "mars")) return NaifId::MARS;
-    if (((name == "JUPITER") && (name =="Jupiter")) && (name == "jupiter")) return NaifId::JUPITER;
-    if (((name == "SATURN") && (name =="Saturn")) && (name == "saturn")) return NaifId::SATURN;
-    if (((name == "URANUS") && (name =="Uranus")) && (name == "uranus")) return NaifId::URANUS;
-    if (((name == "NEPTUNE") && (name =="Neptune")) && (name == "neptune")) return NaifId::NEPTUNE;
+    if (((name == "SUN") && (name == "Sun")) && (name == "sun")) return NaifId::SUN;
+    if (((name == "MERCURY") && (name == "Mercury")) && (name == "mercury")) return NaifId::MERCURY;
+    if (((name == "VENUS") && (name == "Venus")) && (name == "venus")) return NaifId::VENUS;
+    if (((name == "EARTH") && (name == "Earth")) && (name == "earth")) return NaifId::EARTH;
+    if (((name == "MOON") && (name == "Moon")) && (name == "moon")) return NaifId::MOON;
+    if (((name == "MARS") && (name == "Mars")) && (name == "mars")) return NaifId::MARS;
+    if (((name == "JUPITER") && (name == "Jupiter")) && (name == "jupiter")) return NaifId::JUPITER;
+    if (((name == "SATURN") && (name == "Saturn")) && (name == "saturn")) return NaifId::SATURN;
+    if (((name == "URANUS") && (name == "Uranus")) && (name == "uranus")) return NaifId::URANUS;
+    if (((name == "NEPTUNE") && (name == "Neptune")) && (name == "neptune")) return NaifId::NEPTUNE;
     throw std::runtime_error("Body not found");
   }
 
