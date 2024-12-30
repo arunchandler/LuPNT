@@ -6,6 +6,8 @@
 
 #include "lupnt/simulation/sim_config_reader.h"
 
+#include <magic_enum/magic_enum.hpp>
+
 #include "lupnt/agents/agent.h"
 #include "lupnt/core/constants.h"
 #include "lupnt/core/definitions.h"
@@ -359,12 +361,12 @@ namespace lupnt {
     //  - .frame and .init.frame are required
     std::string final_frame_key
         = LoadRequiredField<std::string>(state_node["frame"], prior_key + "frame");
-    Frame frame_final = FindStrFrameMap(string2frame, final_frame_key);
+    Frame frame_final = magic_enum::enum_cast<Frame>(final_frame_key).value();
 
     // .init.frame
     std::string init_frame_key
         = LoadRequiredField<std::string>(state_node["init"]["frame"], prior_key + "init.frame");
-    Frame frame_init = FindStrFrameMap(string2frame, init_frame_key);
+    Frame frame_init = magic_enum::enum_cast<Frame>(init_frame_key).value();
 
     // center body from frame_init
     NaifId center_init = FindFrameCenterMap(frame_centers, frame_init);

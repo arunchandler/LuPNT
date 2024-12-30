@@ -9,6 +9,7 @@
  *
  */
 #pragma once
+#define MAGIC_ENUM_RANGE_MAX 1024
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -16,6 +17,7 @@
 #include <autodiff/forward/real/eigen.hpp>
 #include <filesystem>
 #include <iostream>
+#include <magic_enum/magic_enum.hpp>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -101,5 +103,12 @@ namespace lupnt {
   static Eigen::IOFormat FMT_HEAVY(Eigen::FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]");
   static Eigen::IOFormat FMT_COMPACT(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ";\n ", "",
                                      "", "[", "]");
+
+  using magic_enum::enum_cast;
+  using magic_enum::enum_integer;
+  using magic_enum::enum_name;
+  using magic_enum::enum_names;
+  using magic_enum::enum_value;
+  using magic_enum::enum_values;
 
 }  // namespace lupnt

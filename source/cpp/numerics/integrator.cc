@@ -172,7 +172,7 @@ namespace lupnt {
                    (order_ + 1) / order_);  // J.C. Butcher, Numerical Methods for
                                             // Ordinary Differential Equations, p291
 
-    for (size_t i = 0; i < x_new_low.size(); ++i) {
+    for (int i = 0; i < x_new_low.size(); ++i) {
       error = std::abs(x_new_high(i).val() - x_new_low(i).val());
       tol = std::max<double>(params_.reltol * std::abs(x_new_high(i).val()), params_.abstol);
       max_error = std::max(max_error, error / tol);

@@ -68,6 +68,21 @@ CPMAddPackage(
   OPTIONS "EIGENRAND_BUILD_TEST OFF" "EIGENRAND_BUILD_BENCHMARK OFF"
 )
 
+# magic_enum
+CPMAddPackage(
+  NAME magic_enum
+  GIT_TAG v0.9.7
+  GITHUB_REPOSITORY Neargye/magic_enum
+  OPTIONS "MAGIC_ENUM_OPT_BUILD_EXAMPLES OFF" "MAGIC_ENUM_OPT_BUILD_TESTS OFF"
+          "MAGIC_ENUM_OPT_INSTALL ON"
+)
+install(
+  TARGETS magic_enum
+  EXPORT magic_enumTargets
+  INCLUDES
+  DESTINATION include
+)
+
 # Yaml-cpp
 CPMAddPackage(
   NAME yaml-cpp

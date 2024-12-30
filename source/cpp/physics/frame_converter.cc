@@ -47,42 +47,6 @@ namespace lupnt {
       {Frame::VENUS_FIXED, NaifId::VENUS},
   };
 
-  const std::map<std::string, Frame> string2frame = {
-      // Earth
-      {"ITRF", Frame::ITRF},
-      {"ECEF", Frame::ECEF},
-      {"GCRF", Frame::GCRF},
-      {"EME", Frame::EME},
-      {"ECI", Frame::ECI},
-      {"ICRF", Frame::ICRF},
-      // Moon
-      {"MOON_ME", Frame::MOON_ME},
-      {"MOON_CI", Frame::MOON_CI},
-      {"MOON_PA", Frame::MOON_PA},
-      {"MOON_OP", Frame::MOON_OP},
-      // Solar System
-      {"MARS_FIXED", Frame::MARS_FIXED},
-      {"VENUS_FIXED", Frame::VENUS_FIXED},
-  };
-
-  const std::map<Frame, std::string> frame2string = {
-      // Earth
-      {Frame::ITRF, "ITRF"},
-      {Frame::ECEF, "ECEF"},
-      {Frame::GCRF, "GCRF"},
-      {Frame::EME, "EME"},
-      {Frame::ECI, "ECI"},
-      {Frame::ICRF, "ICRF"},
-      // Moon
-      {Frame::MOON_ME, "MOON_ME"},
-      {Frame::MOON_CI, "MOON_CI"},
-      {Frame::MOON_PA, "MOON_PA"},
-      {Frame::MOON_OP, "MOON_OP"},
-      // Solar System
-      {Frame::MARS_FIXED, "MARS_FIXED"},
-      {Frame::VENUS_FIXED, "VENUS_FIXED"},
-  };
-
   std::ostream& operator<<(std::ostream& os, Frame frame) {
     switch (frame) {
       case Frame::ITRF: os << "ITRF"; break;
