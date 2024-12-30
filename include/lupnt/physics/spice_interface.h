@@ -29,6 +29,7 @@ namespace lupnt {
     void ExtractPckCoeffs(void);
     Mat6d GetFrameConversionMat(Real t_tai, const std::string& from_frame,
                                 const std::string& to_frame);
+    Vec3d GetPlanetOrientation(NaifId id, Real t_tdb);
 
     Real String2TDB(const std::string& str);
     Real String2TAI(const std::string& str);

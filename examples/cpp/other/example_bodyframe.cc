@@ -3,15 +3,26 @@
 using namespace lupnt;
 
 int main() {
+
   std::string body = "Mars";
-  NaifId id = NaifId::MARS;
-  Frame fixed_frame = Frame::MARS_FIXED;
+  NaifId id;
+  Frame fixed_frame;
+  std::string fixed_frame_str;
 
-  //   std::string body = "Venus";
-  //   NaifId id = NaifId::VENUS;
-  //   Frame fixed_frame = Frame::VENUS_FIXED;
+  if (body == "Mars") {
+    id = NaifId::MARS;
+    fixed_frame = Frame::MARS_FIXED;
+    fixed_frame_str = "IAU_MARS";
+  } else if (body == "Venus") {
+    id = NaifId::VENUS;
+    fixed_frame = Frame::VENUS_FIXED;
+    fixed_frame_str = "IAU_VENUS";
+  }
+  else {
+    throw std::runtime_error("Invalid body");
+  }
 
-  Real t_tdb = 20 * DAYS_YEAR * SECS_DAY;
+  Real t_tdb = 0.1 * DAYS_YEAR * SECS_DAY;
   Real t_tai = ConvertTime(t_tdb, Time::TDB, Time::TAI);
   Vec4 angles = PlanetOrientation(id, t_tdb);
 
@@ -19,15 +30,22 @@ int main() {
   std::cout << "Epoch:  "
             << "TDB=" << t_tdb << " TAI=" << t_tai << std::endl;
 
-  std::cout << "Orientation at t_tdb = " << t_tdb << " s" << std::endl;
-  std::cout << "  alpha0 = " << DEG * angles(0) << std::endl;
-  std::cout << "  delta0 = " << DEG * angles(1) << std::endl;
-  std::cout << "  W = " << DEG * angles(2) << std::endl;
+  std::cout << "Orientation at t_tdb (lupnt) = " << t_tdb << " s" << std::endl;
+  std::cout << "  alpha0 = " << DEG * Wrap2Pi(angles(0)) << std::endl;
+  std::cout << "  delta0 = " << DEG * Wrap2Pi(angles(1)) << std::endl;
+  std::cout << "  W = " << DEG * Wrap2Pi(angles(2)) << std::endl;
   std::cout << "  Wdot = " << DEG * angles(3) << std::endl;
   std::cout << " " << std::endl;
 
+  Vec3d angles_spice = spice::GetPlanetOrientation(id, t_tdb);
+  std::cout << "Orientation at t_tdb (SPICE) = " << t_tdb << " s" << std::endl;
+  std::cout << "  alpha0 = " << DEG * Wrap2Pi(angles_spice(0)) << std::endl;
+  std::cout << "  delta0 = " << DEG * Wrap2Pi(angles_spice(1)) << std::endl;
+  std::cout << "  W = " << DEG * Wrap2Pi(angles_spice(2)) << std::endl;
+  std::cout << " " << std::endl;
+
   // Body to Inertial
-  Mat6d b2i_spice = spice::GetFrameConversionMat(t_tai, fixed_frame, Frame::GCRF);
+  Mat6d b2i_spice = spice::GetFrameConversionMat(t_tai, fixed_frame_str, "J2000");
   std::cout << "PLANET FIXED to GCRF (SPICE)" << std::endl;
   // Print with clean formatting
   std::cout << b2i_spice.format(
@@ -44,7 +62,7 @@ int main() {
   std::cout << " " << std::endl;
 
   // Inertial to Body
-  Mat6d i2b_spice = spice::GetFrameConversionMat(t_tai, Frame::GCRF, fixed_frame);
+  Mat6d i2b_spice = spice::GetFrameConversionMat(t_tai, "J2000", fixed_frame_str);
   std::cout << "GCRF to PLANET FIXED (SPICE)" << std::endl;
   // Print with clean formatting
   std::cout << i2b_spice.format(
