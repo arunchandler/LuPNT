@@ -29,7 +29,7 @@ namespace lupnt {
   }
 
   void GnssTransmitter::InitializeGnssTransmitter() {
-      std::cout << "GNSS Transmitter: " << gnss_type_ << std::endl;
+      // std::cout << "GNSS Transmitter: " << gnss_type_ << std::endl;
 
       std::vector<std::string> gps_strings = {"GPS", "gps"};
       std::vector<std::string> glonass_strings = {"COSMOS", "cosmos", "GLONASS", "glonass"};
@@ -87,8 +87,8 @@ namespace lupnt {
           std::runtime_error("Invalid GPS type");
         }
 
-        std::cout << "PRN: " << prn_ << " type: " << gps_type << " Antenna: " << ant_name
-                  << std::endl;
+        // std::cout << "PRN: " << prn_ << " type: " << gps_type << " Antenna: " << ant_name
+        //           << std::endl;
 
         antenna_ = Antenna(ant_name);
         break;

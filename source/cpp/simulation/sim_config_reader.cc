@@ -13,7 +13,7 @@
 #include "lupnt/physics/frame_converter.h"
 #include "lupnt/measurements/gnss_receiver.h"
 #include "lupnt/measurements/space_channel.h"
-#include "lupnt/numerics/filters.h"
+#include "lupnt/numerics/ekf.h"
 #include "lupnt/apps/state_estimation_app.h"
 #include "lupnt/physics/time_converter.h"
 
@@ -767,6 +767,12 @@ namespace lupnt {
     }
 
     void ConfigReader::LoadFiltersConfig(YAML::Node filtersNode, bool print_val) {
+
+        if (print_val) {
+            std::cout << " " << std::endl;
+            std::cout << "<Filter Config>\n";
+        }
+
         for (YAML::const_iterator it = filtersNode.begin(); it != filtersNode.end(); ++it) {
             std::string name = it->first.as<std::string>();
             YAML::Node child_node = it->second;
@@ -777,25 +783,33 @@ namespace lupnt {
             // We assume 'type' is mandatory
             std::string filter_type = LoadRequiredField<std::string>(child_node["type"], "filters." + name + ".type");
 
-            // if (filter_type == "EKF") {
-            //     filter = MakePtr<EKF>();
-            // }
-            // else {
-            //     std::cerr << "Invalid Filter type at '" << name << "'.\n"
-            //                 << "Currently accepted are EKF.\n";
-            // }
+            if (filter_type == "EKF") {
+                filter = MakePtr<EKF>();
+            }
+            else {
+                std::cerr << "Invalid Filter type at '" << name << "'.\n"
+                            << "Currently accepted are EKF.\n";
+            }
 
-            // // Create joint state
-            // if (child_node["dynamics_list"]) {
-            //     auto joint_state = CreateJointState(child_node["dynamics_list"], "filter." + name + ".dynamics_list");
-            //     FilterDynamicsFunction filter_joint_dyn = joint_state->GetFilterDynamicsFunction();
-            //     FilterProcessNoiseFunction filter_proc_func = joint_state->GetFilterProcessNoiseFunction();
-            //     filter->SetDynamicsFunction(filter_joint_dyn);
-            //     filter->SetProcessNoiseFunction(filter_proc_func)
-            // }
-            // else {
-            //     std::cerr << "Not Found: filter." << name << ".dynamics_list\n";
-            // }
+            // Create joint state
+            if (child_node["dynamics_list"]) {
+                auto joint_state = CreateJointState(child_node["dynamics_list"], "filter." + name + ".dynamics_list");
+                FilterDynamicsFunction filter_joint_dyn = joint_state->GetFilterDynamicsFunction();
+                FilterProcessNoiseFunction filter_proc_func = joint_state->GetFilterProcessNoiseFunction();
+                filter->SetDynamicsFunction(filter_joint_dyn);
+                filter->SetProcessNoiseFunction(filter_proc_func);
+            }
+            else {
+                std::cerr << "Not Found: filter." << name << ".dynamics_list\n";
+            }
+
+            // Insert into map
+            InsertMap<IFilter>(filter_map_, name, filter);
+
+            if (print_val) {
+                std::cout << "  - Filter Name: " << name << "\n";
+                std::cout << "    - Filter Type: " << filter_type << "\n";
+            }
         } 
 
     }

@@ -18,6 +18,7 @@
 #include "lupnt/measurements/gnss_measurement.h"
 #include "lupnt/measurements/gnss_receiver.h"
 #include "lupnt/numerics/filters.h"
+#include "lupnt/dynamics/dynamics_params.h"
 #include "lupnt/physics/state.h"
 
 namespace lupnt {
@@ -30,9 +31,11 @@ namespace lupnt {
   class JointState {
   private:
     std::vector<Ptr<IState>> state_vec_;
-    std::vector<Ptr<IDynamics>> dynamics_vec_;
+    std::vector<Ptr<DynamicsWithParams>> dynamics_vec_;
     std::vector<Ptr<VecX>> params_vec_;  
+    std::vector<Ptr<FilterProcessNoiseFunction>> proc_noise_vec_;
     std::vector<std::vector<int>> dynamics_to_state_map_;
+    MatXd consider_matrix_; // 
 
     VecX state_vec_value_;
     std::vector<int> state_sizes_;
@@ -72,7 +75,10 @@ namespace lupnt {
     std::vector<Ptr<IState>> GetJointState() { return state_vec_; };
     VecX GetJointStateValue() { return state_vec_value_; };
 
-    void PushBackStateAndDynamics(Ptr<IState> state, Ptr<IDynamics> dynamics);
+    void PushBackStateAndDynamics(Ptr<IState> state, 
+                                  Ptr<IDynamics> dynamics);
+    void PushBackStateAndDynamics(Ptr<IState> state, Ptr<DynamicsWithParams> dynamics, 
+                                  Ptr<FilterProcessNoiseFunction> proc_noise = nullptr);
 
     FilterDynamicsFunction GetFilterDynamicsFunction();
     FilterProcessNoiseFunction GetFilterProcessNoiseFunction();

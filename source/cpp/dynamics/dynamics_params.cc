@@ -13,22 +13,53 @@
 
 namespace lupnt {
 
+    const std::map<ParamsEstOption, std::string> params_est_option2string = {
+        {ParamsEstOption::TrueFixed, "TrueFixed"},
+        {ParamsEstOption::Estimated, "Estimated"},
+        {ParamsEstOption::Consider, "Consider"}
+    };
+
+    const std::map<std::string, ParamsEstOption> string2params_est_option = {
+        {"TrueFixed", ParamsEstOption::TrueFixed},
+        {"Estimated", ParamsEstOption::Estimated},
+        {"Consider", ParamsEstOption::Consider}
+    };
+
+    /**
+     * @brief 
+     * 
+     * @param x0  state + parameters (est or consider)
+     * @param t0  initial time
+     * @param tf  final time
+     * @param stm  state transition matrix 
+     * @return VecX 
+     */
     VecX DynamicsWithParams::Propagate(const VecX& x0, Real t0, Real tf, MatXd* stm) {
+        
+        // state size
+        int n = x0.size();
+        int n_param_est = GetEstParamSize();
+        int n_param_consider = GetConsiderParamSize();
+        int n_param = n_param_est + n_param_consider;
+        int state_size = n - n_param;
 
         // To compute the jacobians, x_with_params need to capture all estimated and considered parameters
         auto func = [=](const VecX& x_with_est_params) {
 
-            VecX x = x_with_est_params.head(x0.size() - params_.size());
+            VecX x = x_with_est_params.head(state_size);
             
             if (use_params_) {
                 // extract the parameters from x_with_est_params
-                dynamics_->SetParams(params_);
+                dynamics_->SetParams(params_.GetDynamicsParam());
             }
             VecX xf = dynamics_->Propagate(x, t0, tf, nullptr); // Do not compute stm here
             
             if (use_params_) {
-                params_ = dynamics_->GetParams(); // Get the updated parameters (often its constant)
-                // Todo: Set params to the last elements of x_with_est_params
+                DynamicsParam new_params = dynamics_->GetParams(); // Get the updated parameters (often its constant)
+                UpdateParamValues(new_params); // Update the parameters in the class
+                VecX new_params_vec = GetEstConsiderParamVector(new_params); // Get the updated parameters in vector form
+                xf.conservativeResize(n + new_params_vec.size()); // Resize the state vector to include the parameters
+                xf.tail(new_params_vec.size()) = new_params_vec;
             }
             return xf;
         };
