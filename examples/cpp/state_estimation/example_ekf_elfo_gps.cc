@@ -149,9 +149,16 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
                             const std::shared_ptr<Spacecraft> sat, EKF* ekf,
                             GnssConstellation* gps_const, GnssMeasurement* meas, double t,
                             double epoch) {
+
+  VecXd z_true = ekf->GetTrueMeasurement();
+  VecXd z_prior = ekf->GetPredictedMeasurement();
+  VecXd x_prior = ekf->GetStatePrior().cast<double>();
+  VecXd x_post = ekf->GetStatePost().cast<double>();
+  MatXd P = ekf->GetCovariance();
+
   // Navigation
-  data_history->AddData("z_true", t, ekf->z_true_);
-  data_history->AddData("z_pred", t, ekf->z_prior_);
+  data_history->AddData("z_true", t, z_true);
+  data_history->AddData("z_pred", t, z_prior);
   data_history->AddData("CN0", t, meas->GetCN0());
 
   data_history->AddData("vis_earth", t, meas->GetEarthOccultation());
@@ -168,15 +175,15 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 
   // Estimation
   data_history->AddData("rv", t, sat->GetOrbitState()->GetVec());
-  data_history->AddData("rv_pred", t, ekf->x_prior_.head(6));
-  data_history->AddData("rv_est", t, ekf->x_post_.head(6));
+  data_history->AddData("rv_pred", t, x_prior.head(6));
+  data_history->AddData("rv_est", t, x_post.head(6));
 
   data_history->AddData("clk", t, sat->GetClockState().GetVec());
-  data_history->AddData("clk_pred", t, ekf->x_prior_.tail(2));
-  data_history->AddData("clk_est", t, ekf->x_post_.tail(2));
+  data_history->AddData("clk_pred", t, x_prior.tail(2));
+  data_history->AddData("clk_est", t, x_post.tail(2));
 
-  data_history->AddData("P_rv", t, ekf->P_.diagonal().segment(0, 6));
-  data_history->AddData("P_clk", t, ekf->P_.diagonal().segment(6, 2));
+  data_history->AddData("P_rv", t, P.diagonal().segment(0, 6));
+  data_history->AddData("P_clk", t, P.diagonal().segment(6, 2));
 
   // GPS constellation
   for (int i = 0; i < gps_const->GetNumSatellites(); i++) {
@@ -204,7 +211,7 @@ void PrintProgressHeader() {
 }
 
 VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
-  auto x_est = ekf->x_;
+  auto x_est = ekf->GetStatePost();
   auto x_true = sat->GetStateVec();
 
   double x_pos_err = 1000 * (x_true.segment(0, 3) - x_est.segment(0, 3)).norm().val();
@@ -226,8 +233,8 @@ void PrintProgress(double t, double x_pos_err, double x_vel_err, double x_clk_bi
 };
 
 void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error_only = false) {
-  auto x_bar = ekf->x_prior_;
-  auto x_est = ekf->x_;
+  auto x_bar = ekf->GetStatePrior();
+  auto x_est = ekf->GetStatePost();
   auto x_true = sat->GetStateVec();
 
   double x_pos_err_bar = 1000 * (x_true.segment(0, 3) - x_bar.segment(0, 3)).norm().val();
@@ -238,33 +245,43 @@ void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error
   double x_vel_err = 1e6 * (x_true.segment(3, 3) - x_est.segment(3, 3)).norm().val();
   double x_clk_bias_err = 3e8 * abs((x_true(6) - x_est(6)).val());
 
+  MatXd Q = ekf->GetProcessNoise();
+  MatXd K = ekf->GetKalmanGain();
+  MatXd H = ekf->GetMeasurementJacobian();
+  MatXd R = ekf->GetMeasurementCov();
+  MatXd S = ekf->GetInnovationCov();
+  VecXd dy = ekf->GetMeasurementResidual();
+  VecXd dx = ekf->GetStateCorrection();
+  MatXd P = ekf->GetCovariance();
+  MatXd P_prior = ekf->GetCovariancePrior();
+
   std::cout << " ------------------- " << std::endl;
   std::cout << "  Time: " << tidx << std::endl;
   if (!error_only) {
-    std::cout << "  Q:  " << std::endl << ekf->Q_ << std::endl;
-    std::cout << "  Kalman Gain: " << std::endl << ekf->K_ << std::endl;
-    std::cout << "  H:  " << std::endl << ekf->H_ << std::endl;
-    std::cout << "  R:  " << std::endl << ekf->R_.diagonal().transpose() << std::endl;
-    std::cout << "  S:  " << std::endl << ekf->S_.diagonal().transpose() << std::endl;
+    std::cout << "  Q:  " << std::endl << Q << std::endl;
+    std::cout << "  Kalman Gain: " << std::endl << K << std::endl;
+    std::cout << "  H:  " << std::endl << H << std::endl;
+    std::cout << "  R:  " << std::endl << R.diagonal().transpose() << std::endl;
+    std::cout << "  S:  " << std::endl << S.diagonal().transpose() << std::endl;
     std::cout << " " << std::endl;
   }
-  std::cout << "  Meas   Residuals: " << 1000 * ekf->dy_.transpose() << std::endl;
-  std::cout << "  Linear Residuals: " << 1000 * (ekf->H_ * ekf->dx_).transpose() << std::endl;
-  std::cout << "  dx: " << ekf->dx_.transpose() << std::endl;
+  std::cout << "  Meas   Residuals: " << 1000 * dy.transpose() << std::endl;
+  std::cout << "  Linear Residuals: " << 1000 * (H * dx).transpose() << std::endl;
+  std::cout << "  dx: " << dx.transpose() << std::endl;
   std::cout << "  Pos Err (Bar): " << x_pos_err_bar
-            << "  (3sigma : " << 3 * 1000 * sqrt(ekf->P_prior_.block(0, 0, 3, 3).diagonal().trace())
+            << "  (3sigma : " << 3 * 1000 * sqrt(P_prior.block(0, 0, 3, 3).diagonal().trace())
             << " )    Pos Err (Est): " << x_pos_err
-            << "  (3sigma: " << 3 * 1000 * sqrt(ekf->P_.block(0, 0, 3, 3).diagonal().trace())
+            << "  (3sigma: " << 3 * 1000 * sqrt(P.block(0, 0, 3, 3).diagonal().trace())
             << " )" << std::endl;
   std::cout << "  Vel Err (Bar): " << x_vel_err_bar
-            << "  (3sigma : " << 3 * 1e6 * sqrt(ekf->P_prior_.block(3, 3, 3, 3).diagonal().trace())
+            << "  (3sigma : " << 3 * 1e6 * sqrt(P_prior.block(3, 3, 3, 3).diagonal().trace())
             << "  )   Vel Err (Est): " << x_vel_err
-            << "  (3sigma: " << 3 * 1e6 * sqrt(ekf->P_.block(3, 3, 3, 3).diagonal().trace()) << " )"
+            << "  (3sigma: " << 3 * 1e6 * sqrt(P.block(3, 3, 3, 3).diagonal().trace()) << " )"
             << std::endl;
   std::cout << "  Clk Err (Bar): " << x_clk_bias_err_bar
-            << "  (3sigma : " << 3 * 3e8 * sqrt(ekf->P_prior_.block(6, 6, 1, 1).diagonal().trace())
+            << "  (3sigma : " << 3 * 3e8 * sqrt(P_prior.block(6, 6, 1, 1).diagonal().trace())
             << "  )   Clk Err (Est): " << x_clk_bias_err
-            << "  (3sigma: " << 3 * 3e8 * sqrt(ekf->P_.block(6, 6, 1, 1).diagonal().trace()) << " )"
+            << "  (3sigma: " << 3 * 3e8 * sqrt(P.block(6, 6, 1, 1).diagonal().trace()) << " )"
             << std::endl;
   std::cout << " ------------------- " << std::endl;
   std::cout << "  " << std::endl;
@@ -621,8 +638,12 @@ int main() {
 
   // Joint state and dynamics
   JointState joint_state;
-  joint_state.PushBackStateAndDynamics(cart_state_moon, dyn_est);
-  joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state), MakePtr<ClockDynamics>(dyn_clk_est));
+
+  auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
+  auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionClock(cmodel, 2));
+  joint_state.PushBackStateAndDynamics(cart_state_moon, dyn_est, proc_noise_rv);
+  joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state), 
+                                       MakePtr<ClockDynamics>(dyn_clk_est), proc_noise_clk);
 
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 
@@ -664,28 +685,7 @@ int main() {
   /*********************************************
    * Define Process Noise function
    * *******************************************/
-  FilterProcessNoiseFunction proc_noise_func
-      = [cmodel, state_size, sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
-    int clock_index = 6;
-    double dt = (t_end - t_curr).val();
-
-    MatXd Q = MatXd::Zero(state_size, state_size);
-
-    Mat6d Q_rv = Mat6d::Zero();
-    for (int i = 0; i < 3; i++) {
-      Q_rv(i, i) = pow(dt, 3) / 3.0 * pow(sigma_acc, 2);
-      Q_rv(i + 3, i + 3) = dt * pow(sigma_acc, 2);
-      Q_rv(i, i + 3) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
-      Q_rv(i + 3, i) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
-    }
-
-    Mat2d Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
-
-    Q.block(0, 0, 6, 6) = Q_rv;
-    Q.block(6, 6, 2, 2) = Q_clk;
-
-    return Q;
-  };
+  FilterProcessNoiseFunction proc_noise_func = joint_state.GetFilterProcessNoiseFunction();
 
   /*************************************
    * EKF Setup
@@ -795,7 +795,7 @@ int main() {
     // print measurement residuals
     if ((print_debug) && (!no_meas)) {
       std::cout << "z_true: " << z_true.transpose() << std::endl;
-      std::cout << "z_pred: " << ekf.z_prior_.transpose() << std::endl;
+      std::cout << "z_pred: " << ekf.GetPredictedMeasurement().transpose() << std::endl;
       PrintEKFDebugInfo(time_index, moon_sat, &ekf, debug_ekf_error_only);
     }
   }

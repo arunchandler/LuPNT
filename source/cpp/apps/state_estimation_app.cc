@@ -15,7 +15,8 @@ namespace lupnt {
 
   // without any parameters
   void JointState::PushBackStateAndDynamics(Ptr<IState> state, 
-                                            Ptr<IDynamics> dynamics) {
+                                            Ptr<IDynamics> dynamics,
+                                            Ptr<FilterProcessNoiseFunction> proc_noise_func) {
     state_vec_.push_back(state);
     state_vec_size_ += state->GetSize();
     state_types_ += 1;
@@ -33,6 +34,9 @@ namespace lupnt {
         cur_idx++;
       }
     }
+
+    // Add the process noise function
+    proc_noise_vec_.push_back(proc_noise_func);
       
   }
 

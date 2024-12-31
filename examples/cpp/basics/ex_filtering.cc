@@ -121,7 +121,7 @@ int main() {
     ekf.Update(z);
 
     x_hist.row(it) = x;
-    x_pred_hist.row(it) = ekf.GetSatePrior();
+    x_pred_hist.row(it) = ekf.GetStatePrior();
     x_updt_hist.row(it) = ekf.GetStatePost();
     P_hist.row(it) = ekf.GetCovariancePost().diagonal();
     z_hist.row(it) = z;

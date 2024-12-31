@@ -20,7 +20,7 @@
 #include "lupnt/numerics/filters.h"
 #include "lupnt/dynamics/dynamics_params.h"
 #include "lupnt/physics/state.h"
-
+  
 namespace lupnt {
 
 
@@ -35,7 +35,8 @@ namespace lupnt {
     std::vector<Ptr<VecX>> params_vec_;  
     std::vector<Ptr<FilterProcessNoiseFunction>> proc_noise_vec_;
     std::vector<std::vector<int>> dynamics_to_state_map_;
-    MatXd consider_matrix_; // 
+    MatXd est_matrix_;        // K x N matrix where M is the number of estimated parameters and N is the number of states (N = K + M)
+    MatXd consider_matrix_;   // M x N matrix where M is the number of consider parameters and N is the number of states
 
     VecX state_vec_value_;
     std::vector<int> state_sizes_;
@@ -76,7 +77,8 @@ namespace lupnt {
     VecX GetJointStateValue() { return state_vec_value_; };
 
     void PushBackStateAndDynamics(Ptr<IState> state, 
-                                  Ptr<IDynamics> dynamics);
+                                  Ptr<IDynamics> dynamics,
+                                  Ptr<FilterProcessNoiseFunction> proc_noise_func = nullptr);
     void PushBackStateAndDynamics(Ptr<IState> state, Ptr<DynamicsWithParams> dynamics, 
                                   Ptr<FilterProcessNoiseFunction> proc_noise = nullptr);
 

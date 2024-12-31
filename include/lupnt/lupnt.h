@@ -59,6 +59,7 @@
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/numerics/string_utils.h"
 #include "lupnt/numerics/tensor.h"
+#include "lupnt/numerics/ukf.h"
 #include "lupnt/numerics/vector_macros.h"
 
 // physics

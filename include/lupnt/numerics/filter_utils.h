@@ -30,6 +30,24 @@ namespace lupnt {
   MatXd ConstructInitCovariancePVC(double pos_err, double vel_err, double clk_bias_err,
                                    double clk_drift_err);
 
+
+  /**
+   * @brief Construct the process noise function for the linear RV model
+   * 
+   * @param sigma_acc  Acceleration noise [km/s^2]
+   * @return FilterProcessNoiseFunction 
+   */
+  FilterProcessNoiseFunction ProcessNoiseFunctionLinearPV(double sigma_acc);
+
+  /**
+   * @brief Construct the process noise function for the clock model
+   * 
+   * @param cmodel  Clock model
+   * @param clock_state_size   Clock state size
+   * @return FilterProcessNoiseFunction 
+   */
+  FilterProcessNoiseFunction ProcessNoiseFunctionClock(ClockModel cmodel, int clock_state_size);
+
   /**
    * @brief  Construct the process noise function for the RVC model
    *

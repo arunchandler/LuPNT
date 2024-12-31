@@ -51,22 +51,37 @@ namespace lupnt {
   typedef std::function<VecX(const VecX x, MatXd *H, MatXd *R)> FilterMeasurementFunction;
 
   class IFilter {
+
+  protected:
+    FilterDynamicsFunction f_dyn_;
+    FilterProcessNoiseFunction f_proc_;
+    FilterMeasurementFunction f_meas_;
+
+    Real t_;
+    VecX x_;
+    MatXd P_;
+    VecX x_prior_;
+    VecX x_post_;
+    MatXd P_prior_;
+    MatXd P_post_;
+
   public:
     virtual ~IFilter() = default;
 
-    virtual void SetDynamicsFunction(FilterDynamicsFunction f_dyn) = 0;
-    virtual void SetProcessNoiseFunction(FilterProcessNoiseFunction f_proc) = 0;
-    virtual void SetMeasurementFunction(FilterMeasurementFunction f_meas) = 0;
+    void SetDynamicsFunction(FilterDynamicsFunction f_dyn) { f_dyn_ = f_dyn; }
+    void SetProcessNoiseFunction(FilterProcessNoiseFunction f_proc) { f_proc_ = f_proc; }
+    void SetMeasurementFunction(FilterMeasurementFunction f_meas) { f_meas_ = f_meas; }
 
     virtual void Predict(Real t_end) = 0;
     virtual void Update(VecX z_obs) = 0;
 
-    virtual VecX GetSate() = 0;
-    virtual VecX GetSatePrior() = 0;
-    virtual VecX GetStatePost() = 0;
-    virtual MatXd GetCovariance() = 0;
-    virtual MatXd GetCovariancePrior() = 0;
-    virtual MatXd GetCovariancePost() = 0;
+    VecX GetState() { return x_; }
+    VecX GetStatePrior() { return x_prior_; }
+    VecX GetStatePost() { return x_post_; }
+
+    MatXd GetCovariance() { return P_; }
+    MatXd GetCovariancePrior() { return P_prior_; }
+    MatXd GetCovariancePost() { return P_post_; }
   };
 
 }  // namespace lupnt

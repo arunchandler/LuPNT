@@ -138,20 +138,20 @@ filters:
       dyn1_rv:
         state: rv1
         dynamics: dynamics_agent_est
-        params: []  # paramerters to be estimated
-        params_option: "true" # options for parameters ("true", "est", "consider")
+        params:
+          bcoeff_srp:
+            type: estimated   # estimated, true_fixed, consider
+            cov_ratio: 0.1          # initial covariance of the parameter (ratio of the true value)
         proc_noise_func: 
           type: rv_linear
           sigma_acc: 1.0e-12
-        init_cov: [1.0, 1.0, 1.0, 1e-3, 1e-3, 1e-3]
+        init_cov: [1.0, 1.0, 1.0, 1.0e-3, 1.0e-3, 1.0e-3]
       dyn1_clock: 
         state: clock1
         dynamics: dynamics_agent_clock_est
         params: []
         params_option: "true"
-        proc_noise_func:
-          type: clock
-        init_cov: [1e-6, 1e-9]
+        init_cov: [1.0e-6, 1.0e-9]
     measurements:  # measurements function and noise model will be generated from here
       meas1:
         type: GnssMeasurement
