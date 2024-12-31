@@ -342,7 +342,7 @@ namespace lupnt {
       rv_center = rv_target / (1. + emr);
     } else if (center == NaifId::MOON && target == NaifId::EMB) {
       rv_center = GetBodyPosVelKernel(t_tdb, EphemID::MOON);
-      rv_target = rv_center * (1. + emr);
+      rv_target = rv_center / (1. + emr);
 
     } else if (center == NaifId::EMB && target == NaifId::EARTH) {
       rv_center = GetBodyPosVelKernel(t_tdb, EphemID::MOON) / (1. + emr);

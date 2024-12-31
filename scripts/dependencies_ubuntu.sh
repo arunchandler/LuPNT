@@ -27,7 +27,11 @@ fi
 # Check if LUPNT_DATA_PATH is already set
 if [ -n "$LUPNT_DATA_PATH" ]; then
     echo "LUPNT_DATA_PATH is already set to: $LUPNT_DATA_PATH"
-    exit 0
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+    echo "Setting data path in $SHELL_NAME configuration file..."
+    echo "export LUPNT_DATA_PATH='$PARENT_DIR/LuPNT_data'" >> $SHELL_RC
 fi
 
 # 4. Source the shell configuration file to apply the changes
