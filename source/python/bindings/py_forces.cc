@@ -30,10 +30,8 @@ void init_forces(py::module &m) {
       py::arg("r"), py::arg("s"), py::arg("GM"));
   m.def(
       "acceleration_solar_radiation",
-      [](const Vec3d &r, const Vec3d &r_sun, double b_srp, double P_SUN,
-         double AU) -> Vec3d {
+      [](const Vec3d &r, const Vec3d &r_sun, double b_srp, double P_SUN, double AU) -> Vec3d {
         return AccelerationSolarRadiation(r, r_sun, b_srp, P_SUN, AU).cast<double>();
       },
-      py::arg("r"), py::arg("r_sun"), py::arg("b_srp"),
-      py::arg("P_SUN"), py::arg("AU"));
+      py::arg("r"), py::arg("r_sun"), py::arg("b_srp"), py::arg("P_SUN"), py::arg("AU"));
 }

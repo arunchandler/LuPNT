@@ -54,8 +54,7 @@ namespace lupnt {
     MatXd GetInnovationCov() { return S_; }
     MatXd GetMeasurementCov() { return R_; }
     VecXd GetStateCorrection() { return dx_.cast<double>(); }
-    VecXd GetTrueMeasurement() { return z_true_.cast<double>(); }  
+    VecXd GetTrueMeasurement() { return z_true_.cast<double>(); }
     VecXd GetPredictedMeasurement() { return z_prior_.cast<double>(); }
-
   };
 }  // namespace lupnt

@@ -22,7 +22,7 @@ namespace lupnt {
   template <typename T> NBodyDynamics<T>::NBodyDynamics(IntegratorType integ)
       : NumericalOrbitDynamics(std::bind(&NBodyDynamics::ComputeRates, this, std::placeholders::_1,
                                          std::placeholders::_2),
-                               integ){
+                               integ) {
     // Add parameters
     AddParam("bcoeff_srp", VecX::Zero(1));
     AddParam("bcoeff_drag", VecX::Zero(1));

@@ -224,16 +224,26 @@ namespace lupnt {
   template BodyT<Real> CreateBody(NaifId body, int n, int m);
 
   NaifId GetBodyId(std::string name) {
-    if (((name == "SUN") || (name =="Sun")) || (name == "sun")) return NaifId::SUN;
-    else if (((name == "MERCURY") || (name =="Mercury")) || (name == "mercury")) return NaifId::MERCURY;
-    else if (((name == "VENUS") || (name =="Venus")) || (name == "venus")) return NaifId::VENUS;
-    else if (((name == "EARTH") || (name =="Earth")) || (name == "earth")) return NaifId::EARTH;
-    else if (((name == "MOON") || (name =="Moon")) || (name == "moon")) return NaifId::MOON;
-    else if (((name == "MARS") || (name =="Mars")) || (name == "mars")) return NaifId::MARS;
-    else if (((name == "JUPITER") || (name =="Jupiter")) || (name == "jupiter")) return NaifId::JUPITER;
-    else if (((name == "SATURN") || (name =="Saturn")) || (name == "saturn")) return NaifId::SATURN;
-    else if (((name == "URANUS") || (name =="Uranus")) || (name == "uranus")) return NaifId::URANUS;
-    else if (((name == "NEPTUNE") || (name =="Neptune")) || (name == "neptune")) return NaifId::NEPTUNE;
+    if (((name == "SUN") || (name == "Sun")) || (name == "sun"))
+      return NaifId::SUN;
+    else if (((name == "MERCURY") || (name == "Mercury")) || (name == "mercury"))
+      return NaifId::MERCURY;
+    else if (((name == "VENUS") || (name == "Venus")) || (name == "venus"))
+      return NaifId::VENUS;
+    else if (((name == "EARTH") || (name == "Earth")) || (name == "earth"))
+      return NaifId::EARTH;
+    else if (((name == "MOON") || (name == "Moon")) || (name == "moon"))
+      return NaifId::MOON;
+    else if (((name == "MARS") || (name == "Mars")) || (name == "mars"))
+      return NaifId::MARS;
+    else if (((name == "JUPITER") || (name == "Jupiter")) || (name == "jupiter"))
+      return NaifId::JUPITER;
+    else if (((name == "SATURN") || (name == "Saturn")) || (name == "saturn"))
+      return NaifId::SATURN;
+    else if (((name == "URANUS") || (name == "Uranus")) || (name == "uranus"))
+      return NaifId::URANUS;
+    else if (((name == "NEPTUNE") || (name == "Neptune")) || (name == "neptune"))
+      return NaifId::NEPTUNE;
     else {
       throw std::runtime_error("Body not found: " + name);
     }

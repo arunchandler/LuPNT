@@ -3,7 +3,6 @@
 using namespace lupnt;
 
 int main() {
-
   std::string body = "Mars";
   NaifId id;
   Frame fixed_frame;
@@ -17,8 +16,7 @@ int main() {
     id = NaifId::VENUS;
     fixed_frame = Frame::VENUS_FIXED;
     fixed_frame_str = "IAU_VENUS";
-  }
-  else {
+  } else {
     throw std::runtime_error("Invalid body");
   }
 

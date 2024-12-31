@@ -51,7 +51,6 @@ namespace lupnt {
   typedef std::function<VecX(const VecX x, MatXd *H, MatXd *R)> FilterMeasurementFunction;
 
   class IFilter {
-
   protected:
     FilterDynamicsFunction f_dyn_;
     FilterProcessNoiseFunction f_proc_;

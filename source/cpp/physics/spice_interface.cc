@@ -262,9 +262,9 @@ namespace lupnt {
       m2eul_c(rotmat, 3, 1, 3, &psi, &theta, &phi);
 
       Vec3d angles;
-      double W = -(phi + PI);    // R_z(-W)
-      double delta0 = PI/2 - theta;  // R_x(PI/2 - delta0)
-      double alpha0 = PI/2 - psi;  // R_z(-alpha0)
+      double W = -(phi + PI);          // R_z(-W)
+      double delta0 = PI / 2 - theta;  // R_x(PI/2 - delta0)
+      double alpha0 = PI / 2 - psi;    // R_z(-alpha0)
       angles << alpha0, delta0, W;
       return angles;
     }

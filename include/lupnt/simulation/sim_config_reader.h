@@ -16,11 +16,11 @@
 #include "lupnt/agents/agent.h"
 #include "lupnt/agents/gnss_constellation.h"
 #include "lupnt/agents/spacecraft.h"
+#include "lupnt/apps/state_estimation_app.h"
 #include "lupnt/core/definitions.h"
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/measurements/space_channel.h"
 #include "lupnt/numerics/filters.h"
-#include "lupnt/apps/state_estimation_app.h"
 
 namespace lupnt {
 
@@ -55,8 +55,9 @@ namespace lupnt {
 
     // state, device, dynamics generators
     void CreateSatCommDevice(YAML::Node device_node, std::string device_name, Ptr<Spacecraft> sat);
-    template <typename T>
-    Ptr<NBodyDynamics<T>> CreateNBodyDynamics(const YAML::Node child_node, std::string name, bool print_val);
+    template <typename T> Ptr<NBodyDynamics<T>> CreateNBodyDynamics(const YAML::Node child_node,
+                                                                    std::string name,
+                                                                    bool print_val);
     void CreateSatState(YAML::Node state_node, std::string state_name, Ptr<Spacecraft> sat,
                         bool &orbit_defined, bool &clock_defined);
     void CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat, std::string prior_key);
@@ -77,8 +78,8 @@ namespace lupnt {
     ConfigReader() = default;
     ~ConfigReader() = default;
 
-    ConfigReader(std::string filename, bool print_val = false) { 
-      LoadConfigYaml(filename, print_val); 
+    ConfigReader(std::string filename, bool print_val = false) {
+      LoadConfigYaml(filename, print_val);
     }
 
     void LoadConfigYaml(std::string filename, bool print_val = false);

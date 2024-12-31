@@ -107,7 +107,7 @@ namespace lupnt {
 
   GnssMeasurement GnssMeasurement::ApplyIonoMask() {
     std::vector<GnssTransmission> transmissions_iono;
-    for (auto &tx: trans_store) {
+    for (auto &tx : trans_store) {
       if (tx.vis_ionos) {
         transmissions_iono.push_back(tx);
       }

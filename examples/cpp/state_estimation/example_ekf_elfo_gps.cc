@@ -149,7 +149,6 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
                             const std::shared_ptr<Spacecraft> sat, EKF* ekf,
                             GnssConstellation* gps_const, GnssMeasurement* meas, double t,
                             double epoch) {
-
   VecXd z_true = ekf->GetTrueMeasurement();
   VecXd z_prior = ekf->GetPredictedMeasurement();
   VecXd x_prior = ekf->GetStatePrior().cast<double>();
@@ -205,9 +204,12 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 
 void PrintProgressHeader() {
   std::cout << " " << std::endl;
-  std::cout << "---------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [m] | Num GPS Tracked" << std::endl;
-  std::cout << "---------------------------------------------------------------------------------" << std::endl;
+  std::cout << "---------------------------------------------------------------------------------"
+            << std::endl;
+  std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [m] | Num GPS Tracked"
+            << std::endl;
+  std::cout << "---------------------------------------------------------------------------------"
+            << std::endl;
 }
 
 VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
@@ -225,11 +227,13 @@ VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
   return est_err;
 }
 
-void PrintProgress(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err, int num_sat) {
+void PrintProgress(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err,
+                   int num_sat) {
   std::cout.precision(5);
   std::cout << std::left << std::setw(12) << t / 60 << " " << std::left << std::setw(12)
             << x_pos_err << "  " << std::left << std::setw(14) << x_vel_err << "   " << std::left
-            << std::setw(16) << x_clk_bias_err << "   " << std::left << std::setw(4) << num_sat << std::endl;
+            << std::setw(16) << x_clk_bias_err << "   " << std::left << std::setw(4) << num_sat
+            << std::endl;
 };
 
 void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error_only = false) {
@@ -271,8 +275,8 @@ void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error
   std::cout << "  Pos Err (Bar): " << x_pos_err_bar
             << "  (3sigma : " << 3 * 1000 * sqrt(P_prior.block(0, 0, 3, 3).diagonal().trace())
             << " )    Pos Err (Est): " << x_pos_err
-            << "  (3sigma: " << 3 * 1000 * sqrt(P.block(0, 0, 3, 3).diagonal().trace())
-            << " )" << std::endl;
+            << "  (3sigma: " << 3 * 1000 * sqrt(P.block(0, 0, 3, 3).diagonal().trace()) << " )"
+            << std::endl;
   std::cout << "  Vel Err (Bar): " << x_vel_err_bar
             << "  (3sigma : " << 3 * 1e6 * sqrt(P_prior.block(3, 3, 3, 3).diagonal().trace())
             << "  )   Vel Err (Est): " << x_vel_err
@@ -488,9 +492,9 @@ int main() {
    * Simulation Parameters
    *********************************************/
   // Time
-  Real et0_utc = Gregorian2Time(2023, 6, 9, 8, 30, 0).val(); // in UTC
-  double et0 = UTC2TAI(et0_utc).val();  // in TAI
-  double dt = 1.0;  // Integration time step [s]
+  Real et0_utc = Gregorian2Time(2023, 6, 9, 8, 30, 0).val();  // in UTC
+  double et0 = UTC2TAI(et0_utc).val();                        // in TAI
+  double dt = 1.0;                                            // Integration time step [s]
   double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
@@ -547,10 +551,10 @@ int main() {
   // Debug mode
   bool plot_results = false;
   bool debug_jacobian = false;
-  bool print_debug =false;
-  bool debug_ekf = false;            // Print EKF debug info
+  bool print_debug = false;
+  bool debug_ekf = false;             // Print EKF debug info
   bool debug_ekf_error_only = false;  // Print only error for EKF debugging
-  bool no_meas = false;              // set to true to turn off measurements
+  bool no_meas = false;               // set to true to turn off measurements
 
   if (print_debug) {
     tf = et0 + 2 * Dt;
@@ -642,7 +646,7 @@ int main() {
   auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
   auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionClock(cmodel, 2));
   joint_state.PushBackStateAndDynamics(cart_state_moon, dyn_est, proc_noise_rv);
-  joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state), 
+  joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state),
                                        MakePtr<ClockDynamics>(dyn_clk_est), proc_noise_clk);
 
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
@@ -651,8 +655,8 @@ int main() {
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, meas_types](
-            const VecX x, MatXd* H, MatXd* R) -> VecX {
+      = [moon_sat, receiver, state_size, no_meas, meas_types](const VecX x, MatXd* H,
+                                                              MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
     }
@@ -661,9 +665,9 @@ int main() {
     std::string freq = "L1";
     double epoch = moon_sat->GetEpoch().val();
     auto measall = receiver->GetMeasurement(epoch);  // measurements of all frequencies
-    auto meas_L1 = measall.ExtractSignal("L1");         // measurements of L1
-    auto meas = meas_L1.ApplyIonoMask();                // apply ionosphere mask
-    int sat_num = meas.GetTrackedSignalNum();     // number of tracked GPS satellites
+    auto meas_L1 = measall.ExtractSignal("L1");      // measurements of L1
+    auto meas = meas_L1.ApplyIonoMask();             // apply ionosphere mask
+    int sat_num = meas.GetTrackedSignalNum();        // number of tracked GPS satellites
     int mtot = sat_num * meas_types.size();          // total number of measurements
 
     // Predict measurements
@@ -742,10 +746,10 @@ int main() {
   std::string epoch_string = sp::TAItoStringUTC(et0, 3);
   std::cout << " " << std::endl;
   std::cout << "Initial Epoch    : " << epoch_string << std::endl;
-  std::cout << "Simulation Length: " << (tf - et0)/60 << " min" << std::endl;
+  std::cout << "Simulation Length: " << (tf - et0) / 60 << " min" << std::endl;
   std::cout << " " << std::endl;
   PrintProgressHeader();
-  PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2), num_sat);
+  PrintProgress((t - et0).val(), est_err(0), est_err(1), est_err(2), num_sat);
 
   for (t = et0; t < tf; t += Dt) {
     time_index += 1;
@@ -787,8 +791,8 @@ int main() {
     error_mat.col(time_index) = est_err;
 
     // Print progress
-    if (fmod((t-et0).val(), print_every) < 1e-3) {
-      PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2), num_sat);
+    if (fmod((t - et0).val(), print_every) < 1e-3) {
+      PrintProgress((t - et0).val(), est_err(0), est_err(1), est_err(2), num_sat);
       // PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
     }
 

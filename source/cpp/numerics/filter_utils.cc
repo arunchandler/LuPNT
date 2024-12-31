@@ -51,9 +51,10 @@ namespace lupnt {
   }
 
   FilterProcessNoiseFunction ProcessNoiseFunctionLinearPV(double sigma_acc) {
-    FilterProcessNoiseFunction proc_noise_func = [sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
+    FilterProcessNoiseFunction proc_noise_func
+        = [sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
       double dt = (t_end - t_curr).val();
- 
+
       Mat6d Q_rv = Mat6d::Zero();
       for (int i = 0; i < 3; i++) {
         Q_rv(i, i) = pow(dt, 3) / 3.0 * pow(sigma_acc, 2);
@@ -69,21 +70,20 @@ namespace lupnt {
   }
 
   FilterProcessNoiseFunction ProcessNoiseFunctionClock(ClockModel cmodel, int clock_state_size) {
-    FilterProcessNoiseFunction proc_noise_func = [cmodel, clock_state_size](const VecX x, Real t_curr, Real t_end) -> MatXd {
+    FilterProcessNoiseFunction proc_noise_func
+        = [cmodel, clock_state_size](const VecX x, Real t_curr, Real t_end) -> MatXd {
       double dt = (t_end - t_curr).val();
       MatXd Q_clk(2, 2);
-      
+
       if (clock_state_size == 2) {
         Q_clk.resize(2, 2);
         Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
         return Q_clk;
-      } 
-      else if (clock_state_size == 3) {
+      } else if (clock_state_size == 3) {
         Q_clk.resize(3, 3);
         Q_clk = ClockDynamics::ThreeStateNoise(cmodel, dt).cast<double>();
         return Q_clk;
-      }
-      else {
+      } else {
         std::cerr << "Invalid clock state size: must be 2 or 3" << std::endl;
       }
       return Q_clk;
@@ -91,8 +91,6 @@ namespace lupnt {
 
     return proc_noise_func;
   }
-
-
 
   FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
                                                       double sigma_acc, int n_sat) {

@@ -119,7 +119,8 @@ namespace lupnt {
   /// @param r_sun Sun position [km]
   /// @param area Cross-section [m^2]
   /// @param mass Spacecraft mass [kg]
-  /// @param CR Solar radiation pressure coefficient (0: translucent, 1: black body 2: perfect mirror)
+  /// @param CR Solar radiation pressure coefficient (0: translucent, 1: black body 2: perfect
+  /// mirror)
   /// @param P0 Solar radiation pressure at 1 AUa
   /// @param AU Length of one Astronomical Unit
   /// @return Acceleration [km/s^2]
@@ -127,8 +128,8 @@ namespace lupnt {
   /// O. Montenbruck and G. Eberhard, Satellite orbits: models, methods, and
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
-  Vec3 AccelerationSolarRadiation(const Vec3& r, const Vec3& r_sun, Real bcoeff_srp,
-                                  Real P0, Real AU) {
+  Vec3 AccelerationSolarRadiation(const Vec3& r, const Vec3& r_sun, Real bcoeff_srp, Real P0,
+                                  Real AU) {
     Vec3 d = r - r_sun;
 
     // Vec3 a = CR * (area / mass) * P0 * (AU * AU) * d / pow(d.norm(), 3);
@@ -287,7 +288,8 @@ namespace lupnt {
   /// O. Montenbruck and G. Eberhard, Satellite orbits: models, methods, and
   /// applications. Berlin : New York: Springer, 2000.
   /// doi: 10.1007/978-3-642-58351-3.
-  Vec3 AccelerationEarthSpacecraft(Real mjd_tt, const Vec6& rv, Real bcoeff_srp, Real bcoeff_drag, GravityField<Real> grav) {
+  Vec3 AccelerationEarthSpacecraft(Real mjd_tt, const Vec6& rv, Real bcoeff_srp, Real bcoeff_drag,
+                                   GravityField<Real> grav) {
     Vec3 r = rv.head(3);
 
     // Acceleration due to harmonic gravity field

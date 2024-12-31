@@ -95,11 +95,11 @@ namespace lupnt {
                          - (10.0 * log10(rx.rx_param_.Tsys)) + 228.6 + rx.rx_param_.L;
         trans.CN0 = At + Ar + Ad + scalars;
 
-        if (std::isnan(At) || occult["earth"] || occult["moon"] || trans.CN0 < rx.rx_param_.CN0threshold) {
+        if (std::isnan(At) || occult["earth"] || occult["moon"]
+            || trans.CN0 < rx.rx_param_.CN0threshold) {
           // not visible
           continue;
-        } 
-        else {
+        } else {
           trans.AP = tx->P_tx + At + Ad + rx.rx_param_.Ae;
           trans.RP = trans.AP + Ar + rx.rx_param_.As;
           trans.vis_antenna = true;
@@ -134,7 +134,8 @@ namespace lupnt {
           // receiver chip param
           trans.gnssr_param = rx.gnssr_param_;
 
-          // std::cout << "prn: " << tx->GetPRN() << " freq: " << freq_name << " At:" << At << "  Ar:" << Ar << "  C/N0:" << trans.CN0 << std::endl;
+          // std::cout << "prn: " << tx->GetPRN() << " freq: " << freq_name << " At:" << At << "
+          // Ar:" << Ar << "  C/N0:" << trans.CN0 << std::endl;
 
           received_transs.push_back(trans);
         }

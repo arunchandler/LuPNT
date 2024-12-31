@@ -32,14 +32,10 @@ namespace lupnt {
   public:
     virtual ~IDynamics() = default;
 
-    // Parameter 
-    bool ParamsEmpty() const {
-      return params_.empty();
-    }
+    // Parameter
+    bool ParamsEmpty() const { return params_.empty(); }
 
-    void AddParam(std::string key, VecX value) {
-      params_[key] = value;
-    }
+    void AddParam(std::string key, VecX value) { params_[key] = value; }
 
     void SetParam(std::string key, VecX value) {
       if (ParamsEmpty()) return;
@@ -47,8 +43,7 @@ namespace lupnt {
       if (params_.find(key) != params_.end()) {
         params_[key] = value;
         return;
-      }
-      else {
+      } else {
         throw std::invalid_argument("Parameter" + key + " not found");
       }
     }
@@ -56,15 +51,13 @@ namespace lupnt {
     void SetParams(DynamicsParam params) {
       if (params.empty()) return;
 
-      for (auto const& [key, val] : params) {
+      for (auto const &[key, val] : params) {
         SetParam(key, val);
       }
     }
 
-    DynamicsParam GetParams() const {
-      return params_;
-    }
-    
+    DynamicsParam GetParams() const { return params_; }
+
     // Interface
     virtual Ptr<IState> PropagateState(const Ptr<IState> &state, Real t0, Real tf,
                                        MatXd *stm = nullptr)
@@ -272,8 +265,8 @@ namespace lupnt {
     bool use_srp_ = false;
     bool use_drag_ = false;
     DynamicsParam params_ = {
-      {"bcoeff_drag", VecX::Zero(1)},
-      {"bcoeff_srp", VecX::Zero(1)},
+        {"bcoeff_drag", VecX::Zero(1)},
+        {"bcoeff_srp", VecX::Zero(1)},
     };
 
   public:
