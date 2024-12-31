@@ -485,13 +485,15 @@ namespace lupnt {
         std::string final_frame_key = LoadRequiredField<std::string>(
             state_node["frame"], prior_key + "frame"
         );
-        Frame frame_final = FindStrFrameMap(string2frame, final_frame_key);
+        // Frame frame_final = FindStrFrameMap(string2frame, final_frame_key);
+        Frame frame_final = enum_cast<Frame>(final_frame_key).value();
 
         // .init.frame
         std::string init_frame_key = LoadRequiredField<std::string>(
             state_node["init"]["frame"], prior_key + "init.frame"
         );
-        Frame frame_init = FindStrFrameMap(string2frame, init_frame_key);
+        // Frame frame_init = FindStrFrameMap(string2frame, init_frame_key);
+        Frame frame_init = enum_cast<Frame>(init_frame_key).value();
 
         // center body from frame_init
         NaifId center_init = FindFrameCenterMap(frame_centers, frame_init);
