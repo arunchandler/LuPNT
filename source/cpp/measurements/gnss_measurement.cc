@@ -105,6 +105,20 @@ namespace lupnt {
     return GnssMeasurement(transmissions_freq);
   }
 
+  GnssMeasurement GnssMeasurement::ExtractSignal(std::vector<std::string> freq_labels) {
+    std::vector<GnssTransmission> transmissions_freq;
+    for (auto &tx : trans_store) {
+      for (auto &label : freq_labels) {
+        if (tx.freq_label == label) {
+          transmissions_freq.push_back(tx);
+          break;
+        }
+      }
+    }
+
+    return GnssMeasurement(transmissions_freq);
+  }
+
   GnssMeasurement GnssMeasurement::ApplyIonoMask() {
     std::vector<GnssTransmission> transmissions_iono;
     for (auto &tx : trans_store) {

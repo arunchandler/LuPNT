@@ -29,19 +29,20 @@ namespace lupnt {
     Ptr<GnssChannel> channel_;
     double epoch_;  // in TAI
     bool is_first_sat = true;
+    std::vector<GnssType> gnss_types_;
 
     // Setters
     void SetChannel(Ptr<GnssChannel> ch) { channel_ = ch; }
 
-    void LoadTleFile(std::string_view gnss_type, std::string filename);
+    void LoadTleFile(GnssType gnss_type, std::string filename);
 
   public:
     GnssConstellation() { is_first_sat = true; }
 
-    void InitializeWithTle(std::string gnss_type, std::string tle_filename, Ptr<IDynamics> dynamics,
+    void InitializeWithTle(GnssType gnss_type, std::string tle_filename, Ptr<IDynamics> dynamics,
                            Ptr<GnssChannel> channel, double epoch0_tai);
 
-    void AddSatellitesWithTle(std::string gnss_type, std::string tle_filename) {
+    void AddSatellitesWithTle(GnssType gnss_type, std::string tle_filename) {
       LoadTleFile(gnss_type, tle_filename);
     }
 
@@ -60,6 +61,13 @@ namespace lupnt {
 
     // Getters
     int GetNumSatellites() { return satellites_.size(); }
+    int GetNumSatellites(GnssType gnss_type) {
+      int count = 0;
+      for (auto type: gnss_types_) {
+        if (type == gnss_type) count++;
+      }
+      return count;
+    }
     Ptr<Spacecraft> GetSatellite(int i) { return satellites_[i]; }
     Ptr<GnssChannel> GetChannel() { return channel_; }
     Ptr<IDynamics> GetDynamics() { return dynamics_; }

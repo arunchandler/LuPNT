@@ -70,15 +70,6 @@ namespace lupnt {
         continue;  // quit if occulted
       }
 
-      // Transmitter and Receiver Antenna gain
-      double At = tx->GetTransmitterAntennaGain(t_tx, rv_tx_gcrf.r().cast<double>(),
-                                                rv_rx_gcrf.r().cast<double>());
-
-      if (std::isnan(At)) {
-        // std::cout << "Transmitter antenna gain is NaN" << std::endl;
-        continue;
-      }
-
       double Ar = rx.GetReceiverAntennaGain(t_rx, rv_tx_gcrf.r().cast<double>(),
                                             rv_rx_gcrf.r().cast<double>());
 
@@ -93,6 +84,10 @@ namespace lupnt {
         double Ad = 20.0 * log10((C / freq) / (4.0 * PI * d));
         double scalars = tx->P_tx + rx.rx_param_.Ae + rx.rx_param_.As
                          - (10.0 * log10(rx.rx_param_.Tsys)) + 228.6 + rx.rx_param_.L;
+
+        // Transmitter and Receiver Antenna gain
+        double At = tx->GetTransmitterAntennaGainFreq(t_tx, rv_tx_gcrf.r().cast<double>(),
+                                                      rv_rx_gcrf.r().cast<double>(), freq_name);
         trans.CN0 = At + Ar + Ad + scalars;
 
         if (std::isnan(At) || occult["earth"] || occult["moon"]

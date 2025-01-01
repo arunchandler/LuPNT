@@ -60,7 +60,7 @@ gnss:
   num_gnss: 1
   gps:
     initialization: TLE
-    gnss_type: GPS
+    gnss_type: GPS   # GPS, GLONASS, GALILEO, BEIDOU, QZSS
     filename: gps.txt
     channel: channel_gps1
     dynamics: dynamics_gps

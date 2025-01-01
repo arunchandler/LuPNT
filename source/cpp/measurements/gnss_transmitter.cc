@@ -31,19 +31,21 @@ namespace lupnt {
   void GnssTransmitter::InitializeGnssTransmitter() {
     // std::cout << "GNSS Transmitter: " << gnss_type_ << std::endl;
 
-    std::vector<std::string> gps_strings = {"GPS", "gps"};
-    std::vector<std::string> glonass_strings = {"COSMOS", "cosmos", "GLONASS", "glonass"};
-    std::vector<std::string> galileo_strings = {"GSAT", "gsat", "GALILEO", "galileo"};
-    std::vector<std::string> beidou_strings = {"BEIDOU", "beidou"};
-
-    if (StringInCandidates(gps_strings, gnss_type_)) {
+    if (gnss_type_ == GnssType::GPS) {
       InitializeGPSTransmitter();
-    } else if (StringInCandidates(glonass_strings, gnss_type_)) {
+      gnss_type_str_ = "GPS";
+    } else if (gnss_type_ == GnssType::GLONASS) {
       InitializeGLONASSTransmitter();
-    } else if (StringInCandidates(galileo_strings, gnss_type_)) {
+      gnss_type_str_ = "GLONASS";
+    } else if (gnss_type_ == GnssType::GALILEO) {
       InitializeGALILEOTransmitter();
-    } else if (StringInCandidates(beidou_strings, gnss_type_)) {
+      gnss_type_str_ = "GALILEO";
+    } else if (gnss_type_ == GnssType::BEIDOU) {
       InitializeBEIDOUTransmitter();
+      gnss_type_str_ = "BEIDOU";
+    } else if (gnss_type_ == GnssType::QZSS) {
+      InitializeQZSSTransmitter();
+      gnss_type_str_ = "QZSS";
     } else {
       throw std::runtime_error("Invalid GNSS type");
     }
@@ -54,6 +56,7 @@ namespace lupnt {
    *
    */
   void GnssTransmitter::InitializeGPSTransmitter() {
+    // Todo: Autonomously generate the prn to svn mapping
     std::filesystem::path csvpath(GetDataPath() / "gnss" / "gps_table.csv");
     std::vector<std::vector<std::string>> gps_table = ReadCSV(csvpath.string());
 
@@ -81,7 +84,7 @@ namespace lupnt {
           freq_list = {"L1", "L2", "L5"};
         } else if (gps_type == "III") {
           P_tx = 14.3;                 // dB_W
-          ant_name = gps_table[i][4];  // ACE Pattern
+          ant_name = gps_table[i][3];  // LM Pattern
           freq_list = {"L1", "L2", "L5"};
         } else {
           std::runtime_error("Invalid GPS type");
@@ -90,7 +93,17 @@ namespace lupnt {
         // std::cout << "PRN: " << prn_ << " type: " << gps_type << " Antenna: " << ant_name
         //           << std::endl;
 
-        antenna_ = Antenna(ant_name);
+        if (gps_type == "III"){   // For Block III, the antenna pattern is different for each frequency
+          for (auto freq : freq_list) {
+            antenna_[freq] = Antenna(ant_name + "_" + freq + ".txt");
+          }
+        }
+        else {  // For other GPS types, we assume the antenna pattern is the same for all frequencies
+          for (auto freq : freq_list) {
+            antenna_[freq] = Antenna(ant_name);
+          }
+        }
+
         break;
       }
     }
@@ -102,7 +115,7 @@ namespace lupnt {
    *
    */
   void GnssTransmitter::InitializeGLONASSTransmitter() {
-    std::cout << "Antenna type not implemented yet for " << gnss_type_ << std::endl;
+    std::cout << "Antenna type not implemented yet for " << gnss_type_str_ << std::endl;
   }
 
   /**
@@ -110,14 +123,47 @@ namespace lupnt {
    *
    */
   void GnssTransmitter::InitializeGALILEOTransmitter() {
-    std::cout << "Antenna type not implemented yet for " << gnss_type_ << std::endl;
+    freq_list = {"E1", "E5a", "E5b", "E6"};
+    for (auto freq : freq_list) {
+      antenna_[freq] = Antenna("Galileo_" + freq + ".txt"); 
+    }
+    
+    // The antenna pattern given from ESA is the EIRP=gain + P_tx
+    // Since we do not know the trans power, we assumed it to be 14.0 dBW when we generated the data
+    // Therefore we set the P_tx to 14.0 dBW
+    P_tx = 14.0;   // dB-W  Assume fixed
   }
 
   /**
    * @brief Initialize the BEIDOU transmitter
    */
   void GnssTransmitter::InitializeBEIDOUTransmitter() {
-    std::cout << "Antenna type not implemented yet for " << gnss_type_ << std::endl;
+    std::cout << "Antenna type not implemented yet for " << gnss_type_str_ << std::endl;
+  }
+
+  /**
+   * @brief 
+   * 
+   */
+  void GnssTransmitter::InitializeQZSSTransmitter() {
+    std::vector<std::string> names = {"1R", "02", "03", "04", "05", "06", "07"};
+
+    if (prn_ <= 4) {
+      freq_list = {"L1", "L2", "L5"};
+    } else {
+      freq_list = {"L1", "L5"};
+    }
+
+    for (auto freq : freq_list) {
+      antenna_[freq] = Antenna("QZSS_" + names[prn_-1] + "_" + freq + ".txt");
+    }
+
+    // Reference: Enhancing Navigation Accuracy in a Geostationary Orbit by
+    //             Utilizing a Regional Navigation Satellite System
+    P_tx = 14.1;  // dB-W
+
+    return;
+
   }
 
   /**
@@ -141,7 +187,15 @@ namespace lupnt {
     return e_gnss;
   }
 
+
   double GnssTransmitter::GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) {
+    // Get the first freq in antenna map
+    std::string freq = freq_list[0];
+    double At = GnssTransmitter::GetTransmitterAntennaGainFreq(t, r_tx_gcrf, r_rx_gcrf, freq); // use L1 for default
+    return At;
+  }
+
+  double GnssTransmitter::GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf, std::string freq) {
     auto e_gnss = GnssTransmitter::GetTransmitterOrientation(t, r_tx_gcrf);
     Vec3d e_x_gnss = e_gnss[0];
     Vec3d e_y_gnss = e_gnss[1];
@@ -149,7 +203,7 @@ namespace lupnt {
     Vec3d u_tx_rx = (r_rx_gcrf - r_tx_gcrf).normalized();
     double phi_tx = acos(u_tx_rx.dot(e_z_gnss));
     double theta_tx = atan2(u_tx_rx.dot(e_y_gnss), u_tx_rx.dot(e_x_gnss));
-    double At = GnssTransmitter::ComputeGain(theta_tx, phi_tx).val();
+    double At = GnssTransmitter::ComputeGain(theta_tx, phi_tx, freq).val();   // use L1 for default
     return At;
   }
 

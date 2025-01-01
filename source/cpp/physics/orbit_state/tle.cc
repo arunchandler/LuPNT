@@ -35,10 +35,20 @@ namespace lupnt {
       } else {
         tle.prn = 0;
       }
-    } else if (line1.substr(0, 3) == "GSA") {
-      tle.prn = stod(SplitString(line1, '(')[1].substr(5, 2));
+    } else if ((line1.substr(0, 3) == "GSA") && (line1.substr(4, 2) != "01")) {
+      std::string tmp = SplitString(line1, '(')[1];
+      std::string tmp2 = SplitString(tmp, ' ')[1];
+      std::string tmp3 = SplitString(tmp2, ')')[0];
+      if (tmp2.size() == 1) {   // ( ex. 8) )
+        tle.prn = stod(tmp2.substr(0, 1));
+      } else if (tmp2.size() == 2) {
+        tle.prn = stod(tmp2.substr(0, 2));
+      }
     } else if (line1.substr(0, 3) == "COS") {
       tle.prn = stod(SplitString(line1, '(')[1].substr(0, 3));
+    } else if (line1.substr(0, 3) == "QZS") {
+      tle.prn = stod(line1.substr(4, 1));   // 1-4
+
     } else {
       tle.prn = -1;
     }

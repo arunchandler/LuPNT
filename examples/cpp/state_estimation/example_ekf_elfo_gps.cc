@@ -147,7 +147,7 @@ MatXd ConstructInitCovariance(double pos_err, double vel_err, double clk_bias_er
 
 void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
                             const std::shared_ptr<Spacecraft> sat, EKF* ekf,
-                            GnssConstellation* gps_const, GnssMeasurement* meas, double t,
+                            GnssConstellation* gnss_const, GnssMeasurement* meas, double t,
                             double epoch) {
   VecXd z_true = ekf->GetTrueMeasurement();
   VecXd z_prior = ekf->GetPredictedMeasurement();
@@ -185,8 +185,8 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
   data_history->AddData("P_clk", t, P.diagonal().segment(6, 2));
 
   // GPS constellation
-  for (int i = 0; i < gps_const->GetNumSatellites(); i++) {
-    CartesianOrbitState sate = gps_const->GetSatellite(i)->GetCartesianGCRFStateAtEpoch(epoch);
+  for (int i = 0; i < gnss_const->GetNumSatellites(); i++) {
+    CartesianOrbitState sate = gnss_const->GetSatellite(i)->GetCartesianGCRFStateAtEpoch(epoch);
     CartesianOrbitState sate_mi = ConvertOrbitStateFrame(sate, epoch, Frame::MOON_CI);
     CartesianOrbitState state_gcrf = ConvertOrbitStateFrame(sate, epoch, Frame::GCRF);
 
@@ -213,7 +213,7 @@ void PrintProgressHeader() {
 }
 
 VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
-  auto x_est = ekf->GetStatePost();
+  auto x_est = ekf->GetState();
   auto x_true = sat->GetStateVec();
 
   double x_pos_err = 1000 * (x_true.segment(0, 3) - x_est.segment(0, 3)).norm().val();
@@ -492,25 +492,25 @@ int main() {
    * Simulation Parameters
    *********************************************/
   // Time
-  Real et0_utc = Gregorian2Time(2023, 6, 9, 8, 30, 0).val();  // in UTC
+  Real et0_utc = Gregorian2Time(2025, 1, 1, 12, 0, 0).val();  // in UTC
   double et0 = UTC2TAI(et0_utc).val();                        // in TAI
   double dt = 1.0;                                            // Integration time step [s]
   double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
 
-  // Gps constellation
-  GnssConstellation gps_const = GnssConstellation();
-  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
-      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
-  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
-  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel, et0);  // example gps file
+  // GNSS constellation ----------------------------
+  bool use_galileo = true;
+  bool use_qzss = true;
+  std::string gps_tle = "gps_2025_01_01";
+  std::string galileo_tle = "galileo_2025_01_01";
+  std::string qzss_tle = "qzss_2025_01_01";
 
-  // Simulation seed
+  // Simulation seed --------------------------------
   int seed = 1;
   std::srand(seed);
 
-  // Initial State
+  // Initial State ----------------------------------
   Real a = 6541.4;
   Real e = 0.6;
   Real i = 65.5 * RAD;
@@ -520,26 +520,26 @@ int main() {
   Real clk_bias = 0.0;
   Real clk_drift = 0.1;
 
-  // Set simulation to 1 orbit
+  // Set simulation to 1 orbit 
   int n_orbit = 2;  // number of orbits to simulate
   Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
   double tf = et0 + n_orbit * period.val();
   int time_step_num = int((tf - et0) / Dt) + 1;
   tf = et0 + (time_step_num - 1) * Dt;
 
-  // Dynamics Model   Todo: Refine this to a more high fidelity model
+  // Dynamics Model   Todo: Refine this to a more high fidelity model -------------------
   int moon_sph_true = 8;  // moon spherical harmonics order in true dynamics
   int moon_sph_est = 5;   // moon spherical harmonics order in filter dynamics
   bool add_earth = true;  // add earth to true and filter dynamics
 
-  // Onboard Clock Model
+  // Onboard Clock Model --------------------------- 
   ClockModel cmodel = ClockModel::kMiniRafs;
 
-  // measurements
+  // measurements ----------------------------------
   bool use_range = true;       // use GPS pseudorange measurement
   bool use_range_rate = true;  // use GPS pseudorange-rate measurement
 
-  // Estimation
+  // Estimation Parameters --------------------------
   int state_size = 8;           // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
   double pos_err = 1.0;         // Initial Position error [km]
   double vel_err = 1e-3;        // Initial Velocity error [km/s]
@@ -548,7 +548,7 @@ int main() {
   double sigma_acc = 1e-10;     // Process noise Acceleration [km/s^2]  <-- tune
                                 // this for optimal performance!
 
-  // Debug mode
+  // Debug mode ------------------------------------
   bool plot_results = false;
   bool debug_jacobian = false;
   bool print_debug = false;
@@ -575,13 +575,14 @@ int main() {
   }
   int meas_type_num = meas_types.size();
 
-  // Orbit Dynamics
+  // Orbit Dynamics --------------------------------------------------------
   IntegratorParams iparams;
   iparams.abstol = 1e-12;
   iparams.reltol = 1e-12;
 
   auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
   auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics
+  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
 
   dyn_true->SetIntegratorParams(iparams);
   dyn_est->SetIntegratorParams(iparams);
@@ -601,18 +602,37 @@ int main() {
     dyn_est->AddBody(earth_est);
   }
 
-  // clock dynamics
+  // clock dynamics --------------------------------------------------------
   auto dyn_clk_true = ClockDynamics(cmodel);
   auto dyn_clk_est = ClockDynamics(cmodel);
   dyn_clk_true.SetNoise(true);
   dyn_clk_est.SetNoise(false);
 
-  // Set dynamics integration time
+  // Set dynamics integration time step ------------------------------------
   dyn_earth_tb->SetTimeStep(dt);
   dyn_est->SetTimeStep(dt);
   dyn_true->SetTimeStep(dt);
 
-  // Moon spacecraft
+  // GNSS Constellation ----------------------------------------------------
+  GnssConstellation gnss_const = GnssConstellation();
+  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
+
+  // GPS constellation
+  gnss_const.InitializeWithTle(GnssType::GPS, gps_tle, dyn_earth_tb, channel, et0);  // example gps file
+  std::vector<std::string> signals = {"L1"};
+  std::vector<std::string> gnss_types = {"GPS"};
+
+  if (use_galileo) {
+    gnss_const.AddSatellitesWithTle(GnssType::GALILEO, galileo_tle);
+    signals.push_back("E1");
+    gnss_types.push_back("GALILEO");
+  }
+  if (use_qzss) {
+    gnss_const.AddSatellitesWithTle(GnssType::QZSS, qzss_tle);
+    gnss_types.push_back("QZSS");
+  }
+
+  // Moon spacecraft --------------------------------------------------------
   ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_OP);
   CartesianOrbitState cart_op = Classical2Cart(coe_moon, GM_MOON);
   CartesianOrbitState cart_mci = ConvertOrbitStateFrame(cart_op, et0, Frame::MOON_CI);
@@ -637,10 +657,10 @@ int main() {
   receiver->SetChannel(channel);
   channel->AddReceiver(receiver);
 
-  // Initial covariance
+  // Initial covariance -----------------------------------------------------
   MatXd P0 = ConstructInitCovariance(pos_err, vel_err, clk_bias_err, clk_drift_err);
 
-  // Joint state and dynamics
+  // Joint state and dynamics ------------------------------------------------
   JointState joint_state;
 
   auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
@@ -655,7 +675,7 @@ int main() {
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, meas_types](const VecX x, MatXd* H,
+      = [moon_sat, receiver, state_size, no_meas, meas_types, signals](const VecX x, MatXd* H,
                                                               MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
@@ -665,7 +685,7 @@ int main() {
     std::string freq = "L1";
     double epoch = moon_sat->GetEpoch().val();
     auto measall = receiver->GetMeasurement(epoch);  // measurements of all frequencies
-    auto meas_L1 = measall.ExtractSignal("L1");      // measurements of L1
+    auto meas_L1 = measall.ExtractSignal(signals);      // measurements of L1
     auto meas = meas_L1.ApplyIonoMask();             // apply ionosphere mask
     int sat_num = meas.GetTrackedSignalNum();        // number of tracked GPS satellites
     int mtot = sat_num * meas_types.size();          // total number of measurements
@@ -747,6 +767,10 @@ int main() {
   std::cout << " " << std::endl;
   std::cout << "Initial Epoch    : " << epoch_string << std::endl;
   std::cout << "Simulation Length: " << (tf - et0) / 60 << " min" << std::endl;
+  std::cout << "GNSS Constellation: " << std::endl
+            << " GPS: " << gnss_const.GetNumSatellites(GnssType::GPS) << " " << std::endl
+            << " GALILEO: " << gnss_const.GetNumSatellites(GnssType::GALILEO) << " " << std::endl
+            << " QZSS: " << gnss_const.GetNumSatellites(GnssType::QZSS) << " " << std::endl;
   std::cout << " " << std::endl;
   PrintProgressHeader();
   PrintProgress((t - et0).val(), est_err(0), est_err(1), est_err(2), num_sat);
@@ -757,12 +781,12 @@ int main() {
 
     // Propagate True State
     moon_sat->Propagate(epoch);
-    gps_const.Propagate(epoch);
+    gnss_const.Propagate(epoch);
 
     // Get True Measurement
     VecX z_true;
     auto measall = receiver->GetMeasurement(epoch);
-    auto meas_L1 = measall.ExtractSignal("L1");
+    auto meas_L1 = measall.ExtractSignal(signals);
     auto meas = meas_L1.ApplyIonoMask();
     num_sat = meas.GetTrackedSignalNum();
     num_meas(time_index) = num_sat;
@@ -783,7 +807,7 @@ int main() {
 
     // Add Data
     if (!no_meas) {
-      AddStateEstimationData(data_history, moon_sat, &ekf, &gps_const, &meas, t.val(), epoch);
+      AddStateEstimationData(data_history, moon_sat, &ekf, &gnss_const, &meas, t.val(), epoch);
     }
 
     // Compute Estimation

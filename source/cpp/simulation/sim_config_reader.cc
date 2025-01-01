@@ -406,7 +406,7 @@ namespace lupnt {
             std::cerr << "Dynamics '" << dyn_key << "' not found for GNSS constellation.\n";
             return;
           }
-          std::string gnss_type
+          std::string gnss_type_str
               = LoadRequiredField<std::string>(child_node["gnss_type"], field_prior + ".gnss_type");
           std::string filename
               = LoadRequiredField<std::string>(child_node["filename"], field_prior + ".filename");
@@ -414,6 +414,10 @@ namespace lupnt {
               = LoadRequiredField<std::string>(child_node["channel"], field_prior + ".channel");
           auto dyn_gnss = FindMap<IDynamics>(dynamics_map_, dyn_key);
           auto channel_gnss = FindMap<GnssChannel>(gnss_channels_map_, channel);
+
+          // convert string to enum
+          GnssType gnss_type = enum_cast<GnssType>(gnss_type_str).value();
+
           gnss_->InitializeWithTle(gnss_type, filename, dyn_gnss, channel_gnss,
                                    time_config_.epoch0);
           is_first_const = false;
@@ -427,10 +431,12 @@ namespace lupnt {
           }
         } else {
           // Additional satellites in TLE
-          std::string gnss_type
+          std::string gnss_type_str
               = LoadRequiredField<std::string>(child_node["gnss_type"], field_prior + ".gnss_type");
           std::string filename
               = LoadRequiredField<std::string>(child_node["filename"], field_prior + ".filename");
+        
+          GnssType gnss_type = enum_cast<GnssType>(gnss_type_str).value();
           gnss_->AddSatellitesWithTle(gnss_type, filename);
 
           if (print_val) {
