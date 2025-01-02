@@ -500,8 +500,8 @@ int main() {
   double save_every = Dt;
 
   // GNSS constellation ----------------------------
-  bool use_galileo = true;
-  bool use_qzss = true;
+  bool use_galileo = false;
+  bool use_qzss = false;
   std::string gps_tle = "gps_2025_01_01";
   std::string galileo_tle = "galileo_2025_01_01";
   std::string qzss_tle = "qzss_2025_01_01";
