@@ -93,12 +93,13 @@ namespace lupnt {
         // std::cout << "PRN: " << prn_ << " type: " << gps_type << " Antenna: " << ant_name
         //           << std::endl;
 
-        if (gps_type == "III"){   // For Block III, the antenna pattern is different for each frequency
+        if (gps_type
+            == "III") {  // For Block III, the antenna pattern is different for each frequency
           for (auto freq : freq_list) {
             antenna_[freq] = Antenna(ant_name + "_" + freq + ".txt");
           }
-        }
-        else {  // For other GPS types, we assume the antenna pattern is the same for all frequencies
+        } else {  // For other GPS types, we assume the antenna pattern is the same for all
+                  // frequencies
           for (auto freq : freq_list) {
             antenna_[freq] = Antenna(ant_name);
           }
@@ -125,13 +126,13 @@ namespace lupnt {
   void GnssTransmitter::InitializeGALILEOTransmitter() {
     freq_list = {"E1", "E5a", "E5b", "E6"};
     for (auto freq : freq_list) {
-      antenna_[freq] = Antenna("Galileo_" + freq + ".txt"); 
+      antenna_[freq] = Antenna("Galileo_" + freq + ".txt");
     }
-    
+
     // The antenna pattern given from ESA is the EIRP=gain + P_tx
     // Since we do not know the trans power, we assumed it to be 14.0 dBW when we generated the data
     // Therefore we set the P_tx to 14.0 dBW
-    P_tx = 14.0;   // dB-W  Assume fixed
+    P_tx = 14.0;  // dB-W  Assume fixed
   }
 
   /**
@@ -142,8 +143,8 @@ namespace lupnt {
   }
 
   /**
-   * @brief 
-   * 
+   * @brief
+   *
    */
   void GnssTransmitter::InitializeQZSSTransmitter() {
     std::vector<std::string> names = {"1R", "02", "03", "04", "05", "06", "07"};
@@ -155,7 +156,7 @@ namespace lupnt {
     }
 
     for (auto freq : freq_list) {
-      antenna_[freq] = Antenna("QZSS_" + names[prn_-1] + "_" + freq + ".txt");
+      antenna_[freq] = Antenna("QZSS_" + names[prn_ - 1] + "_" + freq + ".txt");
     }
 
     // Reference: Enhancing Navigation Accuracy in a Geostationary Orbit by
@@ -163,7 +164,6 @@ namespace lupnt {
     P_tx = 14.1;  // dB-W
 
     return;
-
   }
 
   /**
@@ -187,15 +187,16 @@ namespace lupnt {
     return e_gnss;
   }
 
-
   double GnssTransmitter::GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) {
     // Get the first freq in antenna map
     std::string freq = freq_list[0];
-    double At = GnssTransmitter::GetTransmitterAntennaGainFreq(t, r_tx_gcrf, r_rx_gcrf, freq); // use L1 for default
+    double At = GnssTransmitter::GetTransmitterAntennaGainFreq(t, r_tx_gcrf, r_rx_gcrf,
+                                                               freq);  // use L1 for default
     return At;
   }
 
-  double GnssTransmitter::GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf, std::string freq) {
+  double GnssTransmitter::GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf,
+                                                        std::string freq) {
     auto e_gnss = GnssTransmitter::GetTransmitterOrientation(t, r_tx_gcrf);
     Vec3d e_x_gnss = e_gnss[0];
     Vec3d e_y_gnss = e_gnss[1];
@@ -203,7 +204,7 @@ namespace lupnt {
     Vec3d u_tx_rx = (r_rx_gcrf - r_tx_gcrf).normalized();
     double phi_tx = acos(u_tx_rx.dot(e_z_gnss));
     double theta_tx = atan2(u_tx_rx.dot(e_y_gnss), u_tx_rx.dot(e_x_gnss));
-    double At = GnssTransmitter::ComputeGain(theta_tx, phi_tx, freq).val();   // use L1 for default
+    double At = GnssTransmitter::ComputeGain(theta_tx, phi_tx, freq).val();  // use L1 for default
     return At;
   }
 

@@ -520,7 +520,7 @@ int main() {
   Real clk_bias = 0.0;
   Real clk_drift = 0.1;
 
-  // Set simulation to 1 orbit 
+  // Set simulation to 1 orbit
   int n_orbit = 2;  // number of orbits to simulate
   Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
   double tf = et0 + n_orbit * period.val();
@@ -532,7 +532,7 @@ int main() {
   int moon_sph_est = 5;   // moon spherical harmonics order in filter dynamics
   bool add_earth = true;  // add earth to true and filter dynamics
 
-  // Onboard Clock Model --------------------------- 
+  // Onboard Clock Model ---------------------------
   ClockModel cmodel = ClockModel::kMiniRafs;
 
   // measurements ----------------------------------
@@ -582,7 +582,8 @@ int main() {
 
   auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
   auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics
-  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
+  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
 
   dyn_true->SetIntegratorParams(iparams);
   dyn_est->SetIntegratorParams(iparams);
@@ -618,7 +619,8 @@ int main() {
   Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
 
   // GPS constellation
-  gnss_const.InitializeWithTle(GnssType::GPS, gps_tle, dyn_earth_tb, channel, et0);  // example gps file
+  gnss_const.InitializeWithTle(GnssType::GPS, gps_tle, dyn_earth_tb, channel,
+                               et0);  // example gps file
   std::vector<std::string> signals = {"L1"};
   std::vector<std::string> gnss_types = {"GPS"};
 
@@ -676,7 +678,7 @@ int main() {
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
       = [moon_sat, receiver, state_size, no_meas, meas_types, signals](const VecX x, MatXd* H,
-                                                              MatXd* R) -> VecX {
+                                                                       MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
     }
@@ -685,7 +687,7 @@ int main() {
     std::string freq = "L1";
     double epoch = moon_sat->GetEpoch().val();
     auto measall = receiver->GetMeasurement(epoch);  // measurements of all frequencies
-    auto meas_L1 = measall.ExtractSignal(signals);      // measurements of L1
+    auto meas_L1 = measall.ExtractSignal(signals);   // measurements of L1
     auto meas = meas_L1.ApplyIonoMask();             // apply ionosphere mask
     int sat_num = meas.GetTrackedSignalNum();        // number of tracked GPS satellites
     int mtot = sat_num * meas_types.size();          // total number of measurements

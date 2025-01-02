@@ -435,7 +435,7 @@ namespace lupnt {
               = LoadRequiredField<std::string>(child_node["gnss_type"], field_prior + ".gnss_type");
           std::string filename
               = LoadRequiredField<std::string>(child_node["filename"], field_prior + ".filename");
-        
+
           GnssType gnss_type = enum_cast<GnssType>(gnss_type_str).value();
           gnss_->AddSatellitesWithTle(gnss_type, filename);
 

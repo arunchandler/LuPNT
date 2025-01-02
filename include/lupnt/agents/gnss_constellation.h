@@ -63,7 +63,7 @@ namespace lupnt {
     int GetNumSatellites() { return satellites_.size(); }
     int GetNumSatellites(GnssType gnss_type) {
       int count = 0;
-      for (auto type: gnss_types_) {
+      for (auto type : gnss_types_) {
         if (type == gnss_type) count++;
       }
       return count;

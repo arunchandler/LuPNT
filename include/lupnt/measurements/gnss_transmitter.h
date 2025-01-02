@@ -22,26 +22,26 @@
 namespace lupnt {
 
   enum GnssType {
-    GPS,     // Global Positioning System
-    GLONASS, // Global Navigation Satellite System
-    GALILEO, // European Global Navigation Satellite System
-    BEIDOU,  // Chinese Global Navigation Satellite System
-    QZSS,    // Quasi-Zenith Satellite System
+    GPS,      // Global Positioning System
+    GLONASS,  // Global Navigation Satellite System
+    GALILEO,  // European Global Navigation Satellite System
+    BEIDOU,   // Chinese Global Navigation Satellite System
+    QZSS,     // Quasi-Zenith Satellite System
   };
 
   class GnssChannel;
 
   class GnssTransmitter : public Transmitter {
   public:
-    std::map<std::string, Antenna> antenna_;   // Antenna gain pattern [deg & dB]
-    std::string gnss_type_str_;                // Name of the atenna system
-    GnssType gnss_type_;                       // Type of the GNSS system
-    std::string txrx = "TX";                   // Type of comms system
-    int prn_;                                  // PRN of the transmitter satellite
-    double Rc;                                 // Ranging chip rate [Hz]
-    std::vector<std::string> freq_list;        // List of frequencies (by signal names)
-    std::map<std::string, double> freq_map;    // map string to frequencies
-    std::map<std::string, double> rc_map;      // map string to chip rates
+    std::map<std::string, Antenna> antenna_;  // Antenna gain pattern [deg & dB]
+    std::string gnss_type_str_;               // Name of the atenna system
+    GnssType gnss_type_;                      // Type of the GNSS system
+    std::string txrx = "TX";                  // Type of comms system
+    int prn_;                                 // PRN of the transmitter satellite
+    double Rc;                                // Ranging chip rate [Hz]
+    std::vector<std::string> freq_list;       // List of frequencies (by signal names)
+    std::map<std::string, double> freq_map;   // map string to frequencies
+    std::map<std::string, double> rc_map;     // map string to chip rates
 
     // Tramsmitter
     GnssTransmitter(GnssType gnss_type, int prn) : gnss_type_(gnss_type), prn_(prn) {
@@ -69,7 +69,8 @@ namespace lupnt {
     std::vector<Vec3d> GetTransmitterOrientation(double t, Vec3d& rv_tx_gcrf);
 
     double GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override;
-    double GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf, std::string freq);
+    double GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf,
+                                         std::string freq);
 
     // Get the Transmittion Information
     GnssTransmission GenerateTransmission(double t);
@@ -80,8 +81,12 @@ namespace lupnt {
     };
     int GetPRN() { return prn_; };
     GnssType GetGnssType() { return gnss_type_; };
-    Real ComputeGain(Vec3d direction, std::string freq) { return antenna_[freq].ComputeGain(direction); };
-    Real ComputeGain(Real theta, Real phi, std::string freq) { return antenna_[freq].ComputeGain(theta, phi); };
+    Real ComputeGain(Vec3d direction, std::string freq) {
+      return antenna_[freq].ComputeGain(direction);
+    };
+    Real ComputeGain(Real theta, Real phi, std::string freq) {
+      return antenna_[freq].ComputeGain(theta, phi);
+    };
 
   private:
     Ptr<GnssChannel> channel_;  // Channel that the device is connected to
