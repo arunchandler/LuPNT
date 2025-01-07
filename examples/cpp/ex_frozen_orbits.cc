@@ -35,8 +35,8 @@ private:
 };
 
 struct {
-  bool recompute_part1 = false;
-  bool recompute_part2 = false;
+  bool recompute_part1 = true;
+  bool recompute_part2 = true;
   bool plot_case0 = false;
   bool plot_case1 = false;
   bool plot_case2 = false;
@@ -547,9 +547,10 @@ int main() {
 
   auto end = GetSystemTime();
   cout << "Total elapsed time: " << PrintDuration(end - begin) << endl;
-  if (config.plot_case0 || config.plot_case1 || config.plot_case2 || config.plot_case3 || config.plot_case4 || config.plot_ew || config.plot_delta_M) {
-      show();
-    }
+  if (config.plot_case0 || config.plot_case1 || config.plot_case2 || config.plot_case3
+      || config.plot_case4 || config.plot_ew || config.plot_delta_M) {
+    show();
+  }
 
   return 0;
 }

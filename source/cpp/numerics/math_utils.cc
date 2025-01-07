@@ -538,9 +538,7 @@ namespace lupnt {
   VecX arange(Real start, Real stop, Real step) {
     int n = static_cast<int>((stop - start) / step);
     VecX v(n);
-    for (int i = 0; i < n; i++) {
-      v(i) = start + i * step;
-    }
+    for (int i = 0; i < n; i++) v(i) = start + i * step;
     return v;
   }
 
