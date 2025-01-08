@@ -107,7 +107,7 @@ namespace lupnt {
   Vec3 AccelerationPointMass(const Vec3& r, const Vec3& s, Real GM) {
     Vec3 d = r - s;
     // a = -GM * (d / |d|^3 + s / |s|^3)
-    Vec3 a;
+    Vec3 a = Vec3::Zero();
     if (s.norm() > EPS) a += s / pow(s.norm(), 3);
     if (d.norm() > EPS) a += d / pow(d.norm(), 3);
     a *= -GM;

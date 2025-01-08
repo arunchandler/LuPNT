@@ -41,12 +41,12 @@ namespace lupnt {
       }
 
       // Convert the state from GCRF to dynamics frame
-      Vec6 x_bf = ConvertFrame(t0, x, state_frame, dynamics_frame, false);
+      Vec6 x_bf = ConvertFrame(t0, x, state_frame, dynamics_frame);
 
       // The dynamics is stationary
 
       // Convert the state back to GCRF frame
-      Vec6 xf_out = ConvertFrame(tf, x_bf, dynamics_frame, state_frame, false);
+      Vec6 xf_out = ConvertFrame(tf, x_bf, dynamics_frame, state_frame);
 
       return xf_out;
     };

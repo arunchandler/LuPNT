@@ -148,11 +148,15 @@ namespace lupnt {
 
     VecX x_new_low(n), x_new_high(n);
 
-    for (int iter = 0; iter < params_.max_iter; ++iter) {
+    int iter;
+    for (iter = 0; iter < params_.max_iter; ++iter) {
       Update(f, t, x, dt, x_new_low, x_new_high);
       bool within_tolerance = ComputeRelError(x_new_low, x_new_high, dt);
 
       if (within_tolerance) break;
+    }
+    if (iter == params_.max_iter) {
+      throw std::runtime_error("IRKF did not converge");
     }
 
     return x_new_low;
@@ -227,4 +231,60 @@ namespace lupnt {
     x_new_high = x + k1 * (16.0 / 135.0) + k3 * (6656.0 / 12825.0) + k4 * (28561.0 / 56430.0)
                  - k5 * (9.0 / 50.0) + k6 * (2.0 / 55.0);
   }
+
+  VecX PD45::Step(const ODE& f, Real t, const VecX& x, Real dt) {
+    const int stages = 7;
+    std::vector<VecX> k(stages);  // To store intermediate k values
+
+    double safety = 0.9;   // Safety factor for step size adjustment
+    double dt_min = 1e-3;  // Minimum allowable step size
+    int iteration = 0;
+
+    while (iteration < params_.max_iter) {
+      // Compute intermediate stages
+      k[0] = dt * f(t, x);
+      for (int i = 1; i < stages; ++i) {
+        VecX sum = VecX::Zero(x.size());
+        for (int j = 0; j < i; ++j) {
+          sum += A_[i][j] * k[j];
+        }
+        k[i] = dt * f(t + A_[i][0] * dt, x + sum);
+      }
+
+      // Compute the high-order and low-order solutions
+      VecX y_high = x;  // High-order solution
+      VecX y_low = x;   // Low-order solution
+      for (int i = 0; i < stages; ++i) {
+        y_high += b_[i] * k[i];
+        y_low += b_star_[i] * k[i];
+      }
+
+      // Compute the error norm
+      VecX error_vec = y_high - y_low;
+      using Scalar = typename VecX::Scalar;  // Extract scalar type
+      VecX scale = Scalar(params_.abstol) + params_.reltol * x.cwiseAbs().array();
+      Real error_norm = (error_vec.cwiseQuotient(scale)).norm() / std::sqrt(x.size());
+
+      // Adjust step size based on error norm
+      if (error_norm <= 1.0) {
+        // Step is accepted
+        t += dt;
+        return y_high;  // Return the high-order solution
+      } else {
+        // Step is rejected
+        double factor = std::pow(safety / error_norm.val(), 0.25);
+        dt *= std::max(factor, 0.1);  // Decrease step size
+      }
+
+      // Ensure the step size is not too small
+      if (dt < dt_min) {
+        throw std::runtime_error("Step size too small, unable to proceed.");
+      }
+
+      iteration++;
+    }
+
+    throw std::runtime_error("Maximum iterations exceeded in PD45 step.");
+  }
+
 }  // namespace lupnt

@@ -444,7 +444,7 @@ namespace lupnt {
   MatX3 GetBodyPos(const VecX& t_tai, NaifId target, Frame frame) {
     MatX3 r(t_tai.size(), 3);
     for (int i = 0; i < t_tai.size(); i++) {
-      r.row(i) = GetBodyPos(t_tai(i), target, frame).head(3);
+      r.row(i) = GetBodyPos(t_tai(i), target, frame);
     }
     return r;
   }
@@ -460,7 +460,7 @@ namespace lupnt {
   MatX3 GetBodyPos(const VecX& t_tai, NaifId center, NaifId target, Frame frame) {
     MatX3 r(t_tai.size(), 3);
     for (int i = 0; i < t_tai.size(); i++) {
-      r.row(i) = GetBodyPos(t_tai(i), center, target, frame).head(3);
+      r.row(i) = GetBodyPos(t_tai(i), center, target, frame);
     }
     return r;
   }

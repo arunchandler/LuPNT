@@ -25,7 +25,6 @@ int main() {
   Vec6 coe0_op(a, e, i, O, w, M);
   Vec6 rv0_op = Classical2Cart(coe0_op, GM_MOON);
   Vec6 rv0_ci = ConvertFrame(t0_tai, rv0_op, Frame::MOON_OP, Frame::MOON_CI);
-  Vec6 rv0_gcrf = ConvertFrame(t0_tai, rv0_ci, Frame::MOON_CI, Frame::GCRF);
 
   // Integrator
   IntegratorParams params;
@@ -38,13 +37,13 @@ int main() {
   dyn.AddBody(Body::Moon(20, 20));
   dyn.AddBody(Body::Earth());
   dyn.AddBody(Body::Sun());
-  dyn.SetFrame(Frame::GCRF);
+  dyn.SetFrame(Frame::MOON_CI);
   dyn.SetIntegratorParams(params);
   dyn.SetTimeStep(10);
 
   // Propagate
   auto start = high_resolution_clock::now();
-  MatX6 rv = dyn.Propagate(rv0_gcrf, t0_tai, tfs, true);
+  MatX6 rvs = dyn.Propagate(rv0_ci, t0_tai, tfs, true);
   auto end = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(end - start);
 
