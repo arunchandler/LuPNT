@@ -33,6 +33,20 @@ namespace lupnt {
 
     void InitializeUkfParams();
 
+  protected:
+    MatXd F_;  // State transition matrix
+    MatXd H_;  // Measurement matrix
+    MatXd Q_;  // Process noise cov
+    MatXd R_;  // Measurement noise cov
+
+    VecX dy_;       // Measurement residual
+    VecX dx_;       // State update
+    VecX z_true_;   // Observed measurement
+    VecX z_prior_;  // Predicted measurement
+
+    MatXd S_;  // Innovation cov
+    MatXd K_;  // Kalman gain
+
   public:
     UKF() = default;
 
@@ -93,6 +107,20 @@ namespace lupnt {
 
     void Predict(Real t_end) override;
     void Update(VecX z_true) override;
+
+    // Interface
+    VecXd GetMeasurementResidual() { return dy_.cast<double>(); }
+    MatXd GetKalmanGain() { return K_; }
+    MatXd GetMeasurementNoiseCov() { return R_; }
+    MatXd GetMeasurementJacobian() { return H_; }
+    int GetMeasurementSize() { return H_.rows(); }
+    MatXd GetProcessNoise() { return Q_; }
+    MatXd GetStateJacobian() { return F_; }
+    MatXd GetInnovationCov() { return S_; }
+    MatXd GetMeasurementCov() { return R_; }
+    VecXd GetStateCorrection() { return dx_.cast<double>(); }
+    VecXd GetTrueMeasurement() { return z_true_.cast<double>(); }
+    VecXd GetPredictedMeasurement() { return z_prior_.cast<double>(); }
   };
 
 }  // namespace lupnt

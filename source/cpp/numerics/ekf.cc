@@ -11,6 +11,8 @@
 
 #include "lupnt/numerics/ekf.h"
 
+#include "lupnt/numerics/math_utils.h"
+
 namespace lupnt {
 
   /*****************************************************
@@ -21,10 +23,24 @@ namespace lupnt {
     t_ = t0;
     x_ = x0;
     P_ = P0;
+    P_prior_ = P0;
+    x_prior_ = x0;
+    P_post_ = P0;
+    x_post_ = x0;
+
+    // Set Matrix
+    F_.resize(x_.size(), x_.size());
   }
 
   void EKF::Predict(Real t_end) {
-    Q_ = f_proc_(x_, t_, t_end);
+    if ((adaptive_process_noise_) && ((Q_set_) && (S_set_))) {
+      MatXd Q_tilde = dx_.cast<double>() * dx_.transpose().cast<double>();
+      Q_ = alpha_Q_ * Q_ + (1 - alpha_Q_) * Q_tilde;
+    } else {
+      Q_ = f_proc_(x_, t_, t_end);
+      Q_set_ = true;
+    }
+
     x_ = f_dyn_(x_, t_, t_end, &F_);
 
     P_ = F_ * P_ * F_.transpose() + Q_;
@@ -56,6 +72,8 @@ namespace lupnt {
     z_prior_ = f_meas_(x_, &H_, &R_);
 
     S_ = R_ + H_ * P_ * H_.transpose();  // Measurement information
+    S_set_ = true;
+
     dy_ = z_true_ - z_prior_;
 
     // Remove outliers
@@ -63,13 +81,25 @@ namespace lupnt {
     if (m == 0) return;  // all measurements are outliers
 
     // Update step
-    K_ = P_ * H_.transpose() * S_.inverse();  // Kalman gain
+    MatXd S_inv = S_.inverse();
+    // MatXd S_inv = S_.completeOrthogonalDecomposition().pseudoInverse();
+    K_ = P_ * H_.transpose() * S_inv;  // Kalman gain
+
+    // K_ = P_ * H_.transpose() * PseudoInverse(S_);
+
     dx_ = K_ * dy_;
     x_ = x_ + dx_;
     MatXd I = MatXd::Identity(n, n);
     MatXd G(n, n);
     G = I - K_ * H_;
+
     P_ = G * P_ * G.transpose() + K_ * R_ * K_.transpose();  // Joseph form
+
+
+    // covariance inflation
+    double lambda = 0.0;
+    P_ = (1 + lambda) * P_;
+    // P_ = G * P_;
 
     x_post_ = x_;
     P_post_ = P_;

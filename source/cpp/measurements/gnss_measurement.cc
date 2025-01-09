@@ -270,8 +270,10 @@ namespace lupnt {
       switch (type) {
         case GnssMeasurementType::PR:
           H_pr = MatXd::Zero(n_meas, state_size);
+
           z.segment(i * n_meas, n_meas)
               = GetPredictedPseudorange(epoch, rv_pred, clk_pred, H_pr, frame_in);
+          
           H_gnss.block(i * n_meas, 0, n_meas, 8) = H_pr;
           break;
         case GnssMeasurementType::PRR:

@@ -18,7 +18,9 @@ namespace lupnt {
       OrbitState orbit_state_new = PropagateState(orbit_state, t0, tf);
       state_new = std::make_shared<OrbitState>(orbit_state_new);
     } else {
-      if (stm->rows() != 6 || stm->cols() != 6) throw std::runtime_error("Invalid STM size");
+      if (stm->rows() != 6 || stm->cols() != 6)
+        throw std::runtime_error("Invalid STM size:" + std::to_string(stm->rows()) + "x"
+                                 + std::to_string(stm->cols()));
       Mat6d stm_6;
       OrbitState orbit_state_new = PropagateState(orbit_state, t0, tf, &stm_6);
       *stm = stm_6;
@@ -34,7 +36,9 @@ namespace lupnt {
     if (stm == nullptr) {
       xf = Propagate(x0_6, t0, tf);
     } else {
-      if (stm->rows() != 6 || stm->cols() != 6) throw std::runtime_error("Invalid STM size");
+      if (stm->rows() != 6 || stm->cols() != 6)
+        throw std::runtime_error("Invalid STM size: " + std::to_string(stm->rows()) + "x"
+                                 + std::to_string(stm->cols()));
       Mat6d stm_6;
       xf = Propagate(x0_6, t0, tf, &stm_6);
       *stm = stm_6;

@@ -112,30 +112,32 @@ namespace lupnt {
     MatXd h_dummy, r_dummy;
     VecX meas_dummy = f_meas_(x_, &h_dummy, &r_dummy);
     int n_z = meas_dummy.size();
+    int n_x = x_.size();
 
     MatXd meas_sigma_points(n_z, n_sigma_);
     std::vector<MatXd> R_store(n_sigma_);
 
     for (int i = 0; i < n_sigma_; i++) {
       MatXd R_i(n_z, n_z);
+      MatXd H_dum(n_z, n_x);
       // Does not need jacobian
-      meas_sigma_points.col(i) = f_meas_(sigma_points.col(i), nullptr, &R_i).cast<double>();
+      meas_sigma_points.col(i) = f_meas_(sigma_points.col(i), &H_dum, &R_i).cast<double>();
       R_store[i] = R_i;
     }
 
     // 2) Compute measurement mean/cov
     VecXd meas_mean = VecXd::Zero(n_z);
-    MatXd meas_cov = MatXd::Zero(n_z, n_z);
+    S_ = MatXd::Zero(n_z, n_z);
 
     for (int i = 0; i < n_sigma_; i++) {
       meas_mean += w_m_(i) * meas_sigma_points.col(i);
     }
     for (int i = 0; i < n_sigma_; i++) {
       VecXd delta_meas = meas_sigma_points.col(i) - meas_mean;
-      meas_cov += w_c_(i) * (delta_meas * delta_meas.transpose());
+      S_ += w_c_(i) * (delta_meas * delta_meas.transpose());
     }
     // Add measurement noise (assuming it's the same R for all sigma points)
-    meas_cov += R_store[0];  // or a chosen R
+    S_ += R_store[0];  // or a chosen R
 
     // 3) Compute cross-covariance
     MatXd cross_cov = MatXd::Zero(n_x_, n_z);
@@ -146,16 +148,20 @@ namespace lupnt {
     }
 
     // 4) Kalman Gain
-    MatXd k_gain = cross_cov * meas_cov.inverse();
+    K_ = cross_cov * S_.inverse();
 
     // 5) Update
-    VecX meas_diff = z_obs - meas_mean;
-    x_post_ = x_ + k_gain * meas_diff;
-    P_post_ = P_ - k_gain * meas_cov * k_gain.transpose();
+    dy_ = z_obs - meas_mean;
+    dx_ = K_ * dy_;
+    x_post_ = x_ + dx_;
+    P_post_ = P_ - K_ * S_ * K_.transpose();
 
     // 6) Store result
     x_ = x_post_;
     P_ = P_post_;
+    R_ = R_store[0];  // store the R used for the update
+    z_true_ = z_obs;
+    z_prior_ = meas_mean;
   }
 
 }  // namespace lupnt

@@ -32,6 +32,13 @@ namespace lupnt {
     MatXd S_;  // Innovation cov
     MatXd K_;  // Kalman gain
 
+    bool adaptive_process_noise_ = false;
+    bool Q_set_ = false;
+    bool S_set_ = false;
+
+    // adaptive process noise parameters
+    double alpha_Q_ = 0.95;
+
   public:
     double outlier_threshold_ = 3.0;
 
@@ -39,6 +46,14 @@ namespace lupnt {
 
     void SetOutlierThreshold(double outlier_threshold);
     int RemoveOutliers(int m);
+
+    void SetAdaptiveProcessNoise(bool adaptive_process_noise) {
+      adaptive_process_noise_ = adaptive_process_noise;
+      Q_set_ = false;
+      S_set_ = false;
+    }
+
+    void SetAdaptiveProcessNoiseCoeff(double alpha_Q) { alpha_Q_ = alpha_Q; }
 
     // Interface
     void Predict(Real t_end) override;
