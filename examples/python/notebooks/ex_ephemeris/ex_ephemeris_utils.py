@@ -7,16 +7,18 @@ import pylupnt.ephemeris as eph
 from tqdm import tqdm
 
 
-def fit_eval_ephemeris(
+def basis_fit_eval_ephemeris(
     df_dict,
     t_intervals,
     tinv_eval,
     anom_num,
     T_orbit,
     n_array,
-    solve_type,
+    add_sise_constraint,
     basis,
     angle_model,
+    fit_velocity=True,
+    cheby_interp=True,
     plot_fig=False,
 ):
     """
@@ -42,8 +44,8 @@ def fit_eval_ephemeris(
     n_array : list
         List with the different polynomial degrees to evaluate
 
-    solve_type : str
-        Type of solver to use for the polynomial fitting (original, individual, sise_constrained, MLLS)
+    add_sise_constraint : bool
+        Flag to add the SISE constraint to the optimization problem
 
     basis : str
         Basis to use for the polynomial fitting (cheby or polynomial)
@@ -119,55 +121,33 @@ def fit_eval_ephemeris(
 
             # orbit fitting ------------------------------------------------------------
             if basis == "cheby":
-                # normalize time
-                df_interp["time"] = df_interp["time"].apply(
-                    lambda x: (2 / (tf - t0)) * x - 1
-                )
-                t_array = np.array(df_interp["time"])
-                # get coefficient lists
-                (
-                    ax_list,
-                    ay_list,
-                    az_list,
-                    fx_est_val,
-                    fy_est_val,
-                    fz_est_val,
-                    fdotx_est_val,
-                    fdoty_est_val,
-                    fdotz_est_val,
-                    status,
-                ) = eph.solve_chebyshev(
-                    df_interp, t_interval, n_array, solve_type, plot=True
-                )
-                # fix back time
-                df_interp["time"] = df_interp["time"].apply(
-                    lambda x: (x + 1) / (2 / (tf - t0))
-                )
-
+                basis_inst = eph.Chebyshev()
             elif basis == "polynomial":
-                # normalize time
-                df_interp["time"] = df_interp["time"].apply(
-                    lambda x: (2 / (tf - t0)) * x - 1
-                )
-                t_array = np.array(df_interp["time"])  # evaluation points
-                # get coefficient lists
-                (
-                    ax_list,
-                    ay_list,
-                    az_list,
-                    fx_est_val,
-                    fy_est_val,
-                    fz_est_val,
-                    fdotx_est_val,
-                    fdoty_est_val,
-                    fdotz_est_val,
-                    status,
-                ) = eph.solve_polynomial(
-                    df_interp, t_interval, n_array, solve_type, df_OE_interp
-                )
-                # fix back time
-                df_interp["time"] = df_interp["time"].apply(
-                    lambda x: (x + 1) / (2 / (tf - t0))
+                basis_inst = eph.Polynomial()
+            elif basis == "legendre":
+                basis_inst = eph.Legendre()
+            elif basis == "fourier":
+                basis_inst = eph.Fourier()
+            else:
+                # error
+                print("Basis not recognized, default to Chebyshev")
+                basis_inst = eph.Chebyshev()
+
+            # normalize time
+            df_interp["time"] = df_interp["time"].apply(
+                lambda x: (2 / (tf - t0)) * x - 1
+            )
+            t_array = np.array(df_interp["time"])
+
+            # get coefficient lists
+            (ax_list, ay_list, az_list, fx_est_val, fy_est_val, fz_est_val,
+             fdotx_est_val, fdoty_est_val, fdotz_est_val, status
+            ) = eph.fit_basis_orbit(df_interp, t_interval, n_array, basis_inst, add_sise_constraint,
+                                    cheby_interp=cheby_interp, fit_velocity=fit_velocity, plot=True)
+
+            # fix back time
+            df_interp["time"] = df_interp["time"].apply(
+                lambda x: (x + 1) / (2 / (tf - t0))
                 )
 
             # angles fitting ------------------------------------------------------------

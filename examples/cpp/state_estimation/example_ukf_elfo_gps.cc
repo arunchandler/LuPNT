@@ -502,7 +502,7 @@ int main() {
   Real et0_utc = Gregorian2Time(2025, 1, 1, 12, 0, 0).val();  // in UTC
   double et0 = UTC2TAI(et0_utc).val();                        // in TAI
   double dt = 1.0;                                            // Integration time step [s]
-  double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
+  double Dt = 600;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
 
@@ -535,8 +535,8 @@ int main() {
   tf = et0 + (time_step_num - 1) * Dt;
 
   // Dynamics Model   Todo: Refine this to a more high fidelity model -------------------
-  int moon_sph_true = 8;  // moon spherical harmonics order in true dynamics
-  int moon_sph_est = 8;   // moon spherical harmonics order in filter dynamics
+  int moon_sph_true = 10;  // moon spherical harmonics order in true dynamics
+  int moon_sph_est = 5;   // moon spherical harmonics order in filter dynamics
   bool add_earth = false;  // add earth to true and filter dynamics
 
   // Onboard Clock Model ---------------------------
@@ -545,16 +545,18 @@ int main() {
   // measurements ----------------------------------
   bool use_range = true;       // use GPS pseudorange measurement
   bool use_range_rate = true;  // use GPS pseudorange-rate measurement
-  bool apply_ionomask = true;  // Apply Ionosphere masks
+
+  double sis_ure_std = 5.0e-3;        // SIS URE [km]
+  double sis_ure_rate_std = 5.0e-6;  // SIS URE rate [km/s]
 
   // Estimation Parameters --------------------------
-  int state_size = 8;           // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
-  double pos_err = 1.0;         // Initial Position error [km]
-  double vel_err = pos_err * 1e-3;        // Initial Velocity error [km/s]
-  double clk_bias_err = 1e-6;   // Initial Clock bias error [s]
-  double clk_drift_err = 1e-10;  // Initial Clock drift error [s/s]
-  double sigma_acc = 1e-8;     // Process noise Acceleration [km/s^2]  <-- tune
-                                // this for optimal performance!
+  int state_size = 8;               // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
+  double pos_err = 1.0/sqrt(3);             // Initial Position error [km]
+  double vel_err = pos_err * 1e-2;  // Initial Velocity error [km/s]
+  double clk_bias_err = 1.0/C;       // Initial Clock bias error [s]
+  double clk_drift_err = clk_bias_err * 1e-3;     // Initial Clock drift error [s/s]
+  double sigma_acc = std::pow(10, -7.5);  // Process noise Acceleration [km/s^2]  <-- tune
+                                          // this for optimal performance!  (1e-8 for MINI-RAFS, 1e-7.5 for CSAC)
 
   // Adaptive Process Noise -------------------------
   bool use_adaptive_proc = false; // use adaptive process noise
@@ -687,12 +689,13 @@ int main() {
 
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 
-  /*********************************************
+/*********************************************
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, meas_types, signals](const VecX x, MatXd* H,
-                                                                       MatXd* R) -> VecX {
+      = [moon_sat, receiver, state_size, no_meas, 
+         meas_types, signals, sis_ure_std, sis_ure_rate_std, use_range, use_range_rate](const VecX x, MatXd* H,
+                                                                                        MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
     }
@@ -714,17 +717,32 @@ int main() {
 
     VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
                                               frame_in);  // Jacobian with autodiff
-
-    // Get the Measurement Noise
+    
+    int n_meas_sat = int(z.size()/meas_types.size());
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
-    R->diagonal().array() = noise_std_vec.array().square();
+
+    // ADD signal in space URE
+    int z_idx = 0;
+    if (use_range){
+      for (int idx = 0; idx < n_meas_sat; idx++) {
+        (*R)(z_idx, z_idx) = std::pow(noise_std_vec(z_idx), 2) + std::pow(sis_ure_std, 2);
+        z_idx++;
+      }
+    }
+    if (use_range_rate){
+      for (int idx = 0; idx < n_meas_sat; idx++) {
+        (*R)(z_idx, z_idx) = std::pow(noise_std_vec(z_idx), 2) + std::pow(sis_ure_rate_std, 2);
+        z_idx++;
+      }
+    }
 
     // scaling the measurement noise
-    // double scale = 1000.0;
+    double scale = 1000;
     // R->diagonal().array() *= scale;
 
     return z;
   };
+
 
   /*********************************************
    * Define Process Noise function
@@ -775,9 +793,24 @@ int main() {
   if (use_qzss) {
     constellation_config += "_QZSS";
   }
-  std::string datafilename = "ExampleUKF" + constellation_config + ".csv";
+  std::string datafilename = "ExampleUKF" + constellation_config;
 
-  auto output_path = std::filesystem::current_path() / "output" / datafilename;
+  std::string clock_str;
+  switch (cmodel) {
+    case ClockModel::kMiniRafs:
+      clock_str = "MiniRafs";
+      break;
+    case ClockModel::kMicrosemiCsac:
+      clock_str = "Csac";
+      break;
+    case ClockModel::kRafs:
+      clock_str = "Rafs";
+      break;
+    default:
+      break;
+  }
+
+  auto output_path = std::filesystem::current_path() / "output" / datafilename / clock_str;
   FileWriter writer(output_path, true);
 
   /***********************************************
@@ -828,6 +861,16 @@ int main() {
       z_true = meas.GetGnssMeasurement(meas_types, with_noise, seed);
     } else {
       z_true = VecXd::Zero(0);
+    }
+
+    // Add SIS_URE to the measurement
+    int zidx = 0;
+    if (use_range) {
+      z_true(zidx) += SampleRandNormal(0, sis_ure_std, seed);
+      zidx++;
+    }
+    if (use_range_rate) {
+      z_true(zidx) += SampleRandNormal(0, sis_ure_rate_std, seed);
     }
 
     // Update UKF

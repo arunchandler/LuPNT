@@ -545,8 +545,8 @@ int main() {
   bool add_sun = true;    // add sun to true and filter dynamics
 
   // Onboard Clock Model ---------------------------
-  ClockModel cmodel = ClockModel::kMicrosemiCsac; // ClockModel::kMiniRafs;
-  // ClockModel cmodel = ClockModel::kMiniRafs;
+  // ClockModel cmodel = ClockModel::kMicrosemiCsac; // ClockModel::kMiniRafs;
+  ClockModel cmodel = ClockModel::kMiniRafs;
 
   // measurements ----------------------------------
   bool use_range = true;       // use GPS pseudorange measurement
@@ -561,7 +561,7 @@ int main() {
   double vel_err = pos_err * 1e-2;  // Initial Velocity error [km/s]
   double clk_bias_err = 1.0/C;       // Initial Clock bias error [s]
   double clk_drift_err = clk_bias_err * 1e-3;     // Initial Clock drift error [s/s]
-  double sigma_acc = std::pow(10, -7.5);  // Process noise Acceleration [km/s^2]  <-- tune
+  double sigma_acc = std::pow(10, -7.7);  // Process noise Acceleration [km/s^2]  <-- tune
                                           // this for optimal performance!  (1e-8 for MINI-RAFS, 1e-7.5 for CSAC)
 
   // Adaptive Process Noise -------------------------
@@ -734,6 +734,7 @@ int main() {
     int n_meas_sat = int(z.size()/meas_types.size());
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
 
+    // ADD signal in space URE
     int z_idx = 0;
     if (use_range){
       for (int idx = 0; idx < n_meas_sat; idx++) {
@@ -808,9 +809,24 @@ int main() {
   if (use_qzss) {
     constellation_config += "_QZSS";
   }
-  std::string datafilename = "ExampleEKF" + constellation_config;
 
-  auto output_path = std::filesystem::current_path() / "output" / datafilename;
+  std::string clock_str;
+  switch (cmodel) {
+    case ClockModel::kMiniRafs:
+      clock_str = "MiniRafs";
+      break;
+    case ClockModel::kMicrosemiCsac:
+      clock_str = "Csac";
+      break;
+    case ClockModel::kRafs:
+      clock_str = "Rafs";
+      break;
+    default:
+      break;
+  }
+
+  std::string datafilename = "ExampleEKF" + constellation_config;
+  auto output_path = std::filesystem::current_path() / "output" / datafilename / clock_str;
   FileWriter writer(output_path, true);
 
   /***********************************************
