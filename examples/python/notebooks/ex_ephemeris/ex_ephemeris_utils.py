@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pylupnt as pnt
 import pylupnt.ephemeris as eph
 from tqdm import tqdm
-
+from joblib import Parallel, delayed
 
 def basis_fit_eval_ephemeris(
     df_dict,
@@ -17,9 +17,12 @@ def basis_fit_eval_ephemeris(
     add_sise_constraint,
     basis,
     angle_model,
+    pos_req,
+    vel_req,
     fit_velocity=True,
     cheby_interp=True,
     plot_fig=False,
+    use_parallel=True,
 ):
     """
     Fit and evaluate the ephemeris for different time intervals and starting conditions
@@ -93,6 +96,7 @@ def basis_fit_eval_ephemeris(
     # 1. different time intervals
     # 2. different starting points (true anomalies)
     # 3. different polynomial degrees (n_array, inside function)
+    # 2, 3 is parallelized (optional)
     for t_idx in range(len(t_intervals)):
         # for each time interval, need to gather data across different starting conditions
         print(
@@ -104,152 +108,30 @@ def basis_fit_eval_ephemeris(
             )
         )
 
-        for start_idx in tqdm(range(len(t0_list))):
-            # print('True Anom: {0:4.2f} deg'.format(np.rad2deg(f0_list[start_idx])))
-            # fix untis for starting time and true anomaly
-            t_start = t0_list[start_idx]
-            f_start = np.rad2deg(f0_list[start_idx])
-            t_interval = t_intervals[t_idx]
-
-            time_fit, df_interp, df_OE_interp, df_MCMF_interp, df_angles_interp = (
-                tshift_interp_df(
-                    t_start, t_interval, tinv_eval, df_MCI, df_MCMF, df_angles, df_OE
+        # Using parallel processing to speed up the computation for looping over starting conditions
+        if use_parallel:
+            results_for_t0 = Parallel(n_jobs=-1)(
+                delayed(process_start_idx)(
+                    start_idx, t0_list[start_idx], f0_list[start_idx],t_intervals[t_idx],
+                    tinv_eval, df_dict, basis, angle_model, n_array, add_sise_constraint, 
+                    cheby_interp, fit_velocity, pos_req, vel_req, plot_fig
                 )
-            )
-            t0 = df_interp["time"].iloc[0]
-            tf = t_interval + t0
-
-            # orbit fitting ------------------------------------------------------------
-            if basis == "cheby":
-                basis_inst = eph.Chebyshev()
-            elif basis == "polynomial":
-                basis_inst = eph.Polynomial()
-            elif basis == "legendre":
-                basis_inst = eph.Legendre()
-            elif basis == "fourier":
-                basis_inst = eph.Fourier()
-            else:
-                # error
-                print("Basis not recognized, default to Chebyshev")
-                basis_inst = eph.Chebyshev()
-
-            # normalize time
-            df_interp["time"] = df_interp["time"].apply(
-                lambda x: (2 / (tf - t0)) * x - 1
-            )
-            t_array = np.array(df_interp["time"])
-
-            # get coefficient lists
-            (ax_list, ay_list, az_list, fx_est_val, fy_est_val, fz_est_val,
-             fdotx_est_val, fdoty_est_val, fdotz_est_val, status
-            ) = eph.fit_basis_orbit(df_interp, t_interval, n_array, basis_inst, add_sise_constraint,
-                                    cheby_interp=cheby_interp, fit_velocity=fit_velocity, plot=True)
-
-            # fix back time
-            df_interp["time"] = df_interp["time"].apply(
-                lambda x: (x + 1) / (2 / (tf - t0))
+                for start_idx in range(len(t0_list))
                 )
+            
+            for partial_sise_dict in results_for_t0:
+                for key in partial_sise_dict.keys():
+                    sise_dict[t_idx][key].extend(partial_sise_dict[key])
 
-            # angles fitting ------------------------------------------------------------
-            # only keep points from which we will evaluate the approximation
-            t_array = np.array(df_angles_interp["time"])  # evaluation points
-            lent = t_array.shape[0]
-
-            # return coefficients in this order [psi coeffs, theta coeffs, phi coeffs]
-            if angle_model == "linear":
-                angle_coeffs = pnt.ephemeris.linear_angle_fit(t_array, df_angles_interp)
-            elif angle_model == "quadratic":
-                angle_coeffs = pnt.ephemeris.quad_angle_fit(t_array, df_angles_interp)
-            else:
-                print(
-                    "Did not specify an available angle fitting model, default to linear"
+        else:   # no parallel processing
+            for start_idx in tqdm(range(len(t0_list))):
+                sise_dict_tidx = process_start_idx(
+                    start_idx, t0_list[start_idx], f0_list[start_idx], t_intervals[t_idx],
+                    tinv_eval, df_dict, basis, angle_model, n_array, add_sise_constraint, 
+                    cheby_interp, fit_velocity, pos_req, vel_req, plot_fig
                 )
-                angle_coeffs = pnt.ephemeris.linear_angle_fit(t_array, df_angles_interp)
-
-            # evaluation ---------------------------------------------------------------
-            for k in range(len(n_array)):
-
-                # store in dict ------------------------------------------------------------
-                fit_dict = {
-                    "time_fit": time_fit,
-                    "ax_list": ax_list[k, :],  # list of coefficients for x
-                    "ay_list": ay_list[k, :],
-                    "az_list": az_list[k, :],
-                    "fx_est_val": fx_est_val[k, :],
-                    "fy_est_val": fy_est_val[k, :],
-                    "fz_est_val": fz_est_val[k, :],
-                    "fdotx_est_val": fdotx_est_val[k, :],
-                    "fdoty_est_val": fdoty_est_val[k, :],
-                    "fdotz_est_val": fdotz_est_val[k, :],
-                    "angle_coeffs": angle_coeffs,
-                    "status": status,
-                }
-
-                if not status[k]:
-                    sise_dict[t_idx]["f0"].append(f_start)
-                    sise_dict[t_idx]["t0"].append(t_start)
-                    sise_dict[t_idx]["n"].append(n_array[k])
-                    sise_dict[t_idx]["sise_pos"].append(np.nan)
-                    sise_dict[t_idx]["sise_vel"].append(np.nan)
-                    ax_n = ax_list[k].tolist()
-                    ay_n = ay_list[k].tolist()
-                    az_n = az_list[k].tolist()
-                    sise_dict[t_idx]["coefficients"].append(
-                        [ax_n, ay_n, az_n, angle_coeffs.flatten().tolist()]
-                    )
-                    continue
-
-                else:
-                    f_df, fdot_df, angles_store = rot_mci2pa(time_fit, fit_dict)
-
-                    # evaluate SISE in position
-                    sise_n_pos = sise_evaluation(
-                        df_MCMF_interp, f_df, time_fit, typ="pos"
-                    )  # in MCMF
-                    sise_n_abs = np.abs(sise_n_pos)
-                    sigma3_err = np.percentile(sise_n_abs, 99.7)
-
-                    sise_dict[t_idx]["f0"].append(f_start)
-                    sise_dict[t_idx]["t0"].append(t_start)
-                    sise_dict[t_idx]["n"].append(n_array[k])
-                    sise_dict[t_idx]["sise_pos"].append(sigma3_err)
-
-                    # evaluate SISE in velocity
-                    sise_n_vel = sise_evaluation(
-                        df_MCMF_interp, fdot_df, time_fit, typ="vel"
-                    )  # in MCMF
-
-                    sise_10sec = []
-                    i = 0  # must consider 10 second time intervals
-                    dt = time_fit[1] - time_fit[0]
-                    inv_10sec = int(np.ceil(10 / (dt * tinv_eval)))
-
-                    for i in range(lent - 10):
-                        sise_10sec.append(np.max(np.abs(sise_n_vel[i : i + inv_10sec])))
-                    sise_10sec = np.array(sise_10sec)
-
-                    sigma3_err = np.percentile(sise_10sec, 99.7)
-                    sise_dict[t_idx]["sise_vel"].append(sigma3_err)
-
-                    # store coefficients
-                    ax_n = ax_list[k].tolist()
-                    ay_n = ay_list[k].tolist()
-                    az_n = az_list[k].tolist()
-                    sise_dict[t_idx]["coefficients"].append(
-                        [ax_n, ay_n, az_n, angle_coeffs.flatten().tolist()]
-                    )
-
-                    # plot fit results
-                    if plot_fig:
-                        plot_angle_fit(t_array, angles_store, df_angles_interp)
-                        plot_orbit_fit(
-                            df_MCMF_interp, f_df, time_fit, sise_n_pos, typ="pos"
-                        )
-                        plot_orbit_fit(
-                            df_MCMF_interp, fdot_df, time_fit, sise_n_vel, typ="vel"
-                        )
-            # end of n_array loop
-        # end of starting conditions loop
+                for key in sise_dict_tidx.keys():
+                    sise_dict[t_idx][key].extend(sise_dict_tidx[key])
 
         # compute the mean and std of the SISE values for this time interval
         disp_sise_result(sise_dict, t_idx)
@@ -257,6 +139,196 @@ def basis_fit_eval_ephemeris(
     # end of time intervals loop
     return sise_dict
 
+
+def process_start_idx(start_idx, t0, f0, t_interval, tinv_eval, df_dict, basis, angle_model, 
+                      n_array, add_sise_constraint, cheby_interp, fit_velocity, pos_req, vel_req, plot_fig):
+    t_start = t0
+    f_start = np.rad2deg(f0)
+
+    df_MCI = df_dict["MCI"]
+    df_MCMF = df_dict["MCMF"]
+    df_angles = df_dict["angles"]
+    df_OE = df_dict["OE"]
+
+    time_fit, df_interp, df_OE_interp, df_MCMF_interp, df_angles_interp = (
+        tshift_interp_df(
+            t_start, t_interval, tinv_eval, df_MCI, df_MCMF, df_angles, df_OE
+        )
+    )
+
+    # orbit and angle fitting ------------------------------------------------------------
+    fit_dicts = fit_model(basis, angle_model, time_fit, df_interp, df_angles_interp, 
+                            t_interval, n_array, add_sise_constraint, cheby_interp, fit_velocity,
+                            pos_req, vel_req)
+
+    # evaluation ---------------------------------------------------------------
+    sise_dict_tidx = store_to_sise_dict(time_fit, tinv_eval, fit_dicts, f_start, t_start, n_array, 
+                                            df_MCMF_interp, df_angles_interp, plot_fig)
+    
+    return sise_dict_tidx
+
+
+def fit_model(basis, angle_model, time_fit, df_interp, df_angles_interp, t_interval, n_array, 
+              add_sise_constraint, cheby_interp, fit_velocity, pos_req, vel_req):
+
+    # time
+    t0 = df_interp["time"].iloc[0]
+    tf = t_interval + t0
+
+    if basis == "cheby":
+        basis_inst = eph.Chebyshev()
+    elif basis == "polynomial":
+        basis_inst = eph.Polynomial()
+    elif basis == "legendre":
+        basis_inst = eph.Legendre()
+    elif basis == "fourier":
+        basis_inst = eph.Fourier()
+    else:
+        # error
+        print("Basis not recognized, default to Chebyshev")
+        basis_inst = eph.Chebyshev()
+
+    # normalize time
+    df_interp["time"] = df_interp["time"].apply(
+        lambda x: (2 / (tf - t0)) * x - 1
+    )
+
+    # get coefficient lists
+    (ax_list, ay_list, az_list, fx_est_val, fy_est_val, fz_est_val,
+        fdotx_est_val, fdoty_est_val, fdotz_est_val, status
+    ) = eph.fit_basis_orbit(df_interp, t_interval, n_array, basis_inst, add_sise_constraint,
+                            cheby_interp=cheby_interp, fit_velocity=fit_velocity,
+                            pos_req = pos_req, vel_req = vel_req,
+                            plot=True)
+
+    # fix back time
+    df_interp["time"] = df_interp["time"].apply(
+        lambda x: (x + 1) / (2 / (tf - t0))
+                )
+    
+    angle_coeffs = fit_angle_model(df_angles_interp, angle_model)
+    
+    fit_dicts = {}
+
+    for k in range(len(n_array)):
+        fit_dicts[k] = {
+                "time_fit": time_fit,
+                "ax_list": ax_list[k, :],  # list of coefficients for x
+                "ay_list": ay_list[k, :],
+                "az_list": az_list[k, :],
+                "fx_est_val": fx_est_val[k, :],
+                "fy_est_val": fy_est_val[k, :],
+                "fz_est_val": fz_est_val[k, :],
+                "fdotx_est_val": fdotx_est_val[k, :],
+                "fdoty_est_val": fdoty_est_val[k, :],
+                "fdotz_est_val": fdotz_est_val[k, :],
+                "angle_coeffs": angle_coeffs,
+                "status": status[k],
+        }
+    
+    return fit_dicts
+
+
+def fit_angle_model(df_angles_interp, angle_model):
+    t_array = np.array(df_angles_interp["time"])  # evaluation points
+
+    # return coefficients in this order [psi coeffs, theta coeffs, phi coeffs]
+    if angle_model == "linear":
+        angle_coeffs = pnt.ephemeris.linear_angle_fit(t_array, df_angles_interp)
+    elif angle_model == "quadratic":
+        angle_coeffs = pnt.ephemeris.quad_angle_fit(t_array, df_angles_interp)
+    else:
+        print(
+            "Did not specify an available angle fitting model, default to linear"
+        )
+        angle_coeffs = pnt.ephemeris.linear_angle_fit(t_array, df_angles_interp)
+
+    return angle_coeffs
+
+
+def store_to_sise_dict(time_fit, tinv_eval, fit_dicts, f_start, t_start, n_array, 
+                       df_MCMF_interp, df_angles_interp, plot_fig):
+
+    sise_dict = dict(f0=[], t0=[], n=[], sise_pos=[], sise_vel=[], coefficients=[])
+
+    for k in range(len(n_array)):
+
+        # store in dict ------------------------------------------------------------
+        fit_dict = fit_dicts[k]
+
+        if not fit_dict["status"]:
+            sise_dict["f0"].append(f_start)
+            sise_dict["t0"].append(t_start)
+            sise_dict["n"].append(n_array[k])
+            sise_dict["sise_pos"].append(np.nan)
+            sise_dict["sise_vel"].append(np.nan)
+            ax_n = fit_dict["ax_list"].tolist()
+            ay_n = fit_dict["ay_list"].tolist()
+            az_n = fit_dict["az_list"].tolist()
+            angle_coeffs = fit_dict["angle_coeffs"]
+            sise_dict["coefficients"].append(
+                [ax_n, ay_n, az_n, angle_coeffs.flatten().tolist()]
+            )
+            continue
+
+        else: 
+            ax_list = fit_dict["ax_list"]
+            ay_list = fit_dict["ay_list"]
+            az_list = fit_dict["az_list"]
+            angle_coeffs = fit_dict["angle_coeffs"] 
+            t_array = np.array(df_angles_interp["time"])  # evaluation points
+            lent = t_array.shape[0]
+
+            f_df, fdot_df, angles_store = rot_mci2pa(time_fit, fit_dict)
+
+            # evaluate SISE in position
+            sise_n_pos = sise_evaluation(
+                df_MCMF_interp, f_df, time_fit, typ="pos"
+            )  # in MCMF
+            sise_n_abs = np.abs(sise_n_pos)
+            sigma3_err = np.percentile(sise_n_abs, 99.7)
+
+            sise_dict["f0"].append(f_start)
+            sise_dict["t0"].append(t_start)
+            sise_dict["n"].append(n_array[k])
+            sise_dict["sise_pos"].append(sigma3_err)
+
+            # evaluate SISE in velocity
+            sise_n_vel = sise_evaluation(
+                df_MCMF_interp, fdot_df, time_fit, typ="vel"
+            )  # in MCMF
+
+            sise_10sec = []
+            i = 0  # must consider 10 second time intervals
+            dt = time_fit[1] - time_fit[0]
+            inv_10sec = int(np.ceil(10 / (dt * tinv_eval)))
+
+            for i in range(lent - 10):
+                sise_10sec.append(np.max(np.abs(sise_n_vel[i : i + inv_10sec])))
+            sise_10sec = np.array(sise_10sec)
+
+            sigma3_err = np.percentile(sise_10sec, 99.7)
+            sise_dict["sise_vel"].append(sigma3_err)
+
+            # store coefficients
+            ax_n = ax_list.tolist()
+            ay_n = ay_list.tolist()
+            az_n = az_list.tolist()
+            sise_dict["coefficients"].append(
+                [ax_n, ay_n, az_n, angle_coeffs.flatten().tolist()]
+            )
+
+            # plot fit results
+            if plot_fig:
+                plot_angle_fit(t_array, angles_store, df_angles_interp)
+                plot_orbit_fit(
+                    df_MCMF_interp, f_df, time_fit, sise_n_pos, typ="pos"
+                )
+                plot_orbit_fit(
+                    df_MCMF_interp, fdot_df, time_fit, sise_n_vel, typ="vel"
+                )
+
+    return sise_dict
 
 def tshift_interp_df(t_start, t_interval, tinv_eval, df_MCI, df_MCMF, df_angles, df_OE):
     """

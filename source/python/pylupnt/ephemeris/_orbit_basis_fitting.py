@@ -115,7 +115,9 @@ def fit_basis_function(t_array,n_array,f_true_val,fdot_true_val,t_interval, basi
         prob = cp.Problem(cp.Minimize(cost), const)
 
         try:
-            prob.solve(solver=solver, feastol=tol, max_iters=100000)
+            # prob.solve(solver="ECOS", feastol=tol, max_iters=100000)
+            prob.solve(solver=cp.CLARABEL, max_iter=100000)
+            
             # print("status:", prob.status)
             # print("optimal value", prob.value)
             a_x = ax.value
@@ -171,7 +173,9 @@ def fit_basis_function(t_array,n_array,f_true_val,fdot_true_val,t_interval, basi
 
 
 def fit_basis_orbit(df_interp, t_interval, n_array, basis, add_sise_constraint=True, 
-                    fit_velocity=True, cheby_interp=True, plot=False):
+                    fit_velocity=True, cheby_interp=True, 
+                    pos_req = 0.01343 / 6, vel_req = (1.2e-6) / 6,
+                    plot=False):
     """
     Fit the basis functions to the given data with the sise constraint
 
@@ -180,11 +184,6 @@ def fit_basis_orbit(df_interp, t_interval, n_array, basis, add_sise_constraint=T
     t_array = np.array(df_interp["time"])
     # specify alpha array if L-norm fitting
     alpha = None
-    solver = "ECOS"
-
-    # requirements (scaled since this is a single variable fitting)
-    pos_req = 0.01343 / 6
-    vel_req = (1.2e-6) / 6
 
     # fitting
     pos_labels = ["x", "y", "z"]
