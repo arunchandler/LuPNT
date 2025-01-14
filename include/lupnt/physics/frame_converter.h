@@ -86,6 +86,6 @@ namespace lupnt {
   CartesianOrbitState ConvertFrame(Real t_tai, const CartesianOrbitState &state_in,
                                    Frame frame_out);
 
-  Mat3 GetFrameConversionMatrix(Real t_tai, Frame from_frame, Frame to_frame);
+  std::pair<Mat3, Vec3> GetFrameRotationTranslation(Real t_tai, Frame from_frame, Frame to_frame);
 
 }  // namespace lupnt

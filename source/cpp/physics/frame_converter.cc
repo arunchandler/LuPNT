@@ -167,9 +167,8 @@ namespace lupnt {
 
   MatX6 ConvertFrame(Real t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out) {
     MatX6 rv_out(rv_in.rows(), 6);
-    for (int i = 0; i < rv_in.rows(); i++) {
+    for (int i = 0; i < rv_in.rows(); i++)
       rv_out.row(i) = ConvertFrame(t_tai, rv_in.row(i).transpose().eval(), frame_in, frame_out);
-    }
     return rv_out;
   }
 
@@ -184,9 +183,8 @@ namespace lupnt {
 
   MatX6 ConvertFrame(VecX t_tai, const Vec6& rv_in, Frame frame_in, Frame frame_out) {
     MatX6 rv_out(t_tai.size(), 6);
-    for (int i = 0; i < t_tai.size(); i++) {
+    for (int i = 0; i < t_tai.size(); i++)
       rv_out.row(i) = ConvertFrame(t_tai(i), rv_in, frame_in, frame_out);
-    }
     return rv_out;
   }
 
@@ -201,9 +199,8 @@ namespace lupnt {
     if (t_tai.size() != rv_in.rows())
       throw std::runtime_error("Epoch and rv_in must have same size");
     MatX6 rv_out(t_tai.size(), 6);
-    for (int i = 0; i < t_tai.size(); i++) {
+    for (int i = 0; i < t_tai.size(); i++)
       rv_out.row(i) = ConvertFrame(t_tai(i), rv_in.row(i).transpose().eval(), frame_in, frame_out);
-    }
     return rv_out;
   }
 
@@ -217,8 +214,17 @@ namespace lupnt {
     return r_out;
   }
 
-  Mat3 GetFrameConversionMatrix(Real t_tai, Frame from_frame, Frame to_frame) {
-    MatX3 I = Mat3::Identity();
-    return ConvertFrame(t_tai, I, to_frame, from_frame);
+  /// @brief r_to = R * r_from + r
+  /// @param t_tai
+  /// @param from_frame
+  /// @param to_frame
+  /// @return
+  std::pair<Mat3, Vec3> GetFrameRotationTranslation(Real t_tai, Frame from_frame, Frame to_frame) {
+    MatX3 I3 = Mat3::Identity();
+    Mat3 M = ConvertFrame(t_tai, I3, from_frame, to_frame);
+    MatX3 r0 = MatX3::Zero(1, 3);
+    Vec3 r = ConvertFrame(t_tai, r0, from_frame, to_frame).transpose();
+    Mat3 R = (M.rowwise() - r.transpose()).transpose();
+    return std::make_pair(R, r);
   }
 }  // namespace lupnt

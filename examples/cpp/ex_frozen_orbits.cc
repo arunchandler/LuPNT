@@ -37,14 +37,24 @@ private:
 struct {
   bool recompute_part1 = true;
   bool recompute_part2 = true;
-  bool plot_case0 = false;
-  bool plot_case1 = false;
-  bool plot_case2 = false;
-  bool plot_case3 = false;
-  bool plot_case4 = false;
-  bool plot_ew = false;
-  bool plot_delta_M = false;
+  bool plot_case0 = true;
+  bool plot_case1 = true;
+  bool plot_case2 = true;
+  bool plot_case3 = true;
+  bool plot_case4 = true;
+  bool plot_ew = true;
+  bool plot_delta_M = true;
 } config;
+
+MatX6 RotateFrame(VecX t_tai, const MatX6 &rv_in, Frame frame_in, Frame frame_out) {
+  MatX6 rv_out = MatX6::Zero(rv_in.rows(), 6);
+  for (int i = 0; i < t_tai.size(); i++) {
+    auto [R, r] = GetFrameRotationTranslation(t_tai[i], frame_in, frame_out);
+    rv_out.row(i).head(3) = (R * rv_in.row(i).head(3).transpose()).transpose();
+    rv_out.row(i).tail(3) = (R * rv_in.row(i).tail(3).transpose()).transpose();
+  }
+  return rv_out;
+}
 
 int main() {
   auto begin = GetSystemTime();
@@ -283,7 +293,7 @@ int main() {
   // Case 4
   // **************************************************************************
   cout << endl << "*********** Case 4 ***********" << endl;
-  MatX6 rv_case4_me = ConvertFrame(tfs, rv_case3_ci, Frame::MOON_CI, Frame::MOON_ME, true);
+  MatX6 rv_case4_me = RotateFrame(tfs, rv_case3_ci, Frame::MOON_CI, Frame::MOON_ME);
   MatX6 coe_case4_me = Cart2Classical(rv_case4_me, GM_MOON);
 
   // **************************************************************************
@@ -308,7 +318,7 @@ int main() {
     rv_case5_ci = H5Easy::load<MatX6d>(file_part1, "/rv_case5_ci");
   }
 
-  MatX6 rv_case5_me = ConvertFrame(tfs, rv_case5_ci, Frame::MOON_CI, Frame::MOON_ME, true);
+  MatX6 rv_case5_me = RotateFrame(tfs, rv_case5_ci, Frame::MOON_CI, Frame::MOON_ME);
   MatX6 coe_case5_me = Cart2Classical(rv_case5_me, GM_MOON);
 
   // **************************************************************************
@@ -339,7 +349,7 @@ int main() {
   } else {
     rv_case6_ci = H5Easy::load<MatX6d>(file_part1, "/rv_case6_ci");
   }
-  MatX6 rv_case6_me = ConvertFrame(tfs, rv_case6_ci, Frame::MOON_CI, Frame::MOON_ME, true);
+  MatX6 rv_case6_me = RotateFrame(tfs, rv_case6_ci, Frame::MOON_CI, Frame::MOON_ME);
   MatX6 coe_case6_me = Cart2Classical(rv_case6_me, GM_MOON);
 
   // **************************************************************************
@@ -508,7 +518,7 @@ int main() {
   vector<MatX3> rs_me;
   for (int i = 0; i < n_sat; ++i)
     rs_me.push_back(
-        ConvertFrame(tfs, rvs_ci_adjusted[i], Frame::MOON_CI, Frame::MOON_ME, true).leftCols(3));
+        RotateFrame(tfs, rvs_ci_adjusted[i], Frame::MOON_CI, Frame::MOON_ME).leftCols(3));
 
   // Elevation
   Vec3 r_south_pole = LatLonAlt2Cart(Vec3(-90 * RAD, 0, 0), R_MOON);
