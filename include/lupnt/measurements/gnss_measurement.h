@@ -32,6 +32,7 @@ namespace lupnt {
     int n_meas = 0;                             // Number of measurements
     std::vector<GnssTransmission> trans_store;  // list of transmittion data
     std::vector<int> ID_tx;                     // ID of the transmitter (n_meas)
+    std::vector<std::string> gnss_types_;       // GNSS type (n_meas)
 
     // Visbility
     VecXd vis_earth;
@@ -126,9 +127,12 @@ namespace lupnt {
     GnssMeasurement(const std::vector<GnssTransmission> transmissions);
 
     GnssMeasurement ExtractSignal(std::string freq_label);
+    GnssMeasurement ExtractSignal(std::vector<std::string> freq_labels);
+
+    GnssMeasurement ApplyIonoMask();
 
     // Transmission data
-    int GetTrackedSatelliteNum() const { return n_meas; }
+    int GetTrackedSignalNum() const { return n_meas; }
 
     std::vector<int> GetTxIds() const { return ID_tx; }
     VecX GetCN0() const { return CN0; }

@@ -22,7 +22,11 @@ namespace lupnt {
   template <typename T> NBodyDynamics<T>::NBodyDynamics(IntegratorType integ)
       : NumericalOrbitDynamics(std::bind(&NBodyDynamics::ComputeRates, this, std::placeholders::_1,
                                          std::placeholders::_2),
-                               integ){};
+                               integ) {
+    // Add parameters
+    AddParam("bcoeff_srp", VecX::Zero(1));
+    AddParam("bcoeff_drag", VecX::Zero(1));
+  };
   template class NBodyDynamics<double>;
   template class NBodyDynamics<Real>;
 
@@ -57,7 +61,7 @@ namespace lupnt {
       if (use_srp_ && body.id != NaifId::SUN) {
         Vec3 r_sun = GetBodyPos(t_tai, body.id, NaifId::SUN, frame_);
         Vec3 a_srp = Illumination(r, r_sun, body.R)
-                     * AccelerationSolarRadiation(r, r_sun, area_, mass_, CR_, P_SUN, AU);
+                     * AccelerationSolarRadiation(r, r_sun, params_.at("bcoeff_srp")(0), P_SUN, AU);
         a += a_srp;
       }
 
@@ -67,7 +71,7 @@ namespace lupnt {
         Real tt = ConvertTime(t_tai, Time::TAI, Time::TT);
         Real mjd_tt = Time2MJD(tt);
         MatX3 Rot = NutationMatrix(mjd_tt) * PrecessionMatrix(MJD_J2000_TT, mjd_tt);
-        Vec3 a_drag = AccelerationDrag(mjd_tt, rv, Rot, area_, mass_, CD_);
+        Vec3 a_drag = AccelerationDrag(mjd_tt, rv, Rot, params_.at("bcoeff_drag")(0));
         a += a_drag;
       }
     }

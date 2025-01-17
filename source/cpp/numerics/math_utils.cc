@@ -542,4 +542,33 @@ namespace lupnt {
     return v;
   }
 
+  VecXd SolveLinearEqSVD(const MatXd& A, const VecXd& b) {
+    Eigen::JacobiSVD<MatXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    return svd.solve(b);
+  }
+
+  // Compute A * X = B
+  MatXd SolveLinearEqSVD(const MatXd& A, const MatXd& B) {
+    Eigen::JacobiSVD<MatXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    MatXd X(A.cols(), B.cols());
+    for (int i = 0; i < B.cols(); i++) {
+      X.col(i) = svd.solve(B.col(i));
+    }
+    return X;
+  }
+
+  MatXd PseudoInverse(const MatXd& A) {
+    Eigen::JacobiSVD<MatXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    double tol = 1e-6;
+    MatXd S = svd.singularValues();
+    MatXd S_inv = MatXd::Zero(S.rows(), S.cols());
+    for (int i = 0; i < S.rows(); i++) {
+      if (S(i) > tol) {
+        S_inv(i, i) = 1.0 / S(i);
+      }
+    }
+    MatXd S_pinv = svd.matrixV() * S_inv * svd.matrixU().transpose();
+    return S_pinv;
+  }
+
 }  // namespace lupnt

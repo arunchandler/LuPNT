@@ -14,6 +14,7 @@
 #include "lupnt/agents/agent.h"
 #include "lupnt/apps/application.h"
 #include "lupnt/core/file.h"
+#include "lupnt/dynamics/dynamics_params.h"
 #include "lupnt/measurements/comm_device.h"
 #include "lupnt/measurements/gnss_measurement.h"
 #include "lupnt/measurements/gnss_receiver.h"
@@ -28,9 +29,15 @@ namespace lupnt {
    */
   class JointState {
   private:
-    std::vector<IState*> state_vec_;
-    std::vector<IDynamics*> dynamics_vec_;
+    std::vector<Ptr<IState>> state_vec_;
+    std::vector<Ptr<DynamicsWithParams>> dynamics_vec_;
+    std::vector<Ptr<VecX>> params_vec_;
+    std::vector<Ptr<FilterProcessNoiseFunction>> proc_noise_vec_;
     std::vector<std::vector<int>> dynamics_to_state_map_;
+    MatXd est_matrix_;  // K x N matrix where M is the number of estimated parameters and N is the
+                        // number of states (N = K + M)
+    MatXd consider_matrix_;  // M x N matrix where M is the number of consider parameters and N is
+                             // the number of states
 
     VecX state_vec_value_;
     std::vector<int> state_sizes_;
@@ -45,7 +52,7 @@ namespace lupnt {
       state_sizes_.clear();
     };
 
-    JointState(std::vector<IState*> state_vec) {
+    JointState(std::vector<Ptr<IState>> state_vec) {
       int state_vec_size = 0;
       for (int i = 0; state_vec.size(); i++) {
         state_vec_.push_back(state_vec[i]);
@@ -67,17 +74,21 @@ namespace lupnt {
     };
 
     int GetSize() const { return state_vec_size_; };
-    std::vector<IState*> GetJointState() { return state_vec_; };
+    std::vector<Ptr<IState>> GetJointState() { return state_vec_; };
     VecX GetJointStateValue() { return state_vec_value_; };
 
-    void PushBackStateAndDynamics(IState* state, IDynamics* dynamics);
+    void PushBackStateAndDynamics(Ptr<IState> state, Ptr<IDynamics> dynamics,
+                                  Ptr<FilterProcessNoiseFunction> proc_noise_func = nullptr);
+    void PushBackStateAndDynamics(Ptr<IState> state, Ptr<DynamicsWithParams> dynamics,
+                                  Ptr<FilterProcessNoiseFunction> proc_noise = nullptr);
 
     FilterDynamicsFunction GetFilterDynamicsFunction();
+    FilterProcessNoiseFunction GetFilterProcessNoiseFunction();
   };
 
   /**
    * @brief State Estimation Application
-   * 
+   *
    */
   class StateEstimationApp : public Application {
   protected:

@@ -20,6 +20,7 @@
 #include "lupnt/numerics/string_utils.h"
 #include "lupnt/physics/orbit_state/orbit_states.h"
 #include "lupnt/physics/spice_interface.h"
+#include "lupnt/physics/time_converter.h"
 
 namespace lupnt {
   TLE TLE::FromLines(const std::string& line1, const std::string& line2, const std::string& line3) {
@@ -34,10 +35,20 @@ namespace lupnt {
       } else {
         tle.prn = 0;
       }
-    } else if (line1.substr(0, 3) == "GSA") {
-      tle.prn = stod(SplitString(line1, '(')[1].substr(5, 2));
+    } else if ((line1.substr(0, 3) == "GSA") && (line1.substr(4, 2) != "01")) {
+      std::string tmp = SplitString(line1, '(')[1];
+      std::string tmp2 = SplitString(tmp, ' ')[1];
+      std::string tmp3 = SplitString(tmp2, ')')[0];
+      if (tmp3.size() == 1) {  // ( ex. 8) )
+        tle.prn = stod(tmp3.substr(0, 1));
+      } else if (tmp3.size() == 2) {
+        tle.prn = stod(tmp3.substr(0, 2));
+      }
     } else if (line1.substr(0, 3) == "COS") {
       tle.prn = stod(SplitString(line1, '(')[1].substr(0, 3));
+    } else if (line1.substr(0, 3) == "QZS") {
+      tle.prn = stod(line1.substr(4, 1));  // 1-4
+
     } else {
       tle.prn = -1;
     }
@@ -52,8 +63,11 @@ namespace lupnt {
     tle.mean_motion = stod(line3.substr(52, 11));
 
     // compute TAI from epoch
-    std::string fullyear_string = "20" + line2.substr(18, 2);
-    Real epoch_year_start_tai = spice::String2TAI(fullyear_string + "/01/01 00:00:00 UTC");
+    // std::string fullyear_string = "20" + line2.substr(18, 2);
+    // Real epoch_year_start_tai = spice::String2TAI(fullyear_string + "/01/01 00:00:00 UTC");
+    Real epoch_year_start_utc = Gregorian2Time(2000 + tle.epoch_year, 1, 1, 0, 0, 0);
+    Real epoch_year_start_tai = UTC2TAI(epoch_year_start_utc);
+
     double epoch_tai = epoch_year_start_tai.val() + tle.epoch_day * SECS_DAY;
     tle.epoch_tai = epoch_tai;
     return tle;
@@ -69,7 +83,9 @@ namespace lupnt {
     std::string line1, line2, line3;
     while (getline(input_file, line1) && getline(input_file, line2) && getline(input_file, line3)) {
       TLE tle = TLE::FromLines(line1, line2, line3);
-      tles.push_back(tle);
+      if (tle.prn != -1) {
+        tles.push_back(tle);
+      }
     };
     return tles;
   };

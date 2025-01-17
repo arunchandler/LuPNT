@@ -18,16 +18,7 @@
 
 namespace lupnt {
   class EKF : public IFilter {
-  public:
-    Real t_;
-    VecX x_;
-    MatXd P_;
-
-    VecX x_prior_;
-    VecX x_post_;
-    MatXd P_prior_;
-    MatXd P_post_;
-
+  protected:
     MatXd F_;
     MatXd H_;
     MatXd Q_;  // Process noise cov
@@ -41,37 +32,44 @@ namespace lupnt {
     MatXd S_;  // Innovation cov
     MatXd K_;  // Kalman gain
 
-    FilterDynamicsFunction f_dyn_;
-    FilterProcessNoiseFunction f_proc_;
-    FilterMeasurementFunction f_meas_;
+    bool adaptive_process_noise_ = false;
+    bool Q_set_ = false;
+    bool S_set_ = false;
 
+    // adaptive process noise parameters
+    double alpha_Q_ = 0.95;
+
+  public:
     double outlier_threshold_ = 3.0;
 
     void Initialize(const double t0, const VecX &x0, const MatXd &P0);
 
-    VecX GetMeasurementResidual() { return dy_; }
-    MatX GetKalmanGain() { return K_; }
-    MatX GetMeasurementNoiseCov() { return R_; }
-    MatX GetMeasurementJacobian() { return H_; }
-    int GetMeasurementSize() { return H_.rows(); }
-
     void SetOutlierThreshold(double outlier_threshold);
     int RemoveOutliers(int m);
 
+    void SetAdaptiveProcessNoise(bool adaptive_process_noise) {
+      adaptive_process_noise_ = adaptive_process_noise;
+      Q_set_ = false;
+      S_set_ = false;
+    }
+
+    void SetAdaptiveProcessNoiseCoeff(double alpha_Q) { alpha_Q_ = alpha_Q; }
+
     // Interface
-    void SetDynamicsFunction(FilterDynamicsFunction f_dyn) { f_dyn_ = f_dyn; }
-    void SetProcessNoiseFunction(FilterProcessNoiseFunction f_proc) { f_proc_ = f_proc; }
-    void SetMeasurementFunction(FilterMeasurementFunction f_meas) { f_meas_ = f_meas; }
+    void Predict(Real t_end) override;
+    void Update(VecX z_true) override;
 
-    void Predict(Real t_end);
-    void Update(VecX z_true);
-
-    VecX GetSate() { return x_; }
-    VecX GetSatePrior() { return x_prior_; }
-    VecX GetStatePost() { return x_post_; }
-
-    MatXd GetCovariance() { return P_; }
-    MatXd GetCovariancePrior() { return P_prior_; }
-    MatXd GetCovariancePost() { return P_post_; }
+    VecXd GetMeasurementResidual() { return dy_.cast<double>(); }
+    MatXd GetKalmanGain() { return K_; }
+    MatXd GetMeasurementNoiseCov() { return R_; }
+    MatXd GetMeasurementJacobian() { return H_; }
+    int GetMeasurementSize() { return H_.rows(); }
+    MatXd GetProcessNoise() { return Q_; }
+    MatXd GetStateJacobian() { return F_; }
+    MatXd GetInnovationCov() { return S_; }
+    MatXd GetMeasurementCov() { return R_; }
+    VecXd GetStateCorrection() { return dx_.cast<double>(); }
+    VecXd GetTrueMeasurement() { return z_true_.cast<double>(); }
+    VecXd GetPredictedMeasurement() { return z_prior_.cast<double>(); }
   };
 }  // namespace lupnt

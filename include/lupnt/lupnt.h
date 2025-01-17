@@ -29,6 +29,7 @@
 
 // dynamics
 #include "lupnt/dynamics/dynamics.h"
+#include "lupnt/dynamics/dynamics_params.h"
 #include "lupnt/dynamics/forces.h"
 #include "lupnt/dynamics/propagator.h"
 
@@ -58,6 +59,7 @@
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/numerics/string_utils.h"
 #include "lupnt/numerics/tensor.h"
+#include "lupnt/numerics/ukf.h"
 #include "lupnt/numerics/vector_macros.h"
 
 // physics

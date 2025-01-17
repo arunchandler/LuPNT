@@ -105,6 +105,31 @@ namespace lupnt {
     return GnssMeasurement(transmissions_freq);
   }
 
+  GnssMeasurement GnssMeasurement::ExtractSignal(std::vector<std::string> freq_labels) {
+    std::vector<GnssTransmission> transmissions_freq;
+    for (auto &tx : trans_store) {
+      for (auto &label : freq_labels) {
+        if (tx.freq_label == label) {
+          transmissions_freq.push_back(tx);
+          break;
+        }
+      }
+    }
+
+    return GnssMeasurement(transmissions_freq);
+  }
+
+  GnssMeasurement GnssMeasurement::ApplyIonoMask() {
+    std::vector<GnssTransmission> transmissions_iono;
+    for (auto &tx : trans_store) {
+      if (tx.vis_ionos) {
+        transmissions_iono.push_back(tx);
+      }
+    }
+
+    return GnssMeasurement(transmissions_iono);
+  }
+
   /***********************************************************
    * General Methods for computing Measurements
    ***********************************************************/
@@ -245,8 +270,10 @@ namespace lupnt {
       switch (type) {
         case GnssMeasurementType::PR:
           H_pr = MatXd::Zero(n_meas, state_size);
+
           z.segment(i * n_meas, n_meas)
               = GetPredictedPseudorange(epoch, rv_pred, clk_pred, H_pr, frame_in);
+          
           H_gnss.block(i * n_meas, 0, n_meas, 8) = H_pr;
           break;
         case GnssMeasurementType::PRR:

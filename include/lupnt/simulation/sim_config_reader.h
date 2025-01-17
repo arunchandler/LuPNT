@@ -16,9 +16,11 @@
 #include "lupnt/agents/agent.h"
 #include "lupnt/agents/gnss_constellation.h"
 #include "lupnt/agents/spacecraft.h"
+#include "lupnt/apps/state_estimation_app.h"
 #include "lupnt/core/definitions.h"
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/measurements/space_channel.h"
+#include "lupnt/numerics/filters.h"
 
 namespace lupnt {
 
@@ -41,6 +43,7 @@ namespace lupnt {
     std::map<std::string, Ptr<IDynamics>> dynamics_map_;
     std::map<std::string, Ptr<ClockDynamics>> clock_dynamics_map_;
     std::map<std::string, Ptr<IState>> state_map_;
+    std::map<std::string, Ptr<IFilter>> filter_map_;
 
     // Yaml node loaders
     void LoadTimeConfig(YAML::Node time_node, bool print_val = false);
@@ -48,15 +51,18 @@ namespace lupnt {
     void LoadChannelConfig(YAML::Node channel_node, bool print_val = false);
     void LoadDynamicsConfig(YAML::Node dynamics_node, bool print_val = false);
     void LoadSatelliteConfig(YAML::Node satellite_node, bool print_val = false);
+    void LoadFiltersConfig(YAML::Node filter_node, bool print_val = false);
 
     // state, device, dynamics generators
     void CreateSatCommDevice(YAML::Node device_node, std::string device_name, Ptr<Spacecraft> sat);
-    template <typename T>
-    Ptr<NBodyDynamics<T>> CreateNBodyDynamics(const YAML::Node child_node, bool print_val);
+    template <typename T> Ptr<NBodyDynamics<T>> CreateNBodyDynamics(const YAML::Node child_node,
+                                                                    std::string name,
+                                                                    bool print_val);
     void CreateSatState(YAML::Node state_node, std::string state_name, Ptr<Spacecraft> sat,
                         bool &orbit_defined, bool &clock_defined);
-    void CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat);
-    void CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat);
+    void CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat, std::string prior_key);
+    void CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat, std::string prior_key);
+    Ptr<JointState> CreateJointState(YAML::Node state_node, std::string field_prior);
 
     // util functions
     template <typename T>
@@ -71,6 +77,10 @@ namespace lupnt {
   public:
     ConfigReader() = default;
     ~ConfigReader() = default;
+
+    ConfigReader(std::string filename, bool print_val = false) {
+      LoadConfigYaml(filename, print_val);
+    }
 
     void LoadConfigYaml(std::string filename, bool print_val = false);
 

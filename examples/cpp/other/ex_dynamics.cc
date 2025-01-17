@@ -6,46 +6,67 @@ using namespace lupnt;
 using namespace std::chrono;
 
 int main() {
-  // Time
-  Real t0_utc = Gregorian2Time(2020, 1, 1, 12, 0, 0);
-  Real t0_tai = ConvertTime(t0_utc, Time::UTC, Time::TAI);
-  Real tf_tai = t0_tai + 90 * SECS_DAY;
-  Real Dt = 10;
-  int N_steps = static_cast<int>((tf_tai - t0_tai) / Dt);
-  VecX tfs = arange(t0_tai, tf_tai + Dt, Dt);
-  std::cout << N_steps << " steps" << std::endl;
+  // Create dynamics
+  // auto dyn= MakePtr<CartesianTwoBodyDynamics>(GM_MOON, IntegratorType::RK4);
+
+  auto dyn = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);
+  dyn->SetIntegratorParams(IntegratorParams(20, 1e-12, 1e-12));
+  dyn->SetFrame(Frame::MOON_CI);
+  dyn->AddBody(BodyT<Real>::Moon(10, 10));
+  dyn->AddBody(BodyT<Real>::Earth());
+  dyn->SetTimeStep(1.0);
 
   // Initial state
-  Real a = 6541.4;      // [km] Semi-major axis
-  Real e = 0.6000;      // [--] Eccentricity
-  Real i = 56.2 * RAD;  // [deg] Inclination
-  Real O = 0.00 * RAD;  // [deg] Right ascension of the ascending node
-  Real w = 90.0 * RAD;  // [deg] Argument of perigee
-  Real M = 0.00 * RAD;  // [deg] Mean anomaly
-  Vec6 coe0_op(a, e, i, O, w, M);
-  Vec6 rv0_op = Classical2Cart(coe0_op, GM_MOON);
-  Vec6 rv0_ci = ConvertFrame(t0_tai, rv0_op, Frame::MOON_OP, Frame::MOON_CI);
+  Real a = 6541.4;
+  Real e = 0.6;
+  Real i = 65.5 * RAD;
+  Real Omega = 0.0 * RAD;
+  Real w = 90.0 * RAD;
+  Real M = 0.0 * RAD;
 
-  // Integrator
-  IntegratorParams params;
-  params.max_iter = 10;
-  params.abstol = 1e-8;
-  params.reltol = 1e-8;
+  // Time
+  Real et0_utc = Gregorian2Time(2025, 1, 1, 12, 0, 0).val();  // in UTC
+  double et0 = UTC2TAI(et0_utc).val();                        // in TAI
+  double dt = 30 * 60;                                        // Integration time step [s]
 
-  // Dynamics
-  NBodyDynamics dyn(IntegratorType::RK4);
-  dyn.AddBody(Body::Moon(20, 20));
-  dyn.AddBody(Body::Earth());
-  dyn.AddBody(Body::Sun());
-  dyn.SetFrame(Frame::MOON_CI);
-  dyn.SetIntegratorParams(params);
-  dyn.SetTimeStep(10);
+  // Initial state
+  ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_CI);
+  CartesianOrbitState cart_op = Classical2Cart(coe_moon, GM_MOON);
 
-  // Propagate
-  auto start = high_resolution_clock::now();
-  MatX6 rvs = dyn.Propagate(rv0_ci, t0_tai, tfs, true);
-  auto end = high_resolution_clock::now();
-  auto duration = duration_cast<microseconds>(end - start);
+  VecX x0 = cart_op.GetVec();
 
-  std::cout << "Elapsed time: " << duration.count() / 1e6 << " s" << std::endl;
+  dyn->SetTimeStep(1.0);
+
+  MatXd Phi = MatXd::Zero(x0.size(), x0.size());
+  VecX x_next = dyn->Propagate(x0, et0, et0 + dt, &Phi);
+
+  // Compare with numerical Derivative
+  VecX x_pert_plus = VecX::Zero(x0.size());
+  VecX x_pert_minus = VecX::Zero(x0.size());
+  VecX dx_pert = VecX::Zero(x0.size());
+  MatXd J_num = MatXd::Zero(x0.size(), x0.size());
+  MatXd F_dum_ = MatXd::Zero(x0.size(), x0.size());
+  double eps = 1e-6;
+  for (int i = 0; i < x0.size(); i++) {
+    x_pert_plus = x0;
+    x_pert_minus = x0;
+    x_pert_plus(i) = x0(i) + eps;
+    x_pert_minus(i) = x0(i) - eps;
+    dx_pert = dyn->Propagate(x_pert_plus, et0, et0 + dt, &F_dum_)
+              - dyn->Propagate(x_pert_minus, et0, et0 + dt, &F_dum_);
+    J_num.col(i) = dx_pert.cast<double>() / (2 * eps);
+  }
+
+  std::cout << "<Dynamics Example>" << std::endl;
+  std::cout << " Initial State: " << x0.transpose() << std::endl << std::endl;
+  std::cout << " Propagated State: " << x_next.transpose() << std::endl << std::endl;
+
+  std::cout << " Jacobian: " << std::endl << Phi << std::endl << std::endl;
+  std::cout << " Numerical Jacobian: " << std::endl << J_num << std::endl << std::endl;
+
+  // compute the ratio (F_ - J_num) / J_num
+  MatXd diff = (Phi - J_num).array() / J_num.array();
+  std::cout << " Difference in STM (ratio): " << std::endl << diff << std::endl << std::endl;
+
+  return 0;
 }

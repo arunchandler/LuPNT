@@ -97,4 +97,10 @@ namespace lupnt {
 
   VecX arange(Real start, Real stop, Real step);
 
+  VecXd SolveLinearEqSVD(const MatXd& A, const VecXd& b);  // Ax = b
+
+  MatXd SolveLinearEqSVD(const MatXd& A, const MatXd& B);  // AX = B
+
+  MatXd PseudoInverse(const MatXd& A);
+
 }  // namespace lupnt

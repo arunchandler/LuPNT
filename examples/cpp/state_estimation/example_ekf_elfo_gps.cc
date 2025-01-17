@@ -1,7 +1,7 @@
 /**
  * @file example_ekf_elfo_gps.cc
  * @author Stanford NAV Lab
- * @brief   Example of EKF for lunar orbit estimation
+ * @brief  lunar orbit estimation using GPS measurements
  * @version 0.1
  * @date 2024-01-19
  *
@@ -147,11 +147,17 @@ MatXd ConstructInitCovariance(double pos_err, double vel_err, double clk_bias_er
 
 void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
                             const std::shared_ptr<Spacecraft> sat, EKF* ekf,
-                            GnssConstellation* gps_const, GnssMeasurement* meas, double t,
+                            GnssConstellation* gnss_const, GnssMeasurement* meas, double t,
                             double epoch) {
+  VecXd z_true = ekf->GetTrueMeasurement();
+  VecXd z_prior = ekf->GetPredictedMeasurement();
+  VecXd x_prior = ekf->GetStatePrior().cast<double>();
+  VecXd x_post = ekf->GetStatePost().cast<double>();
+  MatXd P = ekf->GetCovariancePost();
+
   // Navigation
-  data_history->AddData("z_true", t, ekf->z_true_);
-  data_history->AddData("z_pred", t, ekf->z_prior_);
+  data_history->AddData("z_true", t, z_true);
+  data_history->AddData("z_pred", t, z_prior);
   data_history->AddData("CN0", t, meas->GetCN0());
 
   data_history->AddData("vis_earth", t, meas->GetEarthOccultation());
@@ -168,19 +174,19 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 
   // Estimation
   data_history->AddData("rv", t, sat->GetOrbitState()->GetVec());
-  data_history->AddData("rv_pred", t, ekf->x_prior_.head(6));
-  data_history->AddData("rv_est", t, ekf->x_post_.head(6));
+  data_history->AddData("rv_pred", t, x_prior.head(6));
+  data_history->AddData("rv_est", t, x_post.head(6));
 
   data_history->AddData("clk", t, sat->GetClockState().GetVec());
-  data_history->AddData("clk_pred", t, ekf->x_prior_.tail(2));
-  data_history->AddData("clk_est", t, ekf->x_post_.tail(2));
+  data_history->AddData("clk_pred", t, x_prior.tail(2));
+  data_history->AddData("clk_est", t, x_post.tail(2));
 
-  data_history->AddData("P_rv", t, ekf->P_.diagonal().segment(0, 6));
-  data_history->AddData("P_clk", t, ekf->P_.diagonal().segment(6, 2));
+  data_history->AddData("P_rv", t, P.diagonal().segment(0, 6));
+  data_history->AddData("P_clk", t, P.diagonal().segment(6, 2));
 
   // GPS constellation
-  for (int i = 0; i < gps_const->GetNumSatellites(); i++) {
-    CartesianOrbitState sate = gps_const->GetSatellite(i)->GetCartesianGCRFStateAtEpoch(epoch);
+  for (int i = 0; i < gnss_const->GetNumSatellites(); i++) {
+    CartesianOrbitState sate = gnss_const->GetSatellite(i)->GetCartesianGCRFStateAtEpoch(epoch);
     CartesianOrbitState sate_mi = ConvertOrbitStateFrame(sate, epoch, Frame::MOON_CI);
     CartesianOrbitState state_gcrf = ConvertOrbitStateFrame(sate, epoch, Frame::GCRF);
 
@@ -198,13 +204,19 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
 
 void PrintProgressHeader() {
   std::cout << " " << std::endl;
-  std::cout << "--------------------------------------------------------------" << std::endl;
-  std::cout << "Time [min]  | Pos Err [m] | Vel Err [mm/s] | Clk Bias Err [m]" << std::endl;
-  std::cout << "--------------------------------------------------------------" << std::endl;
+  std::cout << "-----------------------------------------------------------------------------------"
+               "----------------------"
+            << std::endl;
+  std::cout << "Time [min]  | Pos Err [m]         | Vel Err [mm/s]         | Clk Bias Err [m]      "
+               "   | Num GPS Tracked"
+            << std::endl;
+  std::cout << "-----------------------------------------------------------------------------------"
+               "-----------------------"
+            << std::endl;
 }
 
 VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
-  auto x_est = ekf->x_;
+  auto x_est = ekf->GetState();
   auto x_true = sat->GetStateVec();
 
   double x_pos_err = 1000 * (x_true.segment(0, 3) - x_est.segment(0, 3)).norm().val();
@@ -218,16 +230,24 @@ VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
   return est_err;
 }
 
-void PrintProgress(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err) {
+void PrintProgress(double t, double x_pos_err, double x_vel_err, double x_clk_bias_err, MatXd P,
+                   int num_sat, int num_used_meas) {
   std::cout.precision(5);
-  std::cout << std::left << std::setw(12) << t / 60 << " " << std::left << std::setw(12)
-            << x_pos_err << "  " << std::left << std::setw(14) << x_vel_err << "   " << std::left
-            << std::setw(16) << x_clk_bias_err << std::endl;
+  double cov_pos = 1000 * 3 * sqrt(P(0, 0) + P(1, 1) + P(2, 2));
+  double cov_vel = 1e6 * 3 * sqrt(P(3, 3) + P(4, 4) + P(5, 5));
+  double cov_clk = 3e8 * 3 * sqrt(P(6, 6));
+
+  std::cout << std::left << std::setw(12) << t / 60 << " " << std::left << std::setw(8) << x_pos_err
+            << " (" << std::setw(7) << cov_pos << ")     " << std::left << std::setw(10)
+            << x_vel_err << " (" << std::setw(7) << cov_vel << ")     " << std::left
+            << std::setw(12) << x_clk_bias_err << " (" << std::setw(7) << cov_clk << ")     "
+            << std::left << std::setw(4) << num_sat << " (used meas:" << num_used_meas << ")"
+            << std::endl;
 };
 
 void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error_only = false) {
-  auto x_bar = ekf->x_prior_;
-  auto x_est = ekf->x_;
+  auto x_bar = ekf->GetStatePrior();
+  auto x_est = ekf->GetStatePost();
   auto x_true = sat->GetStateVec();
 
   double x_pos_err_bar = 1000 * (x_true.segment(0, 3) - x_bar.segment(0, 3)).norm().val();
@@ -238,33 +258,45 @@ void PrintEKFDebugInfo(int tidx, const Ptr<Spacecraft> sat, EKF* ekf, bool error
   double x_vel_err = 1e6 * (x_true.segment(3, 3) - x_est.segment(3, 3)).norm().val();
   double x_clk_bias_err = 3e8 * abs((x_true(6) - x_est(6)).val());
 
+  MatXd Q = ekf->GetProcessNoise();
+  MatXd K = ekf->GetKalmanGain();
+  MatXd H = ekf->GetMeasurementJacobian();
+  MatXd R = ekf->GetMeasurementCov();
+  MatXd S = ekf->GetInnovationCov();
+  VecXd dy = ekf->GetMeasurementResidual();
+  VecXd dx = ekf->GetStateCorrection();
+  MatXd P = ekf->GetCovariance();
+  MatXd P_prior = ekf->GetCovariancePrior();
+
   std::cout << " ------------------- " << std::endl;
   std::cout << "  Time: " << tidx << std::endl;
   if (!error_only) {
-    std::cout << "  Q:  " << std::endl << ekf->Q_ << std::endl;
-    std::cout << "  Kalman Gain: " << std::endl << ekf->K_ << std::endl;
-    std::cout << "  H:  " << std::endl << ekf->H_ << std::endl;
-    std::cout << "  R:  " << std::endl << ekf->R_.diagonal().transpose() << std::endl;
-    std::cout << "  S:  " << std::endl << ekf->S_.diagonal().transpose() << std::endl;
+    std::cout << "  Q:  " << std::endl << Q << std::endl;
+    std::cout << "  Kalman Gain: " << std::endl << K << std::endl;
+    std::cout << "  H:  " << std::endl << H << std::endl;
+    std::cout << "  R:  " << std::endl << R.diagonal().transpose() << std::endl;
+    std::cout << "  S:  " << std::endl << S.diagonal().transpose() << std::endl;
     std::cout << " " << std::endl;
   }
-  std::cout << "  Meas   Residuals: " << 1000 * ekf->dy_.transpose() << std::endl;
-  std::cout << "  Linear Residuals: " << 1000 * (ekf->H_ * ekf->dx_).transpose() << std::endl;
-  std::cout << "  dx: " << ekf->dx_.transpose() << std::endl;
+  std::cout << "  Q:  " << std::endl << Q << std::endl;
+  std::cout << "  R:  " << std::endl << R.diagonal().transpose() << std::endl;
+  std::cout << "  Meas   Residuals: " << 1000 * dy.transpose() << std::endl;
+  std::cout << "  Linear Residuals: " << 1000 * (H * dx).transpose() << std::endl;
+  std::cout << "  dx: " << dx.transpose() << std::endl;
   std::cout << "  Pos Err (Bar): " << x_pos_err_bar
-            << "  (3sigma : " << 3 * 1000 * sqrt(ekf->P_prior_.block(0, 0, 3, 3).diagonal().trace())
+            << "  (3sigma : " << 3 * 1000 * sqrt(P_prior.block(0, 0, 3, 3).diagonal().trace())
             << " )    Pos Err (Est): " << x_pos_err
-            << "  (3sigma: " << 3 * 1000 * sqrt(ekf->P_.block(0, 0, 3, 3).diagonal().trace())
-            << " )" << std::endl;
+            << "  (3sigma: " << 3 * 1000 * sqrt(P.block(0, 0, 3, 3).diagonal().trace()) << " )"
+            << std::endl;
   std::cout << "  Vel Err (Bar): " << x_vel_err_bar
-            << "  (3sigma : " << 3 * 1e6 * sqrt(ekf->P_prior_.block(3, 3, 3, 3).diagonal().trace())
+            << "  (3sigma : " << 3 * 1e6 * sqrt(P_prior.block(3, 3, 3, 3).diagonal().trace())
             << "  )   Vel Err (Est): " << x_vel_err
-            << "  (3sigma: " << 3 * 1e6 * sqrt(ekf->P_.block(3, 3, 3, 3).diagonal().trace()) << " )"
+            << "  (3sigma: " << 3 * 1e6 * sqrt(P.block(3, 3, 3, 3).diagonal().trace()) << " )"
             << std::endl;
   std::cout << "  Clk Err (Bar): " << x_clk_bias_err_bar
-            << "  (3sigma : " << 3 * 3e8 * sqrt(ekf->P_prior_.block(6, 6, 1, 1).diagonal().trace())
+            << "  (3sigma : " << 3 * 3e8 * sqrt(P_prior.block(6, 6, 1, 1).diagonal().trace())
             << "  )   Clk Err (Est): " << x_clk_bias_err
-            << "  (3sigma: " << 3 * 3e8 * sqrt(ekf->P_.block(6, 6, 1, 1).diagonal().trace()) << " )"
+            << "  (3sigma: " << 3 * 3e8 * sqrt(P.block(6, 6, 1, 1).diagonal().trace()) << " )"
             << std::endl;
   std::cout << " ------------------- " << std::endl;
   std::cout << "  " << std::endl;
@@ -471,72 +503,86 @@ int main() {
    * Simulation Parameters
    *********************************************/
   // Time
-  Real et0_utc = Gregorian2Time(2023, 6, 9, 8, 30, 0).val(); // in UTC
-  double et0 = UTC2TAI(et0_utc).val();  // in TAI
-  double dt = 1.0;  // Integration time step [s]
-  double Dt = 5.0;  // Propagation time step [s]  (= Measurement time step)
+  Real et0_utc = Gregorian2Time(2025, 1, 1, 12, 0, 0).val();  // in UTC
+  double et0 = UTC2TAI(et0_utc).val();                        // in TAI
+  double dt = 1.0;                                            // Integration time step [s]
+  double Dt = 600.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
 
-  // Gps constellation
-  GnssConstellation gps_const = GnssConstellation();
-  Ptr<CartesianTwoBodyDynamics> dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
-      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
-  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
-  gps_const.InitializeWithTle("GPS", "gps.txt", dyn_earth_tb, channel, et0);  // example gps file
+  // GNSS constellation ----------------------------
+  bool use_galileo = true;
+  bool use_qzss = true;
+  std::string gps_tle = "gps_2025_01_01";
+  std::string galileo_tle = "galileo_2025_01_01";
+  std::string qzss_tle = "qzss_2025_01_01";
 
-  // Simulation seed
-  int seed = 1;
+  // Simulation seed --------------------------------
+  int seed = 10;
   std::srand(seed);
 
-  // Initial State
+  // Initial State ----------------------------------
   Real a = 6541.4;
   Real e = 0.6;
   Real i = 65.5 * RAD;
   Real Omega = 0.0 * RAD;
   Real w = 90.0 * RAD;
-  Real M = 0.0 * RAD;
+  Real M = 180.0 * RAD;
   Real clk_bias = 0.0;
-  Real clk_drift = 0.1;
+  Real clk_drift = 0.0;
 
   // Set simulation to 1 orbit
-  int n_orbit = 2;  // number of orbits to simulate
+  int n_orbit = 3;  // number of orbits to simulate
   Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
   double tf = et0 + n_orbit * period.val();
   int time_step_num = int((tf - et0) / Dt) + 1;
   tf = et0 + (time_step_num - 1) * Dt;
 
-  // Dynamics Model   Todo: Refine this to a more high fidelity model
-  int moon_sph_true = 8;  // moon spherical harmonics order in true dynamics
-  int moon_sph_est = 5;   // moon spherical harmonics order in filter dynamics
+  // Dynamics Model   Todo: Refine this to a more high fidelity model -------------------
+  int moon_sph_true = 10;   // moon spherical harmonics order in true dynamics
+  int moon_sph_est = 5;    // moon spherical harmonics order in filter dynamics
   bool add_earth = true;  // add earth to true and filter dynamics
+  bool add_sun = true;    // add sun to true and filter dynamics
 
-  // Onboard Clock Model
+  // Onboard Clock Model ---------------------------
+  // ClockModel cmodel = ClockModel::kMicrosemiCsac; // ClockModel::kMiniRafs;
   ClockModel cmodel = ClockModel::kMiniRafs;
 
-  // measurements
+  // measurements ----------------------------------
   bool use_range = true;       // use GPS pseudorange measurement
-  bool use_range_rate = true;  // use GPS pseudorange-rate measurement
+  bool use_range_rate = false;  // use GPS pseudorange-rate measurement
 
-  // Estimation
-  int state_size = 8;           // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
-  double pos_err = 1.0;         // Initial Position error [km]
-  double vel_err = 1e-3;        // Initial Velocity error [km/s]
-  double clk_bias_err = 1e-6;   // Initial Clock bias error [s]
-  double clk_drift_err = 1e-9;  // Initial Clock drift error [s/s]
-  double sigma_acc = 1e-10;     // Process noise Acceleration [km/s^2]  <-- tune
-                                // this for optimal performance!
+  double sis_ure_std = 5.0e-3;        // SIS URE [km]
+  double sis_ure_rate_std = 5.0e-6;  // SIS URE rate [km/s]
 
-  // Debug mode
+  // Estimation Parameters --------------------------
+  int state_size = 8;               // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
+  double pos_err = 1.0/sqrt(3);             // Initial Position error [km]
+  double vel_err = pos_err * 1e-2;  // Initial Velocity error [km/s]
+  double clk_bias_err = 1.0/C;       // Initial Clock bias error [s]
+  double clk_drift_err = clk_bias_err * 1e-3;     // Initial Clock drift error [s/s]
+  double sigma_acc = std::pow(10, -7.7);  // Process noise Acceleration [km/s^2]  <-- tune
+                                          // this for optimal performance!  (1e-8 for MINI-RAFS, 1e-7.5 for CSAC)
+
+  // Adaptive Process Noise -------------------------
+  bool use_adaptive_proc = false;  // use adaptive process noise
+
+  // Parameters for adaptive Q: Q_k = alpha * Q_k-1 + (1 - alpha) * (K dy dy^T K^T)
+  double alpha_Q = 0.9;
+
+  // outlier threshold
+  double outlier_thresh = 3.0;
+
+  // Debug mode ------------------------------------
   bool plot_results = false;
   bool debug_jacobian = false;
-  bool print_debug =false;
+  bool print_debug = false;
   bool debug_ekf = false;            // Print EKF debug info
   bool debug_ekf_error_only = false;  // Print only error for EKF debugging
   bool no_meas = false;              // set to true to turn off measurements
 
   if (print_debug) {
-    tf = et0 + 2 * Dt;
+    tf = et0 + 2 * Dt;  // shortening simulation time for debugging
     print_every = Dt;
   }
 
@@ -554,13 +600,15 @@ int main() {
   }
   int meas_type_num = meas_types.size();
 
-  // Orbit Dynamics
+  // Orbit Dynamics --------------------------------------------------------
   IntegratorParams iparams;
   iparams.abstol = 1e-12;
   iparams.reltol = 1e-12;
 
   auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
   auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics
+  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+      GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
 
   dyn_true->SetIntegratorParams(iparams);
   dyn_est->SetIntegratorParams(iparams);
@@ -579,19 +627,43 @@ int main() {
     dyn_true->AddBody(earth_true);
     dyn_est->AddBody(earth_est);
   }
+  if (add_sun) {
+    dyn_true->AddBody(BodyT<double>::Sun());
+    dyn_est->AddBody(BodyT<Real>::Sun());
+  }
 
-  // clock dynamics
+  // clock dynamics --------------------------------------------------------
   auto dyn_clk_true = ClockDynamics(cmodel);
   auto dyn_clk_est = ClockDynamics(cmodel);
   dyn_clk_true.SetNoise(true);
   dyn_clk_est.SetNoise(false);
 
-  // Set dynamics integration time
+  // Set dynamics integration time step ------------------------------------
   dyn_earth_tb->SetTimeStep(dt);
   dyn_est->SetTimeStep(dt);
   dyn_true->SetTimeStep(dt);
 
-  // Moon spacecraft
+  // GNSS Constellation ----------------------------------------------------
+  GnssConstellation gnss_const = GnssConstellation();
+  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
+
+  // GPS constellation
+  gnss_const.InitializeWithTle(GnssType::GPS, gps_tle, dyn_earth_tb, channel,
+                               et0);  // example gps file
+  std::vector<std::string> signals = {"L1"};
+  std::vector<std::string> gnss_types = {"GPS"};
+
+  if (use_galileo) {
+    gnss_const.AddSatellitesWithTle(GnssType::GALILEO, galileo_tle);
+    signals.push_back("E1");
+    gnss_types.push_back("GALILEO");
+  }
+  if (use_qzss) {
+    gnss_const.AddSatellitesWithTle(GnssType::QZSS, qzss_tle);
+    gnss_types.push_back("QZSS");
+  }
+
+  // Moon spacecraft --------------------------------------------------------
   ClassicalOE coe_moon({a, e, i, Omega, w, M}, Frame::MOON_OP);
   CartesianOrbitState cart_op = Classical2Cart(coe_moon, GM_MOON);
   CartesianOrbitState cart_mci = ConvertOrbitStateFrame(cart_op, et0, Frame::MOON_CI);
@@ -616,13 +688,17 @@ int main() {
   receiver->SetChannel(channel);
   channel->AddReceiver(receiver);
 
-  // Initial covariance
+  // Initial covariance -----------------------------------------------------
   MatXd P0 = ConstructInitCovariance(pos_err, vel_err, clk_bias_err, clk_drift_err);
 
-  // Joint state and dynamics
+  // Joint state and dynamics ------------------------------------------------
   JointState joint_state;
-  joint_state.PushBackStateAndDynamics(cart_state_moon.get(), dyn_est.get());
-  joint_state.PushBackStateAndDynamics(&clock_state, &dyn_clk_est);
+
+  auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
+  auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionClock(cmodel, 2));
+  joint_state.PushBackStateAndDynamics(cart_state_moon, dyn_est, proc_noise_rv);
+  joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state),
+                                       MakePtr<ClockDynamics>(dyn_clk_est), proc_noise_clk);
 
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 
@@ -630,8 +706,9 @@ int main() {
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, meas_types](
-            const VecX x, MatXd* H, MatXd* R) -> VecX {
+      = [moon_sat, receiver, state_size, no_meas, 
+         meas_types, signals, sis_ure_std, sis_ure_rate_std, use_range, use_range_rate](const VecX x, MatXd* H,
+                                                                                        MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
     }
@@ -640,8 +717,9 @@ int main() {
     std::string freq = "L1";
     double epoch = moon_sat->GetEpoch().val();
     auto measall = receiver->GetMeasurement(epoch);  // measurements of all frequencies
-    auto meas = measall.ExtractSignal("L1");         // measurements of L1
-    int sat_num = meas.GetTrackedSatelliteNum();     // number of tracked GPS satellites
+    auto meas_L1 = measall.ExtractSignal(signals);   // measurements of L1
+    auto meas = meas_L1.ApplyIonoMask();             // apply ionosphere mask
+    int sat_num = meas.GetTrackedSignalNum();        // number of tracked GPS satellites
     int mtot = sat_num * meas_types.size();          // total number of measurements
 
     // Predict measurements
@@ -652,10 +730,28 @@ int main() {
 
     VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
                                               frame_in);  // Jacobian with autodiff
-
-    // Get the Measurement Noise
+    
+    int n_meas_sat = int(z.size()/meas_types.size());
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
-    R->diagonal().array() = noise_std_vec.array().square();
+
+    // ADD signal in space URE
+    int z_idx = 0;
+    if (use_range){
+      for (int idx = 0; idx < n_meas_sat; idx++) {
+        (*R)(z_idx, z_idx) = std::pow(noise_std_vec(z_idx), 2) + std::pow(sis_ure_std, 2);
+        z_idx++;
+      }
+    }
+    if (use_range_rate){
+      for (int idx = 0; idx < n_meas_sat; idx++) {
+        (*R)(z_idx, z_idx) = std::pow(noise_std_vec(z_idx), 2) + std::pow(sis_ure_rate_std, 2);
+        z_idx++;
+      }
+    }
+
+    // scaling the measurement noise
+    double scale = 1000;
+    // R->diagonal().array() *= scale;
 
     return z;
   };
@@ -663,28 +759,7 @@ int main() {
   /*********************************************
    * Define Process Noise function
    * *******************************************/
-  FilterProcessNoiseFunction proc_noise_func
-      = [cmodel, state_size, sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
-    int clock_index = 6;
-    double dt = (t_end - t_curr).val();
-
-    MatXd Q = MatXd::Zero(state_size, state_size);
-
-    Mat6d Q_rv = Mat6d::Zero();
-    for (int i = 0; i < 3; i++) {
-      Q_rv(i, i) = pow(dt, 3) / 3.0 * pow(sigma_acc, 2);
-      Q_rv(i + 3, i + 3) = dt * pow(sigma_acc, 2);
-      Q_rv(i, i + 3) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
-      Q_rv(i + 3, i) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
-    }
-
-    Mat2d Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
-
-    Q.block(0, 0, 6, 6) = Q_rv;
-    Q.block(6, 6, 2, 2) = Q_clk;
-
-    return Q;
-  };
+  FilterProcessNoiseFunction proc_noise_func = joint_state.GetFilterProcessNoiseFunction();
 
   /*************************************
    * EKF Setup
@@ -694,6 +769,13 @@ int main() {
   ekf.SetMeasurementFunction(meas_func_pos_clk);
   ekf.SetProcessNoiseFunction(proc_noise_func);
   std::cout << "Initialized EKF" << std::endl;
+
+  // Adaptive Process Noise
+  ekf.SetAdaptiveProcessNoise(use_adaptive_proc);
+  ekf.SetAdaptiveProcessNoiseCoeff(alpha_Q);
+
+  // outlier threshold
+  ekf.SetOutlierThreshold(outlier_thresh);
 
   // Storage
   MatXd error_mat(4, time_step_num);
@@ -720,7 +802,31 @@ int main() {
 
   // Output
   auto data_history = std::make_shared<DataHistory>();
-  auto output_path = std::filesystem::current_path() / "output" / "ExampleEKF";
+  std::string constellation_config = "_GPS";
+  if (use_galileo) {
+    constellation_config += "_GALILEO";
+  }
+  if (use_qzss) {
+    constellation_config += "_QZSS";
+  }
+
+  std::string clock_str;
+  switch (cmodel) {
+    case ClockModel::kMiniRafs:
+      clock_str = "MiniRafs";
+      break;
+    case ClockModel::kMicrosemiCsac:
+      clock_str = "Csac";
+      break;
+    case ClockModel::kRafs:
+      clock_str = "Rafs";
+      break;
+    default:
+      break;
+  }
+
+  std::string datafilename = "ExampleEKF" + constellation_config;
+  auto output_path = std::filesystem::current_path() / "output" / datafilename / clock_str;
   FileWriter writer(output_path, true);
 
   /***********************************************
@@ -731,6 +837,7 @@ int main() {
   double epoch = et0;
 
   int time_index = 0;
+  int num_sat = 0;
   // tf = 50 * Dt;
 
   // Compute Estimation
@@ -740,10 +847,15 @@ int main() {
   std::string epoch_string = sp::TAItoStringUTC(et0, 3);
   std::cout << " " << std::endl;
   std::cout << "Initial Epoch    : " << epoch_string << std::endl;
-  std::cout << "Simulation Length: " << (tf - et0)/60 << " min" << std::endl;
+  std::cout << "Simulation Length: " << (tf - et0) / 60 << " min" << std::endl;
+  std::cout << "GNSS Constellation: " << std::endl
+            << " GPS: " << gnss_const.GetNumSatellites(GnssType::GPS) << " " << std::endl
+            << " GALILEO: " << gnss_const.GetNumSatellites(GnssType::GALILEO) << " " << std::endl
+            << " QZSS: " << gnss_const.GetNumSatellites(GnssType::QZSS) << " " << std::endl;
   std::cout << " " << std::endl;
   PrintProgressHeader();
-  PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2));
+  PrintProgress((t - et0).val(), est_err(0), est_err(1), est_err(2), ekf.GetCovariance(), num_sat,
+                0);
 
   for (t = et0; t < tf; t += Dt) {
     time_index += 1;
@@ -751,15 +863,14 @@ int main() {
 
     // Propagate True State
     moon_sat->Propagate(epoch);
-    gps_const.Propagate(epoch);
+    gnss_const.Propagate(epoch);
 
     // Get True Measurement
     VecX z_true;
     auto measall = receiver->GetMeasurement(epoch);
-
-    auto meas = measall.ExtractSignal("L1");
-    int num_sat = meas.GetTrackedSatelliteNum();
-
+    auto meas_L1 = measall.ExtractSignal(signals);
+    auto meas = meas_L1.ApplyIonoMask();
+    num_sat = meas.GetTrackedSignalNum();
     num_meas(time_index) = num_sat;
 
     if (!no_meas) {
@@ -767,6 +878,16 @@ int main() {
       z_true = meas.GetGnssMeasurement(meas_types, with_noise, seed);
     } else {
       z_true = VecXd::Zero(0);
+    }
+
+    // Add SIS_URE to the measurement
+    int zidx = 0;
+    if (use_range) {
+      z_true(zidx) += SampleRandNormal(0, sis_ure_std, seed);
+      zidx++;
+    }
+    if (use_range_rate) {
+      z_true(zidx) += SampleRandNormal(0, sis_ure_rate_std, seed);
     }
 
     // Update EKF
@@ -778,7 +899,7 @@ int main() {
 
     // Add Data
     if (!no_meas) {
-      AddStateEstimationData(data_history, moon_sat, &ekf, &gps_const, &meas, t.val(), epoch);
+      AddStateEstimationData(data_history, moon_sat, &ekf, &gnss_const, &meas, t.val(), epoch);
     }
 
     // Compute Estimation
@@ -786,22 +907,24 @@ int main() {
     error_mat.col(time_index) = est_err;
 
     // Print progress
-    if (fmod((t-et0).val(), print_every) < 1e-3) {
-      PrintProgress((t-et0).val(), est_err(0), est_err(1), est_err(2));
+    int num_used_meas = ekf.GetMeasurementResidual().size();
+    if (fmod((t - et0).val(), print_every) < 1e-3) {
+      PrintProgress((t - et0).val(), est_err(0), est_err(1), est_err(2), ekf.GetCovariancePost(),
+                    num_sat, num_used_meas);
       // PrintEKFDebugInfo(time_index, moon_sat, &ekf, true);
     }
 
     // print measurement residuals
     if ((print_debug) && (!no_meas)) {
       std::cout << "z_true: " << z_true.transpose() << std::endl;
-      std::cout << "z_pred: " << ekf.z_prior_.transpose() << std::endl;
+      std::cout << "z_pred: " << ekf.GetPredictedMeasurement().transpose() << std::endl;
       PrintEKFDebugInfo(time_index, moon_sat, &ekf, debug_ekf_error_only);
     }
   }
 
   // Print Statistics
   if (!no_meas) {
-    PrintEstimationStatistics(num_meas, error_mat, 0.3);  // use last 30%
+    PrintEstimationStatistics(num_meas, error_mat, double(1.0 / n_orbit));  // use last 30%
 
     // Write data ------------------------------------------
     std::cout << "Simulation finished, saving data..." << std::endl;

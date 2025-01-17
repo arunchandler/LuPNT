@@ -43,7 +43,6 @@ namespace lupnt {
 
     T GM;
     T R;
-    int n, m;
 
     Frame fixed_frame;
     Frame inertial_frame;
@@ -78,6 +77,5 @@ namespace lupnt {
   template <typename T> BodyT<T> CreateBody(NaifId body, int n = 0, int m = 0);
   template <typename T> BodyT<T> CreateBody(std::string body_s, int n = 0, int m = 0);
   NaifId GetBodyId(std::string name);
-
 
 }  // namespace lupnt

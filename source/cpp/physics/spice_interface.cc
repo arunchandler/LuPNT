@@ -234,6 +234,41 @@ namespace lupnt {
       return M_rot;
     }
 
+    Vec3d GetPlanetOrientation(NaifId id, Real t_tdb) {
+      if (!spice_loaded) LoadSpiceKernel();
+
+      std::string to_frame = "J2000";
+
+      char bodyname[36];
+      SpiceBoolean found;
+#pragma omp critical
+      bodc2n_c((SpiceInt)id, 36, bodyname, &found);
+
+      if (!found) {
+        throw std::runtime_error("Invalid planet ID");
+      }
+      std::string from_frame = "IAU_" + std::string(bodyname);
+
+      SpiceDouble rotmat[3][3];
+      SpiceDouble et_spice = (SpiceDouble)t_tdb.val();
+      const char* from_frame_char = strcpy(new char[from_frame.length() + 1], from_frame.c_str());
+      const char* to_frame_char = strcpy(new char[to_frame.length() + 1], to_frame.c_str());
+#pragma omp critical
+      pxform_c(from_frame_char, to_frame_char, et_spice, rotmat);
+
+      SpiceDouble psi, theta, phi;
+
+#pragma omp critical
+      m2eul_c(rotmat, 3, 1, 3, &psi, &theta, &phi);
+
+      Vec3d angles;
+      double W = -(phi + PI);          // R_z(-W)
+      double delta0 = PI / 2 - theta;  // R_x(PI/2 - delta0)
+      double alpha0 = PI / 2 - psi;    // R_z(-alpha0)
+      angles << alpha0, delta0, W;
+      return angles;
+    }
+
     /**
      * @brief Convert a string to ephemeris time
      *

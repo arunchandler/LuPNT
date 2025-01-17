@@ -49,10 +49,8 @@ int main() {
 
   // Dynamics
   NBodyDynamics dyn;
-  dyn.SetArea(area);
-  dyn.SetMass(mass);
-  dyn.SetSrpCoeff(CR);
-  dyn.SetDragCoeff(CD);
+  dyn.SetSrpCoeff(CR, area, mass);
+  dyn.SetDragCoeff(CD, area, mass);
   dyn.SetFrame(Frame::ITRF);
   dyn.AddBody(sun);
   dyn.AddBody(moon);

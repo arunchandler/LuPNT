@@ -6,13 +6,14 @@
 
 #include "lupnt/simulation/sim_config_reader.h"
 
-#include <magic_enum/magic_enum.hpp>
-
 #include "lupnt/agents/agent.h"
+#include "lupnt/apps/state_estimation_app.h"
 #include "lupnt/core/constants.h"
 #include "lupnt/core/definitions.h"
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/measurements/gnss_receiver.h"
+#include "lupnt/measurements/space_channel.h"
+#include "lupnt/numerics/ekf.h"
 #include "lupnt/physics/body.h"
 #include "lupnt/physics/frame_converter.h"
 #include "lupnt/physics/time_converter.h"
@@ -107,14 +108,35 @@ namespace lupnt {
   //==============================================================================
 
   void ConfigReader::LoadConfigYaml(std::string filename, bool print_val) {
-    YAML::Node config = YAML::LoadFile(filename);
+    std::filesystem::path config_dir_path = GetConfigFileDir();
+    auto filepath = FindFileInDir(config_dir_path, filename);
+    if (!filepath) {
+      std::cerr << "Config file not found: " << filename << "\n";
+      throw std::runtime_error("Config file not found: " + filename);
+    }
+    YAML::Node config = YAML::LoadFile(filepath->string());
+
+    if (print_val) {
+      std::cout << " " << std::endl;
+      std::cout << " -------------------------------------------------------------------------"
+                << std::endl;
+      std::cout << "Config file: " << filepath->string() << "\n";
+      std::cout << " " << std::endl;
+    }
 
     // This order is important!
     LoadTimeConfig(config["time"], print_val);
     LoadDynamicsConfig(config["dynamics"], print_val);
     LoadChannelConfig(config["channels"], print_val);
     LoadGnssConfig(config["gnss"], print_val);
-    LoadSatelliteConfig(config["agents"], print_val);
+    LoadSatelliteConfig(config["satellites"], print_val);
+    LoadFiltersConfig(config["filters"], print_val);
+
+    if (print_val) {
+      std::cout << " -------------------------------------------------------------------------"
+                << std::endl;
+      std::cout << " " << std::endl;
+    }
   }
 
   //==============================================================================
@@ -142,15 +164,13 @@ namespace lupnt {
     time_config_.n_orbit = LoadRequiredField<double>(time_node["n_orbit"], "time.n_orbit");
 
     if (print_val) {
-      std::cout << "Time Config:\n";
-      std::cout << "  Epoch0:    " << time_config_.epoch0 << "\n";
-      std::cout << "  dt_integ:  " << time_config_.dt_integ << "\n";
-      std::cout << "  dt_meas:   " << time_config_.dt_meas << "\n";
-      std::cout << "  tf:        " << time_config_.tf << "\n";
-      std::cout << "  n_orbit:   " << time_config_.n_orbit << "\n";
+      std::cout << "<Time Config>\n";
+      std::cout << "  - Epoch0:    " << time_config_.epoch0 << "\n";
+      std::cout << "  - dt_integ:  " << time_config_.dt_integ << "\n";
+      std::cout << "  - dt_meas:   " << time_config_.dt_meas << "\n";
+      std::cout << "  - tf:        " << time_config_.tf << "\n";
+      std::cout << "  - n_orbit:   " << time_config_.n_orbit << "\n";
     }
-
-    std::cout << "Set Time Config\n";
   }
 
   //==============================================================================
@@ -159,10 +179,12 @@ namespace lupnt {
 
   template <typename T>
   Ptr<NBodyDynamics<T>> ConfigReader::CreateNBodyDynamics(const YAML::Node child_node,
-                                                          bool print_val) {
+                                                          std::string name, bool print_val) {
     // Use LoadRequiredField for 'integrator'
     std::string integrator
         = LoadRequiredField<std::string>(child_node["integrator"], "dynamics.{}.integrator");
+
+    std::string prior = "dynamics." + name;
 
     Ptr<NBodyDynamics<T>> dyn;
     if (integrator == "RKF45") {
@@ -190,9 +212,15 @@ namespace lupnt {
 
         if (sphOrderMatch) {
           n = child_node["sph_order"][i].as<int>();
+        } else {
+          std::cerr << "Spherical order does not match with number of bodies: "
+                    << prior + ".sph_order\n";
         }
         if (sphDegreeMatch) {
           m = child_node["sph_degree"][i].as<int>();
+        } else {
+          std::cerr << "Spherical degree does not match with number of bodies: "
+                    << prior + ".sph_degree\n";
         }
         // Create BodyT<double>
         BodyT<T> body = CreateBody<T>(body_name, n, m);
@@ -201,20 +229,24 @@ namespace lupnt {
     }
 
     // SRP
-    if (child_node["srp"] && child_node["srp"]["enable"]) {
+    if (child_node["srp"] && child_node["srp"]["enable"].as<bool>()) {
       dyn->SetUseSrp(true);
 
-      dyn->SetArea(LoadRequiredField<Real>(child_node["srp"]["area"], "dynamics.{}.srp.area"));
-      dyn->SetSrpCoeff(LoadRequiredField<Real>(child_node["srp"]["cr"], "dynamics.{}.srp.cr"));
-      dyn->SetMass(LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass"));
+      Real area = LoadRequiredField<Real>(child_node["srp"]["area"], prior + ".srp.area");
+      Real cr = LoadRequiredField<Real>(child_node["srp"]["cr"], prior + ".srp.cr");
+      Real mass = LoadRequiredField<Real>(child_node["mass"], prior + ".mass");
+
+      dyn->SetSrpCoeff(cr, area, mass);
     }
     // Drag
-    if (child_node["drag"] && child_node["drag"]["enable"]) {
+    if (child_node["drag"] && child_node["drag"]["enable"].as<bool>()) {
       dyn->SetUseDrag(true);
 
-      dyn->SetArea(LoadRequiredField<Real>(child_node["drag"]["area"], "dynamics.{}.drag.area"));
-      dyn->SetDragCoeff(LoadRequiredField<Real>(child_node["drag"]["cd"], "dynamics.{}.drag.cd"));
-      dyn->SetMass(LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass"));
+      Real area_d = LoadRequiredField<Real>(child_node["drag"]["area"], "dynamics.{}.drag.area");
+      Real cd = LoadRequiredField<Real>(child_node["drag"]["cd"], "dynamics.{}.drag.cd");
+      Real mass_d = LoadRequiredField<Real>(child_node["mass"], "dynamics.{}.mass");
+
+      dyn->SetDragCoeff(cd, area_d, mass_d);
     }
 
     // Integrator options
@@ -227,6 +259,18 @@ namespace lupnt {
       dyn->SetIntegratorParams(iparams);
     }
 
+    if (print_val) {
+      std::cout << "    - Integrator: " << child_node["integrator"] << "\n";
+      std::cout << "    - Bodies: ";
+      for (auto &body : dyn->GetBodies()) {
+        std::cout << body.name << " (" << body.gravity_field.m << ", " << body.gravity_field.n
+                  << ") ";
+      }
+      std::cout << "\n";
+      std::cout << "    - SRP: " << std::boolalpha << dyn->GetUseSrp() << "\n";
+      std::cout << "    - Drag: " << std::boolalpha << dyn->GetUseDrag() << "\n";
+    }
+
     return dyn;
   }
 
@@ -235,9 +279,23 @@ namespace lupnt {
   //==============================================================================
 
   void ConfigReader::LoadDynamicsConfig(YAML::Node dynamicsNode, bool print_val) {
+    if (print_val) {
+      std::cout << " " << std::endl;
+      std::cout << "<Dynamics Config>\n";
+    }
+
     for (YAML::const_iterator it = dynamicsNode.begin(); it != dynamicsNode.end(); ++it) {
       std::string name = it->first.as<std::string>();
+
+      if (name == "num_dynamics") {
+        continue;
+      }
+
       YAML::Node child_node = it->second;
+
+      if (print_val) {
+        std::cout << "  - Dynamics Name: " << name << "\n";
+      }
 
       // We assume 'type' is mandatory
       std::string dyn_type = LoadRequiredField<std::string>(child_node["type"], name + ".type");
@@ -248,9 +306,9 @@ namespace lupnt {
         // If 'use_real' is mandatory:
         bool use_real = LoadRequiredField<bool>(child_node["use_real"], name + ".use_real");
         if (use_real) {
-          dyn = CreateNBodyDynamics<Real>(child_node, print_val);
+          dyn = CreateNBodyDynamics<Real>(child_node, name, print_val);
         } else {
-          dyn = CreateNBodyDynamics<double>(child_node, print_val);
+          dyn = CreateNBodyDynamics<double>(child_node, name, print_val);
         }
       } else if (dyn_type == "ClockDynamics") {
         std::string model_name
@@ -258,6 +316,10 @@ namespace lupnt {
         dyn = MakePtr<ClockDynamics>(FindClockModel(model_name));
         Ptr<ClockDynamics> clock_dyn_ptr = std::dynamic_pointer_cast<ClockDynamics>(dyn);
         InsertMap<ClockDynamics>(clock_dynamics_map_, name, clock_dyn_ptr);
+
+        if (print_val) {
+          std::cout << "    - Clock Model: " << model_name << "\n";
+        }
       } else {
         std::cerr << "Invalid Dynamics type at '" << name << "'.\n"
                   << "Currently accepted are NBodyDynamics or ClockDynamics.\n";
@@ -266,14 +328,6 @@ namespace lupnt {
       // Insert into map
       InsertMap<IDynamics>(dynamics_map_, name, dyn);
     }
-
-    if (print_val) {
-      std::cout << "Dynamics Config:\n";
-      for (auto &entry : dynamics_map_) {
-        std::cout << "  - Dynamics Name: " << entry.first << "\n";
-      }
-    }
-    std::cout << "Set Dynamics Config\n";
   }
 
   //==============================================================================
@@ -281,17 +335,35 @@ namespace lupnt {
   //==============================================================================
 
   void ConfigReader::LoadChannelConfig(YAML::Node channelNode, bool print_val) {
+    if (print_val) {
+      std::cout << " " << std::endl;
+      std::cout << "<Channel Config>\n";
+    }
     for (YAML::const_iterator it = channelNode.begin(); it != channelNode.end(); ++it) {
       std::string name = it->first.as<std::string>();
+
+      if (name == "num_channel") {
+        continue;
+      }
+
       YAML::Node child_node = it->second;
 
-      std::string channel_type = LoadRequiredField<std::string>(child_node["type"], name + ".type");
+      std::string channel_type
+          = LoadRequiredField<std::string>(child_node["type"], "channels." + name + ".type");
 
       if (channel_type == "GnssChannel") {
         InsertMap<GnssChannel>(gnss_channels_map_, name, MakePtr<GnssChannel>());
-      } else {
+      } else if (channel_type == "SpaceChannel") {
         // fallback or other channel
         InsertMap<SpaceChannel>(space_channels_map_, name, MakePtr<SpaceChannel>());
+      } else {
+        std::cerr << "Invalid Channel type at '" << name << "'.\n"
+                  << "Currently accepted are GnssChannel or SpaceChannel.\n";
+      }
+
+      if (print_val) {
+        std::cout << "  - Channel Name: " << name << "\n";
+        std::cout << "    - Channel Type: " << channel_type << "\n";
       }
     }
     // If you need print_val for debugging, you can add prints here
@@ -304,9 +376,20 @@ namespace lupnt {
   void ConfigReader::LoadGnssConfig(YAML::Node gnssNode, bool print_val) {
     bool is_first_const = true;
 
+    if (print_val) {
+      std::cout << " " << std::endl;
+      std::cout << "<GNSS Config>\n";
+    }
+
+    gnss_ = MakePtr<GnssConstellation>();
+
     for (YAML::const_iterator it = gnssNode.begin(); it != gnssNode.end(); ++it) {
       std::string name = it->first.as<std::string>();
       YAML::Node child_node = it->second;
+
+      if (name == "num_gnss") {
+        continue;
+      }
 
       std::string field_prior = "gnss." + name;
 
@@ -323,7 +406,7 @@ namespace lupnt {
             std::cerr << "Dynamics '" << dyn_key << "' not found for GNSS constellation.\n";
             return;
           }
-          std::string gnss_type
+          std::string gnss_type_str
               = LoadRequiredField<std::string>(child_node["gnss_type"], field_prior + ".gnss_type");
           std::string filename
               = LoadRequiredField<std::string>(child_node["filename"], field_prior + ".filename");
@@ -332,16 +415,36 @@ namespace lupnt {
           auto dyn_gnss = FindMap<IDynamics>(dynamics_map_, dyn_key);
           auto channel_gnss = FindMap<GnssChannel>(gnss_channels_map_, channel);
 
+          // convert string to enum
+          GnssType gnss_type = enum_cast<GnssType>(gnss_type_str).value();
+
           gnss_->InitializeWithTle(gnss_type, filename, dyn_gnss, channel_gnss,
                                    time_config_.epoch0);
           is_first_const = false;
+
+          if (print_val) {
+            std::cout << "  - GNSS Name: " << name << "\n";
+            std::cout << "    - Initialization: " << init_type << "\n";
+            std::cout << "    - GNSS Type: " << child_node["gnss_type"] << "\n";
+            std::cout << "    - Filename: " << child_node["filename"] << "\n";
+            std::cout << "    - Channel: " << child_node["channel"] << "\n";
+          }
         } else {
           // Additional satellites in TLE
-          std::string gnss_type
+          std::string gnss_type_str
               = LoadRequiredField<std::string>(child_node["gnss_type"], field_prior + ".gnss_type");
           std::string filename
               = LoadRequiredField<std::string>(child_node["filename"], field_prior + ".filename");
+
+          GnssType gnss_type = enum_cast<GnssType>(gnss_type_str).value();
           gnss_->AddSatellitesWithTle(gnss_type, filename);
+
+          if (print_val) {
+            std::cout << "  - GNSS Name: " << name << "\n";
+            std::cout << "    - Initialization: " << init_type << "\n";
+            std::cout << "    - GNSS Type: " << child_node["gnss_type"] << "\n";
+            std::cout << "    - Filename: " << child_node["filename"] << "\n";
+          }
         }
       } else {
         std::cerr << "Invalid GNSS initialization type: only TLE supported.\n";
@@ -353,20 +456,19 @@ namespace lupnt {
   // CreateOrbitState
   //==============================================================================
 
-  void ConfigReader::CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat) {
-    // We want to find final frame
-    std::string sat_name = sat->GetName();
-    std::string prior_key = "satellites." + sat_name + ".states.";
-
+  void ConfigReader::CreateOrbitState(YAML::Node state_node, Ptr<Spacecraft> sat,
+                                      std::string prior_key) {
     //  - .frame and .init.frame are required
     std::string final_frame_key
         = LoadRequiredField<std::string>(state_node["frame"], prior_key + "frame");
-    Frame frame_final = magic_enum::enum_cast<Frame>(final_frame_key).value();
+    // Frame frame_final = FindStrFrameMap(string2frame, final_frame_key);
+    Frame frame_final = enum_cast<Frame>(final_frame_key).value();
 
     // .init.frame
     std::string init_frame_key
         = LoadRequiredField<std::string>(state_node["init"]["frame"], prior_key + "init.frame");
-    Frame frame_init = magic_enum::enum_cast<Frame>(init_frame_key).value();
+    // Frame frame_init = FindStrFrameMap(string2frame, init_frame_key);
+    Frame frame_init = enum_cast<Frame>(init_frame_key).value();
 
     // center body from frame_init
     NaifId center_init = FindFrameCenterMap(frame_centers, frame_init);
@@ -444,16 +546,21 @@ namespace lupnt {
   // CreateClockState
   //==============================================================================
 
-  void ConfigReader::CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat) {
+  void ConfigReader::CreateClockState(YAML::Node state_node, Ptr<Spacecraft> sat,
+                                      std::string prior_field) {
     // We expect "val.bias" and "val.drift" at minimum
-    Real bias = Real(LoadRequiredField<double>(state_node["val"]["bias"], "clock.val.bias"));
-    Real drift = Real(LoadRequiredField<double>(state_node["val"]["drift"], "clock.val.drift"));
+    Real bias = Real(LoadRequiredField<double>(state_node["init"]["val"]["bias"],
+                                               prior_field + ".init.val.bias"));
+    Real drift = Real(LoadRequiredField<double>(state_node["init"]["val"]["drift"],
+                                                prior_field + ".init.val.drift"));
 
     VecX clock_vec;
     if (state_node["val"]["drift_rate"]) {
-      Real drift_rate = Real(state_node["val"]["drift_rate"].as<double>());
+      Real drift_rate = Real(state_node["init"]["val"]["drift_rate"].as<double>());
+      clock_vec.resize(3);
       clock_vec << bias, drift, drift_rate;
     } else {
+      clock_vec.resize(2);
       clock_vec << bias, drift;
     }
     ClockState clock_state(clock_vec);
@@ -516,7 +623,7 @@ namespace lupnt {
         std::cerr << "Orbit State already defined for Agent '" << sat->GetName() << "'\n";
         return;
       }
-      CreateOrbitState(state_node, sat);
+      CreateOrbitState(state_node, sat, prior_field);
       orbit_defined = true;
 
       InsertMap<IState>(state_map_, state_name, sat->GetOrbitState());
@@ -525,7 +632,7 @@ namespace lupnt {
         std::cerr << "Clock State already defined for Agent '" << sat->GetName() << "'\n";
         return;
       }
-      CreateClockState(state_node, sat);
+      CreateClockState(state_node, sat, prior_field);
       clock_defined = true;
       Ptr<ClockState> clock_state_ptr = MakePtr<ClockState>(sat->GetClockState());
 
@@ -542,16 +649,23 @@ namespace lupnt {
   //==============================================================================
 
   void ConfigReader::LoadSatelliteConfig(YAML::Node satellite_node, bool print_val) {
-    // First create the agents (Spacecraft objects)
+    int idx = 0;
+
+    if (print_val) {
+      std::cout << " " << std::endl;
+      std::cout << "<Satellite Config>\n";
+    }
+
     for (YAML::const_iterator it = satellite_node.begin(); it != satellite_node.end(); ++it) {
       std::string name = it->first.as<std::string>();
+
+      if (it->first.as<std::string>() == "num_satellites") {
+        continue;
+      }
       Ptr<Spacecraft> sat = MakePtr<Spacecraft>();
       sat->SetName(name);
       satellites_.push_back(sat);
-    }
 
-    int idx = 0;
-    for (YAML::const_iterator it = satellite_node.begin(); it != satellite_node.end(); ++it) {
       YAML::Node child_node = it->second;
 
       satellites_[idx]->SetEpoch(time_config_.epoch0);
@@ -579,6 +693,8 @@ namespace lupnt {
         }
       }
 
+      // ToDO: Add Applications
+
       // Insert to map (Spacecraft)
       InsertMap<Spacecraft>(satellites_map_, satellites_[idx]->GetName(), satellites_[idx]);
       idx++;
@@ -589,6 +705,84 @@ namespace lupnt {
       std::cout << "Agent Config:\n";
       for (auto &sat : satellites_) {
         std::cout << "  Agent Name: " << sat->GetName() << "\n";
+      }
+    }
+  }
+
+  //==============================================================================
+  // LoadFiltersConfig
+  //==============================================================================
+
+  Ptr<JointState> ConfigReader::CreateJointState(YAML::Node dynamics_list,
+                                                 std::string field_prior) {
+    Ptr<JointState> joint_state = MakePtr<JointState>();
+
+    for (YAML::const_iterator it = dynamics_list.begin(); it != dynamics_list.end(); ++it) {
+      std::string name = it->first.as<std::string>();
+      YAML::Node child_node = it->second;
+
+      // state
+      std::string state_str
+          = LoadRequiredField<std::string>(child_node["state"], field_prior + ".state");
+      Ptr<IState> state = FindMap<IState>(state_map_, state_str);
+
+      // dynamics
+      std::string dyn_str
+          = LoadRequiredField<std::string>(child_node["dynamics"], field_prior + ".dynamics");
+      Ptr<IDynamics> dyn = FindMap<IDynamics>(dynamics_map_, dyn_str);
+
+      // params: Todo
+
+      // params_option: Todo
+
+      joint_state->PushBackStateAndDynamics(state, dyn);
+    }
+
+    return joint_state;
+  }
+
+  void ConfigReader::LoadFiltersConfig(YAML::Node filtersNode, bool print_val) {
+    if (print_val) {
+      std::cout << " " << std::endl;
+      std::cout << "<Filter Config>\n";
+    }
+
+    for (YAML::const_iterator it = filtersNode.begin(); it != filtersNode.end(); ++it) {
+      std::string name = it->first.as<std::string>();
+      YAML::Node child_node = it->second;
+
+      // Construct filter
+      Ptr<IFilter> filter;
+
+      // We assume 'type' is mandatory
+      std::string filter_type
+          = LoadRequiredField<std::string>(child_node["type"], "filters." + name + ".type");
+
+      if (filter_type == "EKF") {
+        filter = MakePtr<EKF>();
+      } else {
+        std::cerr << "Invalid Filter type at '" << name << "'.\n"
+                  << "Currently accepted are EKF.\n";
+      }
+
+      // Create joint state
+      if (child_node["dynamics_list"]) {
+        auto joint_state
+            = CreateJointState(child_node["dynamics_list"], "filter." + name + ".dynamics_list");
+        FilterDynamicsFunction filter_joint_dyn = joint_state->GetFilterDynamicsFunction();
+        FilterProcessNoiseFunction filter_proc_func = joint_state->GetFilterProcessNoiseFunction();
+        filter->SetDynamicsFunction(filter_joint_dyn);
+        filter->SetProcessNoiseFunction(filter_proc_func);
+      } else {
+        std::cerr << "Not Found: filter." << name << ".dynamics_list\n";
+      }
+
+      // Insert into map
+      InsertMap<IFilter>(filter_map_, name, filter);
+
+      if (print_val) {
+        std::cout << "  - Filter Name: " << name << "\n";
+        std::cout << "    - Filter Type: " << filter_type << "\n";
       }
     }
   }

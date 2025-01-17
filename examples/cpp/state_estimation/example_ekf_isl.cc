@@ -251,8 +251,12 @@ int main() {
     moon_sat->SetBodyId(NaifId::MOON);
     moon_sat->SetClockDynamics(dyn_clk_true);
 
-    joint_state.PushBackStateAndDynamics(cart_state.get(), dyn_est.get());
-    joint_state.PushBackStateAndDynamics(&clock_state, &dyn_clk_est);
+    auto proc_noise_rv
+        = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
+    auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionClock(cmodel, 2));
+    joint_state.PushBackStateAndDynamics(cart_state, dyn_est, proc_noise_rv);
+    joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state),
+                                         MakePtr<ClockDynamics>(dyn_clk_est));
 
     moon_sats.push_back(moon_sat);
   }
@@ -272,8 +276,7 @@ int main() {
   FilterDynamicsFunction joint_dynamics = joint_state.GetFilterDynamicsFunction();
 
   // Process Noise Function
-  FilterProcessNoiseFunction proc_noise_func
-      = ConstructProcessNoisePVC(cmodel, state_size, sigma_acc, nsat);
+  FilterProcessNoiseFunction proc_noise_func = joint_state.GetFilterProcessNoiseFunction();
 
   /*********************************************
    * Define Measurement function
@@ -396,6 +399,7 @@ int main() {
 
   // Initilization
   VecX x_init_true = joint_state.GetJointStateValue();
+
   VecX x_est = SampleMVN(x_init_true, P0, 1, seed);
   ekf.Initialize(t0, x_est, P0);
   VecXd est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
