@@ -76,7 +76,7 @@ class Blender:
 
         # SUN properties
         self.SUN.data.type = "SUN"
-        self.SUN.data.energy = self.SUN_ENERGY  # To perform quantitative analysis
+        self.SUN.data.energy = self.SUN_ENERGY
         self.SUN.data.angle = 0.53 * np.pi / 180
 
         # WORLD properties
@@ -102,11 +102,25 @@ class Blender:
             R_pa2ogl = self.R_ocv2ogl @ R_pa2c
         elif frame == "OpenGL":
             R_pa2ogl = R_pa2c
-        q_c_pa = _pnt.rot2quat(R_pa2ogl.T)
-        q_c_pa = q_c_pa[[3, 0, 1, 2]]
+        else:
+            raise ValueError("frame must be either 'OpenCV' or 'OpenGL'")
+
+        # Camera
+        q_c_pa = _pnt.rot2quat(R_pa2ogl)
+
+        # Moon
         r_m_pa = np.zeros(3)
         q_m_pa = np.array([1, 0, 0, 0])
+
+        # Sun
         r_s_pa = np.array(r_s_pa) / np.linalg.norm(r_s_pa)
+        ez = r_s_pa
+        ex = np.cross(np.array([0, 0, 1]), ez)
+        ex /= np.linalg.norm(ex)
+        ey = np.cross(ez, ex)
+        ey /= np.linalg.norm(ey)
+        rot = np.array([ex, ey, ez])
+        q_s_pa = _pnt.rot2quat(rot)
 
         bpy.context.scene.frame_current = 0
 
@@ -120,16 +134,7 @@ class Blender:
 
         self.SUN.rotation_mode = "QUATERNION"
         self.SUN.location = r_s_pa * SUN_DISTANCE * self.SCALE_BU
-        # self.SUN.rotation_quaternion = mathutils.Vector(r_s_pa).to_track_quat("Z", "Y")
-        ez = r_s_pa
-        ex = np.cross(np.array([0, 0, 1]), ez)
-        ex /= np.linalg.norm(ex)
-        ey = np.cross(ez, ex)
-        ey /= np.linalg.norm(ey)
-        rot = np.array([ex, ey, ez]).T
-        quat = pnt.rot2quat(rot)
-        quat = np.concatenate([quat[3:], quat[:3]])
-        self.SUN.rotation_quaternion = quat
+        self.SUN.rotation_quaternion = q_s_pa
 
         bpy.context.view_layer.update()
         os.makedirs(os.path.dirname(filepath), exist_ok=True)

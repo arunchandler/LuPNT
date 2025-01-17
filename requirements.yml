@@ -16,3 +16,6 @@ dependencies:
   - scikit-learn
   - tqdm
   - cvxpy
+  - pip
+  - pip:
+    - bpy=4.1.0
