@@ -47,6 +47,11 @@ namespace lupnt {
   VecX Decibel2Decimal(VecX x);
   MatX Decibel2Decimal(MatX x);
 
+  Real Max(Real x, Real y);
+  Real Min(Real x, Real y);
+  double MaxD(double x, double y);
+  double MinD(double x, double y);
+
   Real round(Real x, int n = 0);
   Real frac(Real x);
   Real ceil(Real x);

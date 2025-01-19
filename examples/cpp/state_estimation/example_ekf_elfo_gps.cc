@@ -164,6 +164,13 @@ void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
   data_history->AddData("vis_moon", t, meas->GetMoonOccultation());
   data_history->AddData("vis_antenna", t, meas->GetMoonOccultation());
   data_history->AddData("vis_ionos", t, meas->GetMoonOccultation());
+  
+  std::vector<int> tx_ids = meas->GetTxIds();
+  VecXd tx_ids_vec(tx_ids.size());
+  for (size_t i = 0; i < tx_ids.size(); i++) {
+    tx_ids_vec(i) = tx_ids[i];
+  }
+  data_history->AddData("tx_ids", t, tx_ids_vec);
 
   // Moon spacecraft
   CartesianOrbitState state = sat->GetCartesianGCRFStateAtEpoch(epoch);
@@ -506,7 +513,7 @@ int main() {
   Real et0_utc = Gregorian2Time(2025, 1, 1, 12, 0, 0).val();  // in UTC
   double et0 = UTC2TAI(et0_utc).val();                        // in TAI
   double dt = 1.0;                                            // Integration time step [s]
-  double Dt = 600.0;  // Propagation time step [s]  (= Measurement time step)
+  double Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
   double print_every = 600;
   double save_every = Dt;
 
@@ -561,7 +568,7 @@ int main() {
   double vel_err = pos_err * 1e-2;  // Initial Velocity error [km/s]
   double clk_bias_err = 1.0/C;       // Initial Clock bias error [s]
   double clk_drift_err = clk_bias_err * 1e-3;     // Initial Clock drift error [s/s]
-  double sigma_acc = std::pow(10, -7.7);  // Process noise Acceleration [km/s^2]  <-- tune
+  double sigma_acc = std::pow(10, -6);     // Process noise Acceleration [km/s^(3/2)]  <-- tune
                                           // this for optimal performance!  (1e-8 for MINI-RAFS, 1e-7.5 for CSAC)
 
   // Adaptive Process Noise -------------------------
