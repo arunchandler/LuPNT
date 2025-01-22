@@ -86,14 +86,14 @@ namespace lupnt {
   /// ICRF -- GCRF -- MI -- OP
   ///       /  |  \  /
   ///     SER GSE EMR
-  Vec6 ConvertFrameBase(Real t_tai, const Vec6& rv_in, Frame frame_in, Frame frame_out) {
+  template <int N>
+  Vec<N> ConvertFrame(Real t_tai, const Vec<N>& rv_in, Frame frame_in, Frame frame_out) {
     if (frame_in == frame_out) return rv_in;
     switch (frame_in) {
       // Earth ***************
-      case Frame::ICRF:
-        return ConvertFrameBase(t_tai, ICRF2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
+      case Frame::ICRF: return ConvertFrame(t_tai, ICRF2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
       case Frame::ITRF:  // Frame::ECEF:
-        return ConvertFrameBase(t_tai, ITRF2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
+        return ConvertFrame(t_tai, ITRF2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
       case Frame::GCRF:
         switch (frame_out) {
           case Frame::ICRF: return GCRF2ICRF(t_tai, rv_in);
@@ -101,20 +101,19 @@ namespace lupnt {
           case Frame::SER:
           case Frame::GSE: throw std::runtime_error("Not implemented");
           case Frame::EMR: return GCRF2EMR(t_tai, rv_in);
-          case Frame::EME: return GCRF2EME(t_tai, rv_in);
+          case Frame::EME: return GCRF2EME(rv_in);
           case Frame::MOD:
           case Frame::TOD: throw std::runtime_error("Not implemented");
           case Frame::MOON_PA:
           case Frame::MOON_ME:
           case Frame::MOON_OP:
           case Frame::MOON_CI:
-            return ConvertFrameBase(t_tai, GCRF2MoonCI(t_tai, rv_in), Frame::MOON_CI, frame_out);
+            return ConvertFrame(t_tai, GCRF2MoonCI(t_tai, rv_in), Frame::MOON_CI, frame_out);
           default: break;
         }
       case Frame::EME:  // Frame::ECI:
-        return ConvertFrameBase(t_tai, EME2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
-      case Frame::EMR:
-        return ConvertFrameBase(t_tai, EMR2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
+        return ConvertFrame(t_tai, EME2GCRF(rv_in), Frame::GCRF, frame_out);
+      case Frame::EMR: return ConvertFrame(t_tai, EMR2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
       case Frame::SER:
       case Frame::GSE:
       case Frame::MOD:
@@ -124,18 +123,17 @@ namespace lupnt {
         switch (frame_out) {
           case Frame::MOON_OP: return MoonCI2MoonOP(t_tai, rv_in);
           case Frame::MOON_PA: return MoonCI2MoonPA(t_tai, rv_in);
-          case Frame::MOON_ME: return MoonPA2MoonME(t_tai, MoonCI2MoonPA(t_tai, rv_in));
-          default:
-            return ConvertFrameBase(t_tai, MoonCI2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
+          case Frame::MOON_ME: return MoonPA2MoonME(MoonCI2MoonPA(t_tai, rv_in));
+          default: return ConvertFrame(t_tai, MoonCI2GCRF(t_tai, rv_in), Frame::GCRF, frame_out);
         }
       case Frame::MOON_ME:
-        return ConvertFrameBase(t_tai, MoonME2MoonPA(t_tai, rv_in), Frame::MOON_PA, frame_out);
+        return ConvertFrame(t_tai, MoonME2MoonPA(rv_in), Frame::MOON_PA, frame_out);
       case Frame::MOON_PA: {
-        if (frame_out == Frame::MOON_ME) return MoonPA2MoonME(t_tai, rv_in);
-        return ConvertFrameBase(t_tai, MoonPA2MoonCI(t_tai, rv_in), Frame::MOON_CI, frame_out);
+        if (frame_out == Frame::MOON_ME) return MoonPA2MoonME(rv_in);
+        return ConvertFrame(t_tai, MoonPA2MoonCI(t_tai, rv_in), Frame::MOON_CI, frame_out);
       }
       case Frame::MOON_OP:
-        return ConvertFrameBase(t_tai, MoonOP2MoonCI(t_tai, rv_in), Frame::MOON_CI, frame_out);
+        return ConvertFrame(t_tai, MoonOP2MoonCI(t_tai, rv_in), Frame::MOON_CI, frame_out);
         // Solar System ***************
       case Frame::MERCURY_FIXED:
       case Frame::VENUS_FIXED:
@@ -154,113 +152,79 @@ namespace lupnt {
       case Frame::NONE: throw std::runtime_error("Not implemented");
     }
     throw std::runtime_error("Conversion not implemented");
-    return Vec6::Zero();
+    return Vec<N>::Zero();
   }
 
-  CartesianOrbitState ConvertFrame(Real t_tai, const CartesianOrbitState& state_in, Frame frame_out,
-                                   bool rotate_only) {
+  template Vec6 ConvertFrame(Real t_tai, const Vec6& rv_in, Frame frame_in, Frame frame_out);
+  template Vec3 ConvertFrame(Real t_tai, const Vec3& r_in, Frame frame_in, Frame frame_out);
+
+  CartesianOrbitState ConvertFrame(Real t_tai, const CartesianOrbitState& state_in,
+                                   Frame frame_out) {
     Vec6 rv_in = state_in.GetVec();
-    Vec6 rv_out = ConvertFrame(t_tai, rv_in, state_in.GetFrame(), frame_out, rotate_only);
+    Vec6 rv_out = ConvertFrame(t_tai, rv_in, state_in.GetFrame(), frame_out);
     return CartesianOrbitState(rv_out, frame_out);
   }
 
-  Vec6 ConvertFrame(Real t_tai, const Vec6& rv_in, Frame frame_in, Frame frame_out,
-                    bool rotate_only) {
-    if (rotate_only) {
-      Vec6 zeros = Vec6::Zero();
-      Vec3 translation = ConvertFrameBase(t_tai, zeros, frame_in, frame_out).head(3);
-
-      MatX6 rv_out_tmp(3, 6);
-      for (int i = 0; i < 3; i++) {
-        Vec6 rv_in_tmp = Vec6::Zero();
-        rv_in_tmp(i) = 1;
-        rv_out_tmp.row(i) = ConvertFrameBase(t_tai, rv_in_tmp, frame_in, frame_out).transpose();
-      }
-
-      // Rot contains the basis vectors of frame_in (row-stacked) expressed in
-      // frame_out
-      Mat3 Rot = rv_out_tmp.block(0, 0, 3, 3).rowwise() - translation.transpose();
-      Vec3 r_out = Rot.transpose() * rv_in.head(3);
-      Vec3 v_out = Rot.transpose() * rv_in.tail(3);
-      Vec6 rv_out;
-      rv_out << r_out, v_out;
-      return rv_out;
-    } else {
-      Vec6 rv_out_6 = ConvertFrameBase(t_tai, rv_in, frame_in, frame_out);
-      return rv_out_6;
-    }
-  }
-
-  Vec3 ConvertFrame(Real t_tai, const Vec3& r_in, Frame frame_in, Frame frame_out,
-                    bool rotate_only) {
-    Vec6 rv_in;
-    rv_in << r_in, Vec3::Zero();
-    Vec6 rv_out_6 = ConvertFrame(t_tai, rv_in, frame_in, frame_out, rotate_only);
-    return rv_out_6.head(3);
-  }
-
-  MatX6 ConvertFrame(Real t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out,
-                     bool rotate_only) {
+  MatX6 ConvertFrame(Real t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out) {
     MatX6 rv_out(rv_in.rows(), 6);
-    for (int i = 0; i < rv_in.rows(); i++) {
-      rv_out.row(i)
-          = ConvertFrame(t_tai, rv_in.row(i).transpose().eval(), frame_in, frame_out, rotate_only);
-    }
+    for (int i = 0; i < rv_in.rows(); i++)
+      rv_out.row(i) = ConvertFrame(t_tai, rv_in.row(i).transpose().eval(), frame_in, frame_out);
     return rv_out;
   }
 
-  MatX3 ConvertFrame(Real t_tai, const MatX3& r_in, Frame frame_in, Frame frame_out,
-                     bool rotate_only) {
+  MatX3 ConvertFrame(Real t_tai, const MatX3& r_in, Frame frame_in, Frame frame_out) {
     MatX3 r_out(r_in.rows(), 3);
     for (int i = 0; i < r_in.rows(); i++) {
       Vec3 r_in_ = r_in.row(i).transpose();
-      r_out.row(i) = ConvertFrame(t_tai, r_in_, frame_in, frame_out, rotate_only).head(3);
+      r_out.row(i) = ConvertFrame(t_tai, r_in_, frame_in, frame_out);
     }
     return r_out;
   }
 
-  MatX6 ConvertFrame(VecX t_tai, const Vec6& rv_in, Frame frame_in, Frame frame_out,
-                     bool rotate_only) {
+  MatX6 ConvertFrame(VecX t_tai, const Vec6& rv_in, Frame frame_in, Frame frame_out) {
     MatX6 rv_out(t_tai.size(), 6);
-    for (int i = 0; i < t_tai.size(); i++) {
-      rv_out.row(i) = ConvertFrame(t_tai(i), rv_in, frame_in, frame_out, rotate_only);
-    }
+    for (int i = 0; i < t_tai.size(); i++)
+      rv_out.row(i) = ConvertFrame(t_tai(i), rv_in, frame_in, frame_out);
     return rv_out;
   }
 
-  MatX3 ConvertFrame(VecX t_tai, const Vec3& r_in, Frame frame_in, Frame frame_out,
-                     bool rotate_only) {
+  MatX3 ConvertFrame(VecX t_tai, const Vec3& r_in, Frame frame_in, Frame frame_out) {
     MatX3 r_out(t_tai.size(), 3);
     for (int i = 0; i < t_tai.size(); i++)
-      r_out.row(i) = ConvertFrame(t_tai(i), r_in, frame_in, frame_out, rotate_only).head(3);
+      r_out.row(i) = ConvertFrame(t_tai(i), r_in, frame_in, frame_out);
     return r_out;
   }
 
-  MatX6 ConvertFrame(VecX t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out,
-                     bool rotate_only) {
+  MatX6 ConvertFrame(VecX t_tai, const MatX6& rv_in, Frame frame_in, Frame frame_out) {
     if (t_tai.size() != rv_in.rows())
       throw std::runtime_error("Epoch and rv_in must have same size");
     MatX6 rv_out(t_tai.size(), 6);
-    for (int i = 0; i < t_tai.size(); i++) {
-      rv_out.row(i) = ConvertFrame(t_tai(i), rv_in.row(i).transpose().eval(), frame_in, frame_out,
-                                   rotate_only);
-    }
+    for (int i = 0; i < t_tai.size(); i++)
+      rv_out.row(i) = ConvertFrame(t_tai(i), rv_in.row(i).transpose().eval(), frame_in, frame_out);
     return rv_out;
   }
 
-  MatX3 ConvertFrame(VecX t_tai, const MatX3& r_in, Frame frame_in, Frame frame_out,
-                     bool rotate_only) {
+  MatX3 ConvertFrame(VecX t_tai, const MatX3& r_in, Frame frame_in, Frame frame_out) {
     if (t_tai.size() != r_in.rows()) throw std::runtime_error("Epoch and r_in must have same size");
     MatX3 r_out(t_tai.size(), 3);
     for (int i = 0; i < t_tai.size(); i++) {
       Vec3 r_in_ = r_in.row(i).transpose();
-      r_out.row(i) = ConvertFrame(t_tai(i), r_in_, frame_in, frame_out, rotate_only);
+      r_out.row(i) = ConvertFrame(t_tai(i), r_in_, frame_in, frame_out);
     }
     return r_out;
   }
 
-  Mat3 GetFrameConversionMatrix(Real t_tai, Frame from_frame, Frame to_frame) {
-    MatX3 I = Mat3::Identity();
-    return ConvertFrame(t_tai, I, to_frame, from_frame, true);
+  /// @brief r_to = R * r_from + r
+  /// @param t_tai
+  /// @param from_frame
+  /// @param to_frame
+  /// @return
+  std::pair<Mat3, Vec3> GetFrameRotationTranslation(Real t_tai, Frame from_frame, Frame to_frame) {
+    MatX3 I3 = Mat3::Identity();
+    Mat3 M = ConvertFrame(t_tai, I3, from_frame, to_frame);
+    MatX3 r0 = MatX3::Zero(1, 3);
+    Vec3 r = ConvertFrame(t_tai, r0, from_frame, to_frame).transpose();
+    Mat3 R = (M.rowwise() - r.transpose()).transpose();
+    return std::make_pair(R, r);
   }
 }  // namespace lupnt

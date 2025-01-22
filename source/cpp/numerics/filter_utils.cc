@@ -13,48 +13,24 @@
 
 namespace lupnt {
 
-  MatXd ConstructInitCovariancePVC(double pos_err, double vel_err, double clk_bias_err,
-                                   double clk_drift_err) {
+  MatXd InitialCovariancePosVelClock(double sigma_pos, double sigma_vel, double sigma_clk_bias,
+                                     double sigma_clk_drift) {
     Mat6d P_rv = Mat6d::Zero();
-    P_rv.block(0, 0, 3, 3) = Mat3d::Identity() * pow(pos_err, 2);
-    P_rv.block(3, 3, 3, 3) = Mat3d::Identity() * pow(vel_err, 2);
+    P_rv.block(0, 0, 3, 3) = Mat3d::Identity() * pow(sigma_pos, 2);
+    P_rv.block(3, 3, 3, 3) = Mat3d::Identity() * pow(sigma_vel, 2);
 
     Mat2d P_clk = Mat2d::Zero();
-    P_clk(0, 0) = pow(clk_bias_err, 2);
-    P_clk(1, 1) = pow(clk_drift_err, 2);
+    P_clk(0, 0) = pow(sigma_clk_bias, 2);
+    P_clk(1, 1) = pow(sigma_clk_drift, 2);
 
-    MatXd P0 = BlkDiagD(P_rv, P_clk);
-
+    MatXd P0 = BlockDiagonal(P_rv, P_clk);
     return P0;
   };
 
-  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
-                                                      double sigma_acc) {
-    FilterProcessNoiseFunction proc_noise_func
-        = [cmodel, state_size, sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
-      int clock_index = 6;
-      double dt = (t_end - t_curr).val();
-
-      MatXd Q = MatXd::Zero(state_size, state_size);
-
-      FilterProcessNoiseFunction proc_noise_rv = ProcessNoiseFunctionLinearPV(sigma_acc);
-      Mat6d Q_rv = proc_noise_rv(x, t_curr, t_end);
-      Mat2d Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
-
-      Q.block(0, 0, 6, 6) = Q_rv;
-      Q.block(6, 6, 2, 2) = Q_clk;
-
-      return Q;
-    };
-
-    return proc_noise_func;
-  }
-
-  FilterProcessNoiseFunction ProcessNoiseFunctionLinearPV(double sigma_acc) {
+  FilterProcessNoiseFunction ProcessNoiseLinearPosVel(double sigma_acc) {
     FilterProcessNoiseFunction proc_noise_func
         = [sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
       double dt = (t_end - t_curr).val();
-
       Mat6d Q_rv = Mat6d::Zero();
       for (int i = 0; i < 3; i++) {
         Q_rv(i, i) = pow(dt, 3) / 3.0 * pow(sigma_acc, 2);
@@ -62,26 +38,25 @@ namespace lupnt {
         Q_rv(i, i + 3) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
         Q_rv(i + 3, i) = pow(dt, 2) / 2.0 * pow(sigma_acc, 2);
       }
-
       return Q_rv;
     };
 
     return proc_noise_func;
   }
 
-  FilterProcessNoiseFunction ProcessNoiseFunctionClock(ClockModel cmodel, int clock_state_size) {
+  FilterProcessNoiseFunction ProcessNoiseClock(ClockModel clock_model, int clock_state_size) {
     FilterProcessNoiseFunction proc_noise_func
-        = [cmodel, clock_state_size](const VecX x, Real t_curr, Real t_end) -> MatXd {
+        = [clock_model, clock_state_size](const VecX x, Real t_curr, Real t_end) -> MatXd {
       double dt = (t_end - t_curr).val();
       MatXd Q_clk(2, 2);
 
       if (clock_state_size == 2) {
         Q_clk.resize(2, 2);
-        Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
+        Q_clk = ClockDynamics::TwoStateNoise(clock_model, dt).cast<double>();
         return Q_clk;
       } else if (clock_state_size == 3) {
         Q_clk.resize(3, 3);
-        Q_clk = ClockDynamics::ThreeStateNoise(cmodel, dt).cast<double>();
+        Q_clk = ClockDynamics::ThreeStateNoise(clock_model, dt).cast<double>();
         return Q_clk;
       } else {
         std::cerr << "Invalid clock state size: must be 2 or 3" << std::endl;
@@ -92,23 +67,21 @@ namespace lupnt {
     return proc_noise_func;
   }
 
-  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
-                                                      double sigma_acc, int n_sat) {
+  FilterProcessNoiseFunction ProcessNoisePosVelClock(ClockModel clock_model, int state_size,
+                                                     double sigma_acc, int n_sat) {
     FilterProcessNoiseFunction proc_noise_func
-        = [cmodel, state_size, sigma_acc, n_sat](const VecX x, Real t_curr, Real t_end) -> MatXd {
-      int clock_index = 6;
+        = [clock_model, state_size, sigma_acc, n_sat](const VecX x, Real t_curr,
+                                                      Real t_end) -> MatXd {
       double dt = (t_end - t_curr).val();
-
       MatXd Q = MatXd::Zero(state_size * n_sat, state_size * n_sat);
-      FilterProcessNoiseFunction proc_noise_rv = ProcessNoiseFunctionLinearPV(sigma_acc);
+      FilterProcessNoiseFunction proc_noise_rv = ProcessNoiseLinearPosVel(sigma_acc);
 
       for (int k = 0; k < n_sat; k++) {
         Mat6d Q_rv = proc_noise_rv(x.segment(k * state_size, state_size), t_curr, t_end);
-        Mat2d Q_clk = ClockDynamics::TwoStateNoise(cmodel, dt).cast<double>();
+        Mat2d Q_clk = ClockDynamics::TwoStateNoise(clock_model, dt).cast<double>();
         Q.block(k * state_size, k * state_size, 6, 6) = Q_rv;
         Q.block(k * state_size + 6, k * state_size + 6, 2, 2) = Q_clk;
       }
-
       return Q;
     };
 
@@ -240,12 +213,12 @@ namespace lupnt {
     // compute statistics ----------------------------------------------------
     // rms
     for (int i = 0; i < 4; i++) {
-      rms(i) = RootMeanSquareD(error_mat_range_reshaped.row(i));
+      rms(i) = RootMeanSquare(error_mat_range_reshaped.row(i));
       means(i) = error_mat_range_reshaped.row(i).mean();
-      stds(i) = StdD(error_mat_range_reshaped.row(i));
-      p68(i) = PercentileD(error_mat_range_reshaped.row(i), 0.68);
-      p95(i) = PercentileD(error_mat_range_reshaped.row(i), 0.95);
-      p99(i) = PercentileD(error_mat_range_reshaped.row(i), 0.99);
+      stds(i) = Std(error_mat_range_reshaped.row(i));
+      p68(i) = Percentile(error_mat_range_reshaped.row(i), 0.68);
+      p95(i) = Percentile(error_mat_range_reshaped.row(i), 0.95);
+      p99(i) = Percentile(error_mat_range_reshaped.row(i), 0.99);
     }
 
     std::cout << " " << std::endl;

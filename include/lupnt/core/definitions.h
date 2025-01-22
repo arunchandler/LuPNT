@@ -11,11 +11,15 @@
 #pragma once
 #define MAGIC_ENUM_RANGE_MAX 1024
 
+#include <matplot/matplot.h>
+#include <omp.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <autodiff/forward/real.hpp>
 #include <autodiff/forward/real/eigen.hpp>
 #include <filesystem>
+#include <highfive/H5Easy.hpp>
 #include <iostream>
 #include <magic_enum/magic_enum.hpp>
 #include <memory>
@@ -71,13 +75,17 @@
 
 namespace lupnt {
 
+  // Pointers
   template <typename T> using Ptr = std::shared_ptr<T>;
   template <typename T, typename... Args> Ptr<T> MakePtr(Args&&... args) {
     return std::make_shared<T>(std::forward<Args>(args)...);
   }
 
+  // Eigen
+  using Eigen::Block;
   using Eigen::Dynamic;
   using Eigen::Matrix;
+  using Eigen::MatrixBase;
   using Eigen::MatrixX;
   using Eigen::Vector;
   using Eigen::VectorX;
@@ -99,11 +107,12 @@ namespace lupnt {
 
   DEFINE_VECTORS_MATRICES()
 
+  // Print Formats
   static Eigen::IOFormat FMT_CLEAN(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
   static Eigen::IOFormat FMT_HEAVY(Eigen::FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]");
   static Eigen::IOFormat FMT_COMPACT(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ";\n ", "",
                                      "", "[", "]");
-
+  // Magic Enum
   using magic_enum::enum_cast;
   using magic_enum::enum_integer;
   using magic_enum::enum_name;

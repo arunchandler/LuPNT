@@ -92,7 +92,7 @@ namespace lupnt {
    */
   class StateEstimationApp : public Application {
   protected:
-    double epoch0_;  // start epoch in TAU
+    double epoch0_;  // start epoch in TAI
     double epoch_;   // curent epoch
     double t_;       // Current time [s]
 

@@ -27,24 +27,24 @@ namespace lupnt {
    * @param t
    * @return std::vector<GnssTransmission>
    */
-  std::vector<GnssTransmission> GnssChannel::Receive(GnssReceiver &rx, double t) {
+  std::vector<GnssTransmission> GnssChannel::Receive(GnssReceiver &rx, Real t) {
     std::vector<GnssTransmission> received_transs;  // create an empty vector
 
     // Messages from other comms systems that can generate Gnss messages
     for (auto &tx : tx_devices) {
       // Solve light time delay
-      double tau = 0.0;  // light time delay
+      Real tau = 0.0;  // light time delay
       CartesianOrbitState rv_rx_gcrf = rx.GetAgent()->GetCartesianGCRFStateAtEpoch(t);
       CartesianOrbitState rv_tx_gcrf = tx->GetAgent()->GetCartesianGCRFStateAtEpoch(t - tau);
 
       // Compute Light time delay
-      double tau_prev = 0.0;  // propagation time
+      Real tau_prev = 0.0;  // propagation time
       int max_iter = 100;
       for (int n_iter = 0; n_iter < max_iter; n_iter++) {
         rv_tx_gcrf = tx->GetAgent()->GetCartesianGCRFStateAtEpoch(t - tau);
-        double rho = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
+        Real rho = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm();
         tau = rho / C;
-        if (fabs(tau - tau_prev) < 1e-12)
+        if (abs(tau - tau_prev) < 1e-12)
           break;
         else {
           tau_prev = tau;
@@ -52,8 +52,8 @@ namespace lupnt {
       }
 
       // Transmission and reception times
-      double t_rx = t;
-      double t_tx = t - tau;
+      Real t_rx = t;
+      Real t_tx = t - tau;
 
       // Convert to Moon Inertial frame
       auto rv_tx_mi = ConvertOrbitStateFrame(rv_tx_gcrf, t_tx, Frame::MOON_CI);
@@ -62,35 +62,33 @@ namespace lupnt {
       // Occultation
       std::string tx_planet = "";
       std::map<std::string, bool> occult = Occultation::ComputeOccultationGnss(
-          rv_tx_gcrf.r().cast<double>(), rv_tx_mi.r().cast<double>(), rv_rx_gcrf.r().cast<double>(),
-          rv_rx_mi.r().cast<double>(), tx_planet, 10.0 * RAD);
+          rv_tx_gcrf.r(), rv_tx_mi.r(), rv_rx_gcrf.r(), rv_rx_mi.r(), tx_planet, 10.0 * RAD);
 
       if (occult["earth"] || occult["moon"]) {
         // std::cout << "Earth or Moon occultation" << std::endl;
         continue;  // quit if occulted
       }
 
-      double Ar = rx.GetReceiverAntennaGain(t_rx, rv_tx_gcrf.r().cast<double>(),
-                                            rv_rx_gcrf.r().cast<double>());
+      Real Ar = rx.GetReceiverAntennaGain(t_rx, rv_tx_gcrf.r(), rv_rx_gcrf.r());
 
       // Generate transmission
       GnssTransmission trans = tx->GenerateTransmission(t_tx);
-      double d = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
+      Real d = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm();
 
       // Link budget
       for (size_t freq_idx = 0; freq_idx < tx->freq_list.size(); freq_idx++) {
         std::string freq_name = tx->freq_list[freq_idx];
-        double freq = tx->freq_map[freq_name];
-        double Ad = 20.0 * log10((C / freq) / (4.0 * PI * d));
-        double scalars = tx->P_tx + rx.rx_param_.Ae + rx.rx_param_.As
-                         - (10.0 * log10(rx.rx_param_.Tsys)) + 228.6 + rx.rx_param_.L;
+        Real freq = tx->freq_map[freq_name];
+        Real Ad = 20.0 * log10((C / freq) / (4.0 * PI * d));
+        Real scalars = tx->P_tx + rx.rx_param_.Ae + rx.rx_param_.As
+                       - (10.0 * log10(rx.rx_param_.Tsys)) + 228.6 + rx.rx_param_.L;
 
         // Transmitter and Receiver Antenna gain
-        double At = tx->GetTransmitterAntennaGainFreq(t_tx, rv_tx_gcrf.r().cast<double>(),
-                                                      rv_rx_gcrf.r().cast<double>(), freq_name);
+        Real At
+            = tx->GetTransmitterAntennaGainFreq(t_tx, rv_tx_gcrf.r(), rv_rx_gcrf.r(), freq_name);
         trans.CN0 = At + Ar + Ad + scalars;
 
-        if (std::isnan(At) || occult["earth"] || occult["moon"]
+        if (At == NAN || occult["earth"] || occult["moon"]
             || trans.CN0 < rx.rx_param_.CN0threshold) {
           // not visible
           continue;

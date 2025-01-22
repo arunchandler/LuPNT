@@ -35,16 +35,26 @@ private:
 };
 
 struct {
-  bool recompute_part1 = false;
-  bool recompute_part2 = false;
-  bool plot_case0 = false;
-  bool plot_case1 = false;
-  bool plot_case2 = false;
-  bool plot_case3 = false;
-  bool plot_case4 = false;
-  bool plot_ew = false;
-  bool plot_delta_M = false;
+  bool recompute_part1 = true;
+  bool recompute_part2 = true;
+  bool plot_case0 = true;
+  bool plot_case1 = true;
+  bool plot_case2 = true;
+  bool plot_case3 = true;
+  bool plot_case4 = true;
+  bool plot_ew = true;
+  bool plot_delta_M = true;
 } config;
+
+MatX6 RotateFrame(VecX t_tai, const MatX6 &rv_in, Frame frame_in, Frame frame_out) {
+  MatX6 rv_out = MatX6::Zero(rv_in.rows(), 6);
+  for (int i = 0; i < t_tai.size(); i++) {
+    auto [R, r] = GetFrameRotationTranslation(t_tai[i], frame_in, frame_out);
+    rv_out.row(i).head(3) = (R * rv_in.row(i).head(3).transpose()).transpose();
+    rv_out.row(i).tail(3) = (R * rv_in.row(i).tail(3).transpose()).transpose();
+  }
+  return rv_out;
+}
 
 int main() {
   auto begin = GetSystemTime();
@@ -174,7 +184,7 @@ int main() {
   // Propagate
   MatX6 rv_case1_op;
   if (config.recompute_part1 || !file_part1.exist("/rv_case1_op")) {
-    rv_case1_op = dyn_3body_circ.Propagate(rv0_op, t0, tfs, true);
+    rv_case1_op = dyn_3body_circ.Propagate(rv0_op, t0, tfs);
     dump(file_part1, "/rv_case1_op", rv_case1_op.cast<double>(), H5Easy::DumpMode::Overwrite);
   } else {
     rv_case1_op = H5Easy::load<MatX6d>(file_part1, "/rv_case1_op");
@@ -243,7 +253,7 @@ int main() {
   // Propagate
   MatX6 rv_case2_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case2_ci")) {
-    rv_case2_ci = dyn_3body.Propagate(rv0_ci, t0, tfs, true);
+    rv_case2_ci = dyn_3body.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case2_ci", rv_case2_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
@@ -269,7 +279,7 @@ int main() {
   // Propagate
   MatX6 rv_case3_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case3_ci")) {
-    rv_case3_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs, true);
+    rv_case3_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case3_ci", rv_case3_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
@@ -283,7 +293,7 @@ int main() {
   // Case 4
   // **************************************************************************
   cout << endl << "*********** Case 4 ***********" << endl;
-  MatX6 rv_case4_me = ConvertFrame(tfs, rv_case3_ci, Frame::MOON_CI, Frame::MOON_ME, true);
+  MatX6 rv_case4_me = RotateFrame(tfs, rv_case3_ci, Frame::MOON_CI, Frame::MOON_ME);
   MatX6 coe_case4_me = Cart2Classical(rv_case4_me, GM_MOON);
 
   // **************************************************************************
@@ -301,14 +311,14 @@ int main() {
   // Propagate
   MatX6 rv_case5_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case5_ci")) {
-    rv_case5_ci = dyn_nbody50.Propagate(rv0_ci, t0, tfs, true);
+    rv_case5_ci = dyn_nbody50.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case5_ci", rv_case5_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
     rv_case5_ci = H5Easy::load<MatX6d>(file_part1, "/rv_case5_ci");
   }
 
-  MatX6 rv_case5_me = ConvertFrame(tfs, rv_case5_ci, Frame::MOON_CI, Frame::MOON_ME, true);
+  MatX6 rv_case5_me = RotateFrame(tfs, rv_case5_ci, Frame::MOON_CI, Frame::MOON_ME);
   MatX6 coe_case5_me = Cart2Classical(rv_case5_me, GM_MOON);
 
   // **************************************************************************
@@ -333,13 +343,13 @@ int main() {
   // Propagate
   MatX6 rv_case6_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case6_ci")) {
-    rv_case6_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs, true);
+    rv_case6_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case6_ci", rv_case6_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
     rv_case6_ci = H5Easy::load<MatX6d>(file_part1, "/rv_case6_ci");
   }
-  MatX6 rv_case6_me = ConvertFrame(tfs, rv_case6_ci, Frame::MOON_CI, Frame::MOON_ME, true);
+  MatX6 rv_case6_me = RotateFrame(tfs, rv_case6_ci, Frame::MOON_CI, Frame::MOON_ME);
   MatX6 coe_case6_me = Cart2Classical(rv_case6_me, GM_MOON);
 
   // **************************************************************************
@@ -409,7 +419,7 @@ int main() {
       Vec6 coe0_op_ = coes0_op[i];
       Vec6 rv0_op_ = Classical2Cart(coe0_op_, GM_MOON);
       Vec6 rv0_ci_ = ConvertFrame(t0, rv0_op_, Frame::MOON_OP, Frame::MOON_CI);
-      rvs_ci.push_back(dyn_nbody.Propagate(rv0_ci_, t0, tfs, true));
+      rvs_ci.push_back(dyn_nbody.Propagate(rv0_ci_, t0, tfs));
       H5Easy::dump(file_part2, "/rvs_ci" + to_string(i), rvs_ci[i].cast<double>(),
                    H5Easy::DumpMode::Overwrite);
     } else {
@@ -459,7 +469,7 @@ int main() {
       Vec6 coe0_op_ = coes0_op_adjusted[i];
       Vec6 rv0_op_i = Classical2Cart(coe0_op_, GM_MOON);
       Vec6 rv0_ci_i = ConvertFrame(t0, rv0_op_i, Frame::MOON_OP, Frame::MOON_CI);
-      rvs_ci_adjusted.push_back(dyn_nbody.Propagate(rv0_ci_i, t0, tfs, true));
+      rvs_ci_adjusted.push_back(dyn_nbody.Propagate(rv0_ci_i, t0, tfs));
       H5Easy::dump(file_part2, "/rvs_ci_adjusted" + to_string(i), rvs_ci_adjusted[i].cast<double>(),
                    H5Easy::DumpMode::Overwrite);
     } else {
@@ -508,7 +518,7 @@ int main() {
   vector<MatX3> rs_me;
   for (int i = 0; i < n_sat; ++i)
     rs_me.push_back(
-        ConvertFrame(tfs, rvs_ci_adjusted[i], Frame::MOON_CI, Frame::MOON_ME, true).leftCols(3));
+        RotateFrame(tfs, rvs_ci_adjusted[i], Frame::MOON_CI, Frame::MOON_ME).leftCols(3));
 
   // Elevation
   Vec3 r_south_pole = LatLonAlt2Cart(Vec3(-90 * RAD, 0, 0), R_MOON);

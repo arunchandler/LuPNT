@@ -212,6 +212,7 @@ void init_dynamics(py::module &m) {
       .value("RK4", IntegratorType::RK4)
       .value("RK8", IntegratorType::RK8)
       .value("RKF45", IntegratorType::RKF45)
+      .value("PD45", IntegratorType::PD45)
       .export_values();
 
   // IntegratorParams

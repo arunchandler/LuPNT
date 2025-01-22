@@ -174,37 +174,39 @@ namespace lupnt {
    * @param r_tx_gcrf
    * @return Vec3d
    */
-  std::vector<Vec3d> GnssTransmitter::GetTransmitterOrientation(double t, Vec3d& r_tx_gcrf) {
+  std::vector<Vec3> GnssTransmitter::GetTransmitterOrientation(Real t, const Vec3& r_tx_gcrf) {
     // (Sun-Earth) - (Sat-Earth)
-    Vec3d r_sat2sun
+    Vec3 r_sat2sun
         = GetBodyPosVel(t, NaifId::EARTH, NaifId::SUN, Frame::GCRF).cast<double>().head(3)
           - r_tx_gcrf;
     auto e_z_gnss = -r_tx_gcrf.normalized();  // Face towards earth center
     auto e_y_gnss = r_sat2sun.cross(r_tx_gcrf).normalized();
     auto e_x_gnss = e_y_gnss.cross(e_z_gnss).normalized();
 
-    std::vector<Vec3d> e_gnss = {e_x_gnss, e_y_gnss, e_z_gnss};
+    std::vector<Vec3> e_gnss = {e_x_gnss, e_y_gnss, e_z_gnss};
     return e_gnss;
   }
 
-  double GnssTransmitter::GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) {
+  Real GnssTransmitter::GetTransmitterAntennaGain(Real t, const Vec3& r_tx_gcrf,
+                                                  const Vec3& r_rx_gcrf) {
     // Get the first freq in antenna map
     std::string freq = freq_list[0];
-    double At = GnssTransmitter::GetTransmitterAntennaGainFreq(t, r_tx_gcrf, r_rx_gcrf,
-                                                               freq);  // use L1 for default
+    Real At = GnssTransmitter::GetTransmitterAntennaGainFreq(t, r_tx_gcrf, r_rx_gcrf,
+                                                             freq);  // use L1 for default
     return At;
   }
 
-  double GnssTransmitter::GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf,
-                                                        std::string freq) {
+  Real GnssTransmitter::GetTransmitterAntennaGainFreq(Real t, const Vec3& r_tx_gcrf,
+                                                      const Vec3& r_rx_gcrf,
+                                                      const std::string& freq) {
     auto e_gnss = GnssTransmitter::GetTransmitterOrientation(t, r_tx_gcrf);
-    Vec3d e_x_gnss = e_gnss[0];
-    Vec3d e_y_gnss = e_gnss[1];
-    Vec3d e_z_gnss = e_gnss[2];
-    Vec3d u_tx_rx = (r_rx_gcrf - r_tx_gcrf).normalized();
-    double phi_tx = acos(u_tx_rx.dot(e_z_gnss));
-    double theta_tx = atan2(u_tx_rx.dot(e_y_gnss), u_tx_rx.dot(e_x_gnss));
-    double At = GnssTransmitter::ComputeGain(theta_tx, phi_tx, freq).val();  // use L1 for default
+    Vec3 e_x_gnss = e_gnss[0];
+    Vec3 e_y_gnss = e_gnss[1];
+    Vec3 e_z_gnss = e_gnss[2];
+    Vec3 u_tx_rx = (r_rx_gcrf - r_tx_gcrf).normalized();
+    Real phi_tx = acos(u_tx_rx.dot(e_z_gnss));
+    Real theta_tx = atan2(u_tx_rx.dot(e_y_gnss), u_tx_rx.dot(e_x_gnss));
+    Real At = GnssTransmitter::ComputeGain(theta_tx, phi_tx, freq);
     return At;
   }
 
@@ -214,14 +216,14 @@ namespace lupnt {
    * @param t
    * @return Transmission
    */
-  GnssTransmission GnssTransmitter::GenerateTransmission(double t) {
+  GnssTransmission GnssTransmitter::GenerateTransmission(Real t) {
     CartesianOrbitState cart_state = GetAgent()->GetCartesianGCRFStateAtEpoch(t);
     ConvertOrbitStateFrame(cart_state, t, Frame::GCRF);
 
     GnssTransmission trans;
     trans.dt_tx = 0.0;
-    trans.r_tx = cart_state.r().cast<double>();
-    trans.v_tx = cart_state.v().cast<double>();
+    trans.r_tx = cart_state.r();
+    trans.v_tx = cart_state.v();
     return trans;
   }
 

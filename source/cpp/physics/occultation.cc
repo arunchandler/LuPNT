@@ -19,15 +19,15 @@
 namespace lupnt {
 
   std::map<std::string, bool> Occultation::ComputeOccultationGnss(
-      const Vec3d tx_eci, const Vec3d tx_mci, const Vec3d rx_eci, const Vec3d rx_mci,
+      const Vec3& tx_eci, const Vec3& tx_mci, const Vec3& rx_eci, const Vec3& rx_mci,
       const std::string tx_planet, const double min_elevation = 10.0 * RAD) {
-    Vec3d tx2usr = rx_eci - tx_eci;
+    Vec3d tx2usr = rx_eci.cast<double>() - tx_eci.cast<double>();
     double tx2usr_norm = tx2usr.norm();
 
     // COMPUTE EARTH OCCULTATION
 
     // Compute angle between (tx->Earth center) and (tx->rx)
-    Vec3d tx2earth = -tx_eci;
+    Vec3d tx2earth = -tx_eci.cast<double>();
     double tx2earth_norm = tx2earth.norm();
     double alpha_earth = acos(tx2usr.dot(tx2earth) / (tx2earth_norm * tx2usr_norm));
 
@@ -52,7 +52,7 @@ namespace lupnt {
     // COMPUTE MOON OCCULTATION
 
     // Compute angle between (tx->Moon center) and (tx->rx)
-    Vec3d tx2moon = -tx_mci;
+    Vec3d tx2moon = -tx_mci.cast<double>();
     double tx2moon_norm = tx2moon.norm();
     double alpha_moon = acos(tx2moon.dot(tx2usr) / (tx2moon_norm * tx2usr_norm));
 

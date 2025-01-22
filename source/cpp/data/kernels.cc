@@ -29,13 +29,20 @@ namespace lupnt {
   };  // namespace EphemID
 
   std::map<NaifId, int> naif2ephemId = {
+      {NaifId::MERCURY, EphemID::MERCURY_BARYCENTER},
       {NaifId::MERCURY_BARYCENTER, EphemID::MERCURY_BARYCENTER},
+      {NaifId::VENUS, EphemID::VENUS_BARYCENTER},
       {NaifId::VENUS_BARYCENTER, EphemID::VENUS_BARYCENTER},
-      {NaifId::EARTH_MOON_BARYCENTER, EphemID::EARTH_MOON_BARYCENTER},
+      {NaifId::MARS, EphemID::MARS_BARYCENTER},
       {NaifId::MARS_BARYCENTER, EphemID::MARS_BARYCENTER},
+      {NaifId::EARTH_MOON_BARYCENTER, EphemID::EARTH_MOON_BARYCENTER},
+      {NaifId::JUPITER, EphemID::JUPITER_BARYCENTER},
       {NaifId::JUPITER_BARYCENTER, EphemID::JUPITER_BARYCENTER},
+      {NaifId::SATURN, EphemID::SATURN_BARYCENTER},
       {NaifId::SATURN_BARYCENTER, EphemID::SATURN_BARYCENTER},
+      {NaifId::URANUS, EphemID::URANUS_BARYCENTER},
       {NaifId::URANUS_BARYCENTER, EphemID::URANUS_BARYCENTER},
+      {NaifId::NEPTUNE, EphemID::NEPTUNE_BARYCENTER},
       {NaifId::NEPTUNE_BARYCENTER, EphemID::NEPTUNE_BARYCENTER},
       {NaifId::PLUTO_BARYCENTER, EphemID::PLUTO_BARYCENTER},
       {NaifId::MOON, EphemID::MOON},
@@ -56,6 +63,7 @@ namespace lupnt {
     std::vector<int> n_subintervals;
     std::map<std::string, double> constants;
     std::vector<int> n_properties = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 1};
+    double emrat;
   };
 
   struct EphemerisBlock {
@@ -187,6 +195,7 @@ namespace lupnt {
     infile.close();
     for (size_t i = 0; i < constant_names.size(); ++i)
       data.constants[constant_names[i]] = constant_values[i];
+    data.emrat = data.constants["EMRAT"];
   }
 
   void ReadEphemerisCoefficientsFile(const std::filesystem::path& filepath,
@@ -225,7 +234,8 @@ namespace lupnt {
     ephemeris_data->jd_tdb_end = ephemeris_data->blocks.back().jd_tdb_end;
   }
 
-  Vec2 ComputePolynomial(Real x, const double* scale, const double* coeff, int offset, int num) {
+  Vec2 ComputePolynomialPosVel(Real x, const double* scale, const double* coeff, int offset,
+                               int num) {
     Real x2, w0 = 0., w1 = 0., dw0 = 0., dw1 = 0., tmp;
 
     x = (x - scale[0]) / scale[1];
@@ -243,6 +253,20 @@ namespace lupnt {
     return Vec2(f, df);
   }
 
+  Real ComputePolynomialPos(Real x, const double* scale, const double* coeff, int offset, int num) {
+    Real x2, w0 = 0., w1 = 0., tmp;
+
+    x = (x - scale[0]) / scale[1];
+    x2 = x * 2.;
+    while (--num) {
+      tmp = w1;
+      w1 = w0;
+      w0 = coeff[offset + num] + (x2 * w0 - tmp);
+    }
+    Real f = coeff[offset] + (x * w0 - w1);
+    return f;
+  }
+
   void LoadEphemerisData() {
     std::lock_guard<std::mutex> lock(kernels_mutex);
     if (ephemeris_data) return;  // Data already loaded
@@ -252,8 +276,32 @@ namespace lupnt {
     ReadEphemerisCoefficientsFile(GetAsciiKernelDir() / "de440" / "ascp01950.440", data);
   }
 
-  Vec6 GetBodyPosVelKernel(Real t_tdb, int id) {
+  struct CacheKernelData {
+    Real t_tdb = NAN;
+    int id;
+    Vec6 rv;
+    bool compute_vel;
+  };
+
+  static std::vector<CacheKernelData> cache_kernel_data;
+  const double MAX_TIME_CACHE_KERNEL = 2;  // [s]
+
+  Vec6 GetKernelData(Real t_tdb, int id, bool compute_vel = true) {
     if (!ephemeris_data) LoadEphemerisData();
+
+    // Clean cache
+    cache_kernel_data.erase(std::remove_if(cache_kernel_data.begin(), cache_kernel_data.end(),
+                                           [t_tdb](const CacheKernelData& cache) {
+                                             return abs(cache.t_tdb - t_tdb)
+                                                    > MAX_TIME_CACHE_KERNEL;
+                                           }),
+                            cache_kernel_data.end());
+
+    // Check cache
+    for (const CacheKernelData& cache : cache_kernel_data) {
+      if (abs(cache.t_tdb - t_tdb) < EPS && cache.id == id && cache.compute_vel == compute_vel)
+        return cache.rv;
+    }
 
     Real jd_tdb = Time2JD(t_tdb);
 
@@ -288,37 +336,39 @@ namespace lupnt {
 
     Vec6 rv;
     for (int i = 0; i < 3; i++) {
-      Vec2 rv_ = ComputePolynomial(t_tdb, scale, block.coeff, offset, header.n_coeffs[id]);
-      rv[i] = rv_(0);
-      rv[i + 3] = rv_(1);
+      if (compute_vel) {
+        Vec2 rv_tmp
+            = ComputePolynomialPosVel(t_tdb, scale, block.coeff, offset, header.n_coeffs[id]);
+        rv[i] = rv_tmp(0);
+        rv[i + 3] = rv_tmp(1);
+      } else {
+        rv[i] = ComputePolynomialPos(t_tdb, scale, block.coeff, offset, header.n_coeffs[id]);
+        rv[i + 3] = 0.;
+      }
       offset += header.n_coeffs[id];
     }
+
+    CacheKernelData cache;
+    cache.t_tdb = t_tdb;
+    cache.id = id;
+    cache.rv = rv;
+    cache.compute_vel = compute_vel;
+    cache_kernel_data.push_back(cache);
+
     return rv;
   }
 
-  Vec6 GetLunarMantleData(Real t_tai) {
+  Vec6 GetLunarMantleData(Real t_tai, bool compute_vel) {
     Real t_tdb = ConvertTime(t_tai, Time::TAI, Time::TDB);
-    return GetBodyPosVelKernel(t_tdb, EphemID::MOON_MANTLE_LIBRATIONS);
+    return GetKernelData(t_tdb, EphemID::MOON_MANTLE_LIBRATIONS, compute_vel);
   }
 
-  MatX6 GetLunarMantleData(VecX t_tai) {
+  MatX6 GetLunarMantleData(VecX t_tai, bool compute_vel) {
     MatX6 rv(t_tai.size(), 6);
     for (int i = 0; i < t_tai.size(); i++) {
-      rv.row(i) = GetLunarMantleData(t_tai(i));
+      rv.row(i) = GetLunarMantleData(t_tai(i), compute_vel);
     }
     return rv;
-  }
-
-  Vec6 GetEarthPosVel(Real t_tdb) {
-    Vec6 rv_emb = GetBodyPosVelKernel(t_tdb, EphemID::EMB);
-    Vec6 rv_moon = GetBodyPosVelKernel(t_tdb, EphemID::MOON);
-    double emr = ephemeris_data->header.constants["EMRAT"];
-    Vec6 rv_earth = rv_emb - rv_moon / (1. + emr);
-    return rv_earth;
-  }
-
-  Vec6 GetBodyPosVel(Real t_tai, NaifId target, Frame frame) {
-    return GetBodyPosVel(t_tai, frame_centers.at(frame), target, frame);
   }
 
   Vec6 GetBodyPosVel(Real t_tai, NaifId center, NaifId target, Frame frame) {
@@ -329,48 +379,65 @@ namespace lupnt {
     if (center == target) return Vec6::Zero();
     Vec6 rv_center = Vec6::Zero();
     Vec6 rv_target = Vec6::Zero();
-    double emr = ephemeris_data->header.constants["EMRAT"];
+    double emr = ephemeris_data->header.emrat;
 
     // Earth-Moon system
     if (center == NaifId::EARTH && target == NaifId::MOON) {
-      rv_target = GetBodyPosVelKernel(t_tdb, EphemID::MOON);
+      rv_target = GetKernelData(t_tdb, EphemID::MOON);
     } else if (center == NaifId::MOON && target == NaifId::EARTH) {
-      rv_center = GetBodyPosVelKernel(t_tdb, EphemID::MOON);
+      rv_center = GetKernelData(t_tdb, EphemID::MOON);
 
     } else if (center == NaifId::EMB && target == NaifId::MOON) {
-      rv_target = GetBodyPosVelKernel(t_tdb, EphemID::MOON);
+      rv_target = GetKernelData(t_tdb, EphemID::MOON);
       rv_center = rv_target / (1. + emr);
     } else if (center == NaifId::MOON && target == NaifId::EMB) {
-      rv_center = GetBodyPosVelKernel(t_tdb, EphemID::MOON);
+      rv_center = GetKernelData(t_tdb, EphemID::MOON);
       rv_target = rv_center / (1. + emr);
 
     } else if (center == NaifId::EMB && target == NaifId::EARTH) {
-      rv_center = GetBodyPosVelKernel(t_tdb, EphemID::MOON) / (1. + emr);
+      rv_center = GetKernelData(t_tdb, EphemID::MOON) / (1. + emr);
     } else if (center == NaifId::EARTH && target == NaifId::EMB) {
-      rv_target = GetBodyPosVelKernel(t_tdb, EphemID::MOON) / (1. + emr);
+      rv_target = GetKernelData(t_tdb, EphemID::MOON) / (1. + emr);
     } else {
-      // Others
-      if (center == NaifId::EARTH) {
-        rv_center = GetEarthPosVel(t_tdb);
-      } else if (center == NaifId::MOON) {
-        rv_center = GetEarthPosVel(t_tdb) + GetBodyPosVelKernel(t_tdb, EphemID::MOON);
-      } else if (center != NaifId::SSB) {
-        rv_center = GetBodyPosVelKernel(t_tdb, naif2ephemId.at(center));
+      if (center == NaifId::EARTH || center == NaifId::MOON || target == NaifId::EARTH
+          || target == NaifId::MOON) {
+        Vec6 rv_emb = GetKernelData(t_tdb, EphemID::EMB);
+        Vec6 rv_moon = GetKernelData(t_tdb, EphemID::MOON);
+        Vec6 rv_earth = rv_emb - rv_moon / (1. + emr);
+
+        if (center == NaifId::EARTH)
+          rv_center = rv_earth;
+        else if (center == NaifId::MOON)
+          rv_center = rv_earth + rv_moon;
+
+        if (target == NaifId::EARTH)
+          rv_target = rv_earth;
+        else if (target == NaifId::MOON)
+          rv_target = rv_earth + rv_moon;
       }
 
-      if (target == NaifId::EARTH) {
-        rv_target = GetEarthPosVel(t_tdb);
-      } else if (target == NaifId::MOON) {
-        rv_target = GetEarthPosVel(t_tdb) + GetBodyPosVelKernel(t_tdb, EphemID::MOON);
-      } else if (target != NaifId::SSB) {
-        rv_target = GetBodyPosVelKernel(t_tdb, naif2ephemId.at(target));
-      }
+      if (center != NaifId::EARTH && center != NaifId::MOON && center != NaifId::SSB)
+        rv_center = GetKernelData(t_tdb, naif2ephemId.at(center));
+
+      if (target != NaifId::EARTH && target != NaifId::MOON && target != NaifId::SSB)
+        rv_target = GetKernelData(t_tdb, naif2ephemId.at(target));
     }
 
     if (frame == Frame::GCRF) return rv_target - rv_center;
     rv_target = ConvertFrame(t_tai, rv_target, Frame::GCRF, frame);
     rv_center = ConvertFrame(t_tai, rv_center, Frame::GCRF, frame);
     return rv_target - rv_center;
+  }
+
+  Vec3 GetBodyPos(Real t_tai, NaifId center, NaifId target, Frame frame) {
+    return GetBodyPosVel(t_tai, center, target, frame).head(3);
+  }
+
+  Vec6 GetBodyPosVel(Real t_tai, NaifId target, Frame frame) {
+    return GetBodyPosVel(t_tai, frame_centers.at(frame), target, frame);
+  }
+  Vec3 GetBodyPos(Real t_tai, NaifId target, Frame frame) {
+    return GetBodyPos(t_tai, frame_centers.at(frame), target, frame);
   }
 
   MatX6 GetBodyPosVel(const VecX& t_tai, NaifId target, Frame frame) {
@@ -381,12 +448,28 @@ namespace lupnt {
     return rv;
   }
 
+  MatX3 GetBodyPos(const VecX& t_tai, NaifId target, Frame frame) {
+    MatX3 r(t_tai.size(), 3);
+    for (int i = 0; i < t_tai.size(); i++) {
+      r.row(i) = GetBodyPos(t_tai(i), target, frame);
+    }
+    return r;
+  }
+
   MatX6 GetBodyPosVel(const VecX& t_tai, NaifId center, NaifId target, Frame frame) {
     MatX6 rv(t_tai.size(), 6);
     for (int i = 0; i < t_tai.size(); i++) {
       rv.row(i) = GetBodyPosVel(t_tai(i), center, target, frame);
     }
     return rv;
+  }
+
+  MatX3 GetBodyPos(const VecX& t_tai, NaifId center, NaifId target, Frame frame) {
+    MatX3 r(t_tai.size(), 3);
+    for (int i = 0; i < t_tai.size(); i++) {
+      r.row(i) = GetBodyPos(t_tai(i), center, target, frame);
+    }
+    return r;
   }
 
   double GetTtTdbDifference(double t_tai) { throw std::runtime_error("Not implemented"); }

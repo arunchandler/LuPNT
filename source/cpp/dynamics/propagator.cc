@@ -21,6 +21,8 @@ namespace lupnt {
       integrator = MakePtr<RK8>();
     else if (integ == IntegratorType::RKF45)
       integrator = MakePtr<RKF45>(params);
+    else if (integ == IntegratorType::PD45)
+      integrator = MakePtr<PD45>(params);
     else
       throw std::invalid_argument("Invalid Integrator Type");
   };

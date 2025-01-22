@@ -140,7 +140,7 @@ MatXd ConstructInitCovariance(double pos_err, double vel_err, double clk_bias_er
   P_clk(0, 0) = pow(clk_bias_err, 2);
   P_clk(1, 1) = pow(clk_drift_err, 2);
 
-  MatXd P0 = BlkDiagD(P_rv, P_clk);
+  MatXd P0 = BlockDiagonal(P_rv, P_clk);
 
   return P0;
 };
@@ -332,12 +332,12 @@ void PrintEstimationStatistics(VecXd num_meas, MatXd error_mat, double data_rati
   // compute statistics ----------------------------------------------------
   // rms
   for (int i = 0; i < 4; i++) {
-    rms(i) = RootMeanSquareD(error_mat_range.row(i));
+    rms(i) = RootMeanSquare(error_mat_range.row(i));
     means(i) = error_mat_range.row(i).mean();
-    stds(i) = StdD(error_mat_range.row(i));
-    p68(i) = PercentileD(error_mat_range.row(i), 0.68);
-    p95(i) = PercentileD(error_mat_range.row(i), 0.95);
-    p99(i) = PercentileD(error_mat_range.row(i), 0.99);
+    stds(i) = Std(error_mat_range.row(i));
+    p68(i) = Percentile(error_mat_range.row(i), 0.68);
+    p95(i) = Percentile(error_mat_range.row(i), 0.95);
+    p99(i) = Percentile(error_mat_range.row(i), 0.99);
   }
 
   std::cout << " " << std::endl;
@@ -539,30 +539,31 @@ int main() {
   tf = et0 + (time_step_num - 1) * Dt;
 
   // Dynamics Model   Todo: Refine this to a more high fidelity model -------------------
-  int moon_sph_true = 10;   // moon spherical harmonics order in true dynamics
+  int moon_sph_true = 10;  // moon spherical harmonics order in true dynamics
   int moon_sph_est = 5;    // moon spherical harmonics order in filter dynamics
-  bool add_earth = true;  // add earth to true and filter dynamics
-  bool add_sun = true;    // add sun to true and filter dynamics
+  bool add_earth = true;   // add earth to true and filter dynamics
+  bool add_sun = true;     // add sun to true and filter dynamics
 
   // Onboard Clock Model ---------------------------
   // ClockModel cmodel = ClockModel::kMicrosemiCsac; // ClockModel::kMiniRafs;
   ClockModel cmodel = ClockModel::kMiniRafs;
 
   // measurements ----------------------------------
-  bool use_range = true;       // use GPS pseudorange measurement
+  bool use_range = true;        // use GPS pseudorange measurement
   bool use_range_rate = false;  // use GPS pseudorange-rate measurement
 
-  double sis_ure_std = 5.0e-3;        // SIS URE [km]
+  double sis_ure_std = 5.0e-3;       // SIS URE [km]
   double sis_ure_rate_std = 5.0e-6;  // SIS URE rate [km/s]
 
   // Estimation Parameters --------------------------
-  int state_size = 8;               // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
-  double pos_err = 1.0/sqrt(3);             // Initial Position error [km]
-  double vel_err = pos_err * 1e-2;  // Initial Velocity error [km/s]
-  double clk_bias_err = 1.0/C;       // Initial Clock bias error [s]
-  double clk_drift_err = clk_bias_err * 1e-3;     // Initial Clock drift error [s/s]
-  double sigma_acc = std::pow(10, -7.7);  // Process noise Acceleration [km/s^2]  <-- tune
-                                          // this for optimal performance!  (1e-8 for MINI-RAFS, 1e-7.5 for CSAC)
+  int state_size = 8;                          // Pos(3), vel(3), bias, drift [km, km/s, s, s/s]
+  double pos_err = 1.0 / sqrt(3);              // Initial Position error [km]
+  double vel_err = pos_err * 1e-2;             // Initial Velocity error [km/s]
+  double clk_bias_err = 1.0 / C;               // Initial Clock bias error [s]
+  double clk_drift_err = clk_bias_err * 1e-3;  // Initial Clock drift error [s/s]
+  double sigma_acc
+      = std::pow(10, -7.7);  // Process noise Acceleration [km/s^2]  <-- tune
+                             // this for optimal performance!  (1e-8 for MINI-RAFS, 1e-7.5 for CSAC)
 
   // Adaptive Process Noise -------------------------
   bool use_adaptive_proc = false;  // use adaptive process noise
@@ -577,9 +578,9 @@ int main() {
   bool plot_results = false;
   bool debug_jacobian = false;
   bool print_debug = false;
-  bool debug_ekf = false;            // Print EKF debug info
+  bool debug_ekf = false;             // Print EKF debug info
   bool debug_ekf_error_only = false;  // Print only error for EKF debugging
-  bool no_meas = false;              // set to true to turn off measurements
+  bool no_meas = false;               // set to true to turn off measurements
 
   if (print_debug) {
     tf = et0 + 2 * Dt;  // shortening simulation time for debugging
@@ -706,9 +707,8 @@ int main() {
    * Define Measurement function
    * *******************************************/
   FilterMeasurementFunction meas_func_pos_clk
-      = [moon_sat, receiver, state_size, no_meas, 
-         meas_types, signals, sis_ure_std, sis_ure_rate_std, use_range, use_range_rate](const VecX x, MatXd* H,
-                                                                                        MatXd* R) -> VecX {
+      = [moon_sat, receiver, state_size, no_meas, meas_types, signals, sis_ure_std,
+         sis_ure_rate_std, use_range, use_range_rate](const VecX x, MatXd* H, MatXd* R) -> VecX {
     if (no_meas) {
       return VecXd::Zero(0);
     }
@@ -730,19 +730,19 @@ int main() {
 
     VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
                                               frame_in);  // Jacobian with autodiff
-    
-    int n_meas_sat = int(z.size()/meas_types.size());
+
+    int n_meas_sat = int(z.size() / meas_types.size());
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
 
     // ADD signal in space URE
     int z_idx = 0;
-    if (use_range){
+    if (use_range) {
       for (int idx = 0; idx < n_meas_sat; idx++) {
         (*R)(z_idx, z_idx) = std::pow(noise_std_vec(z_idx), 2) + std::pow(sis_ure_std, 2);
         z_idx++;
       }
     }
-    if (use_range_rate){
+    if (use_range_rate) {
       for (int idx = 0; idx < n_meas_sat; idx++) {
         (*R)(z_idx, z_idx) = std::pow(noise_std_vec(z_idx), 2) + std::pow(sis_ure_rate_std, 2);
         z_idx++;
@@ -812,17 +812,10 @@ int main() {
 
   std::string clock_str;
   switch (cmodel) {
-    case ClockModel::kMiniRafs:
-      clock_str = "MiniRafs";
-      break;
-    case ClockModel::kMicrosemiCsac:
-      clock_str = "Csac";
-      break;
-    case ClockModel::kRafs:
-      clock_str = "Rafs";
-      break;
-    default:
-      break;
+    case ClockModel::kMiniRafs: clock_str = "MiniRafs"; break;
+    case ClockModel::kMicrosemiCsac: clock_str = "Csac"; break;
+    case ClockModel::kRafs: clock_str = "Rafs"; break;
+    default: break;
   }
 
   std::string datafilename = "ExampleEKF" + constellation_config;

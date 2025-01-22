@@ -47,11 +47,11 @@ namespace lupnt {
         // Acceleration (body-fixed) [km/s^2]
         Vec3 a_bf = AccelarationGravityField<T>(r_bf, grav.GM, grav.R, grav.CS, grav.n, grav.m);
         // Acceleration (inertial) [km/s^2]
-        Vec3 ai = ConvertFrame(t_tai, a_bf, body.fixed_frame, frame_, true);
+        Vec3 ai = ConvertFrame(t_tai, a_bf, body.fixed_frame, frame_);
         a += ai;
       } else {
         // Body position w.r.t. the inertial frame origin [km]
-        Vec3 r_body = GetBodyPosVel(t_tai, body.id, frame_).head(3);
+        Vec3 r_body = GetBodyPos(t_tai, body.id, frame_);
         // Acceleration (inertial) [km/s^2]
         Vec3 ai = AccelerationPointMass(rv.head(3), r_body, body.GM);
         a += ai;
@@ -59,7 +59,7 @@ namespace lupnt {
 
       // Solar radiation pressure
       if (use_srp_ && body.id != NaifId::SUN) {
-        Vec3 r_sun = GetBodyPosVel(t_tai, body.id, NaifId::SUN, frame_).head(3);
+        Vec3 r_sun = GetBodyPos(t_tai, body.id, NaifId::SUN, frame_);
         Vec3 a_srp = Illumination(r, r_sun, body.R)
                      * AccelerationSolarRadiation(r, r_sun, params_.at("bcoeff_srp")(0), P_SUN, AU);
         a += a_srp;
@@ -69,7 +69,7 @@ namespace lupnt {
       if (use_drag_ && body.id == NaifId::EARTH) {
         // TODO: Currently only works for Earth
         Real tt = ConvertTime(t_tai, Time::TAI, Time::TT);
-        Real mjd_tt = tt / SECS_DAY + MJD_J2000_TT;
+        Real mjd_tt = Time2MJD(tt);
         MatX3 Rot = NutationMatrix(mjd_tt) * PrecessionMatrix(MJD_J2000_TT, mjd_tt);
         Vec3 a_drag = AccelerationDrag(mjd_tt, rv, Rot, params_.at("bcoeff_drag")(0));
         a += a_drag;

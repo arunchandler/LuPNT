@@ -40,7 +40,7 @@ namespace lupnt {
     void SetReceiverAttitudeMode(std::string mode) { attitude_mode_ = mode; };
 
     // Receiver Gain Calculators
-    std::vector<Vec3d> GetReceiverOrientation(double t, Vec3d& r_rx_gcrf, std::string mode);
+    std::vector<Vec3> GetReceiverOrientation(Real t, const Vec3& r_rx_gcrf, std::string mode);
 
     /**
      * @brief Get the Receiver Antenna Gain object
@@ -51,15 +51,15 @@ namespace lupnt {
      * @param frame_tx   frame of the transmitter
      * @param frame_rx   frame of the receiver
      *
-     * @return double
+     * @return Real
      */
-    double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override;
+    Real GetReceiverAntennaGain(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf) override;
 
     void InitializeReceiverParams();
     void SetCN0Threshold(double CN0threshold) { rx_param_.CN0threshold = CN0threshold; };
 
     // Generate Measurement
-    GnssMeasurement GetMeasurement(double t);
+    GnssMeasurement GetMeasurement(Real t);
 
     // Getters and Setters
     // Override channel getters and setters

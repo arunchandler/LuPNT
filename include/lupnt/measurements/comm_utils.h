@@ -10,6 +10,7 @@
  */
 
 #pragma once
+#include "lupnt/core/definitions.h"
 
 namespace lupnt {
 
@@ -30,9 +31,9 @@ namespace lupnt {
    *  https://www.unilim.fr/pages_perso/vahid/notes/ber_awgn.pdf
    * @param PT_N0
    * @param Modulation
-   * @return double
+   * @return Real
    */
-  double ComputeBER(double EbN0, Modulation modulation_type);
+  Real ComputeBER(Real EbN0, Modulation modulation_type);
 
   /**
    * @brief Compute Es/N0 from Eb/N0
@@ -42,22 +43,22 @@ namespace lupnt {
    * @param coding_rate  Coding rate
    *
    */
-  double ComputeEsN0(double EbN0, double modulation_order, double coding_rate);
+  Real ComputeEsN0(Real EbN0, Real modulation_order, Real coding_rate);
 
   /**
    * @brief Compute the number of bits per symbol
    *
    * @param modulation_type  Modulation type
-   * @return double
+   * @return Real
    */
-  double BitsPerSymbol(Modulation modulation_type);
+  Real BitsPerSymbol(Modulation modulation_type);
   /**
    * @brief Get the Frequency Band object
    *
    * @param f   frequency [Hz]
    * @return FrequencyBand
    */
-  FrequencyBand GetFrequencyBand(double f);
+  FrequencyBand GetFrequencyBand(Real f);
 
   /**
    * @brief Get the (recommended) Transponder Turn Around Ratio for spacecraft
@@ -65,9 +66,9 @@ namespace lupnt {
    *
    * @param fbu  uplink frequency band
    * @param fbd  downlink frequency band
-   * @return double  Turn around ratio
+   * @return Real   Turn around ratio
    */
-  double GetTransponderTurnAroundRatio(FrequencyBand fbu, FrequencyBand fbd);
+  Real GetTransponderTurnAroundRatio(FrequencyBand fbu, FrequencyBand fbd);
 
   /**
    * @brief Compute the carrier loop signal-to-noise ratio
@@ -80,7 +81,7 @@ namespace lupnt {
    * @param m_R           modulation index (only for residual carrier)
    *
    */
-  double ComputeCarrierLoopSNR(double PT_N0, double B_L_carrier, double T_s,
-                               Modulation modulation_type, double m_R);
+  Real ComputeCarrierLoopSNR(Real PT_N0, Real B_L_carrier, Real T_s, Modulation modulation_type,
+                             Real m_R);
 
 }  // namespace lupnt

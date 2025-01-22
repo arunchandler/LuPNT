@@ -27,8 +27,8 @@ namespace lupnt {
    * @param clk_drift_err  initial clock drift error [s/s]
    * @return MatXd  Initial covariance matrix
    */
-  MatXd ConstructInitCovariancePVC(double pos_err, double vel_err, double clk_bias_err,
-                                   double clk_drift_err);
+  MatXd InitialCovariancePosVelClock(double pos_err, double vel_err, double clk_bias_err,
+                                     double clk_drift_err);
 
   /**
    * @brief Construct the process noise function for the linear RV model
@@ -36,7 +36,7 @@ namespace lupnt {
    * @param sigma_acc  Acceleration noise [km/s^2]
    * @return FilterProcessNoiseFunction
    */
-  FilterProcessNoiseFunction ProcessNoiseFunctionLinearPV(double sigma_acc);
+  FilterProcessNoiseFunction ProcessNoiseLinearPosVel(double sigma_acc);
 
   /**
    * @brief Construct the process noise function for the clock model
@@ -45,18 +45,7 @@ namespace lupnt {
    * @param clock_state_size   Clock state size
    * @return FilterProcessNoiseFunction
    */
-  FilterProcessNoiseFunction ProcessNoiseFunctionClock(ClockModel cmodel, int clock_state_size);
-
-  /**
-   * @brief  Construct the process noise function for the RVC model
-   *
-   * @param cmodel  Clock model
-   * @param state_size   State size
-   * @param sigma_acc   Acceleration noise [km/s^2]
-   * @return FilterProcessNoiseFunction
-   */
-  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
-                                                      double sigma_acc);
+  FilterProcessNoiseFunction ProcessNoiseClock(ClockModel cmodel, int clock_state_size);
 
   /**
    * @brief Construct a new Filter Process Noise Function P V C object for the EKF
@@ -66,8 +55,8 @@ namespace lupnt {
    * @param sigma_acc
    * @param n_sat
    */
-  FilterProcessNoiseFunction ConstructProcessNoisePVC(ClockModel cmodel, int state_size,
-                                                      double sigma_acc, int n_sat);
+  FilterProcessNoiseFunction ProcessNoisePosVelClock(ClockModel cmodel, int state_size,
+                                                     double sigma_acc, int n_sat = 1);
 
   /**
    * @brief Print the EKF progress header for the position, velocity, and clock states

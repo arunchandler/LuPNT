@@ -45,6 +45,12 @@ namespace lupnt {
     Real q1 = 0.25 * (dcm(1, 2) - dcm(2, 1)) / q0;
     Real q2 = 0.25 * (dcm(2, 0) - dcm(0, 2)) / q0;
     Real q3 = 0.25 * (dcm(0, 1) - dcm(1, 0)) / q0;
+    if (q0 < 0) {
+      q0 = -q0;
+      q1 = -q1;
+      q2 = -q2;
+      q3 = -q3;
+    }
     return Vec4(q0, q1, q2, q3);
   }
 

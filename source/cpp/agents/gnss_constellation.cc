@@ -36,7 +36,7 @@ namespace lupnt {
       // std::cout << "Loaded satellite: " << tle.name << " PRN: " << tle.prn << std::endl;
 
       double sat_epoch = tle.epoch_tai;
-      double dt_epoch = sat_epoch - epoch_;
+      Real dt_epoch = sat_epoch - epoch_;
 
       if (is_first_sat) {
         epoch_ = sat_epoch;

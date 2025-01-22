@@ -1,8 +1,9 @@
 #include <lupnt/lupnt.h>
-#include <matplot/matplot.h>
+
+#include <chrono>
 
 using namespace lupnt;
-using namespace matplot;
+using namespace std::chrono;
 
 int main() {
   // Create dynamics

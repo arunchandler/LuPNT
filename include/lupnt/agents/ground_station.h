@@ -95,7 +95,7 @@ namespace lupnt {
     CartesianOrbitState GetCartesianGCRFStateAtEpoch(Real epoch) override {
       // Convert RV to GCRF
       Vec6 rv = GetRvState()->GetVec();
-      Vec6 rv_gcrf = ConvertFrame(epoch, rv, frame_, Frame::GCRF, false);
+      Vec6 rv_gcrf = ConvertFrame(epoch, rv, frame_, Frame::GCRF);
       return CartesianOrbitState(rv_gcrf, Frame::GCRF);
     }
   };

@@ -11,3 +11,4 @@ pre-commit
 requests
 scikit-learn
 tqdm
+bpy==4.1.0

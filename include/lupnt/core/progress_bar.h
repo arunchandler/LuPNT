@@ -17,7 +17,9 @@ namespace lupnt {
           current_progress_(-1),
           value_at_last_update_(0),
           start_time_(std::chrono::system_clock::now()),
-          last_update_(start_time_) {}
+          last_update_(start_time_) {
+      std::cout << "\033[?25l";  // Hide cursor at the start
+    }
 
     void SetDescription(const std::string &description) { description_ = description + " "; }
     void Update() { Update(current_value_ + 1); }
@@ -56,6 +58,10 @@ namespace lupnt {
       std::cout << std::endl;
     }
 
+    ~ProgressBar() {
+      std::cout << "\033[?25h" << std::flush;  // Show cursor when the object is destroyed
+    }
+
   private:
     std::string description_;
     int total_;
@@ -78,11 +84,11 @@ namespace lupnt {
         else
           std::cout << " ";
       }
-      std::cout << "] " << value << "/" << total_ << ", " << std::setw(3) << current_progress_
-                << "%, ";
-      std::cout << std::fixed << std::setprecision(1) << speed << " it/s, ";
-      std::cout << FormatTime(static_cast<int>(elapsed)) << " elapsed, ";
-      std::cout << FormatTime(remaining_time) << " left\r";
+      std::cout << "] " << value << "/" << total_ << " | " << std::setw(3) << current_progress_
+                << "% | ";
+      std::cout << std::fixed << std::setprecision(1) << speed << " it/s | ";
+      std::cout << FormatTime(static_cast<int>(elapsed)) << " elapsed | ";
+      std::cout << FormatTime(remaining_time) << " left\r\033[0m";
       std::cout << std::flush;
     }
 

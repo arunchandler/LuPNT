@@ -28,6 +28,15 @@ namespace lupnt {
     return output_path;
   }
 
+  H5Easy::File GetCacheFile(std::filesystem::path cache_path, bool recompute) {
+    if (recompute && std::filesystem::exists(cache_path)) std::filesystem::remove(cache_path);
+    auto open_mode = (recompute || !std::filesystem::exists(cache_path))
+                         ? H5Easy::File::OpenOrCreate
+                         : H5Easy::File::ReadOnly;
+    H5Easy::File cache_file(cache_path, open_mode);
+    return cache_file;
+  }
+
   std::optional<std::filesystem::path> FindFileInDir(const std::filesystem::path& base_path,
                                                      std::string_view filename) {
     for (const auto& entry : std::filesystem::recursive_directory_iterator(base_path)) {

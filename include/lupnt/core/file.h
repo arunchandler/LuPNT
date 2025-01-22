@@ -25,6 +25,21 @@ namespace lupnt {
 
   std::filesystem::path GetDataPath();
   std::filesystem::path GetOutputPath(std::string output_dir);
+  H5Easy::File GetCacheFile(std::filesystem::path cache_path, bool recompute);
+
+  template <int N, int M, typename scalar, typename Func, typename... Args>
+  Matrix<scalar, N, M> LoadOrRecompute(const std::string& name, H5Easy::File& cache_file,
+                                       bool recompute, Func func, Args&&... args) {
+#pragma omp critical
+    if (!recompute && cache_file.exist(name)) {
+      return H5Easy::load<Matrix<double, N, M>>(cache_file, name);
+    }
+    Matrix<scalar, N, M> result = func(std::forward<Args>(args)...);
+#pragma omp critical
+    H5Easy::dump(cache_file, name, result.template cast<double>(), H5Easy::DumpMode::Overwrite);
+    return result;
+  }
+
   std::optional<std::filesystem::path> FindFileInDir(const std::filesystem::path& base_path,
                                                      std::string_view filename);
   std::filesystem::path GetFilePath(std::string_view filename);

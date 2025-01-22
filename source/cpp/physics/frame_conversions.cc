@@ -107,6 +107,15 @@ namespace lupnt {
     return rv_itrf;
   }
 
+  Vec3 GCRF2ITRF(Real t_tai, const Vec3& r_gcrf) {
+    Mat3 R_po = RotPolarMotion(t_tai);
+    Mat3 R_pn = RotPrecessionNutation(t_tai);
+    Mat3 R_s = RotSideralMotion(t_tai);
+    Mat3 R_gcrf2itrf = R_po * R_s * R_pn;
+    Vec3 r_itrf = R_gcrf2itrf * r_gcrf;
+    return r_itrf;
+  }
+
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 37
   Vec6 ITRF2GCRF(Real t_tai, const Vec6& rv_itrf) {
     Mat3 R_po = RotPolarMotion(t_tai);
@@ -126,6 +135,15 @@ namespace lupnt {
     Vec6 rv_gcrf;
     rv_gcrf << r_gcrf, v_gcrf;
     return rv_gcrf;
+  }
+
+  Vec3 ITRF2GCRF(Real t_tai, const Vec3& r_itrf) {
+    Mat3 R_po = RotPolarMotion(t_tai);
+    Mat3 R_pn = RotPrecessionNutation(t_tai);
+    Mat3 R_s = RotSideralMotion(t_tai);
+    Mat3 R_gcrf2itrf = R_po * R_s * R_pn;
+    Vec3 r_gcrf = R_gcrf2itrf.transpose() * r_itrf;
+    return r_gcrf;
   }
 
   /// @note
@@ -160,8 +178,7 @@ namespace lupnt {
   }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 39
-  Vec6 GCRF2EME(Real t_tai, const Vec6& rv_gcrf) {
-    (void)t_tai;
+  Vec6 GCRF2EME(const Vec6& rv_gcrf) {
     Mat3d B_e = RotGCRF2EME();
     Vec3 r_gcrf = rv_gcrf.head(3);
     Vec3 v_gcrf = rv_gcrf.tail(3);
@@ -173,10 +190,14 @@ namespace lupnt {
     rv_eme << r_eme, v_eme;
     return rv_eme;
   }
+  Vec3 GCRF2EME(const Vec3& r_gcrf) {
+    Mat3d B_e = RotGCRF2EME();
+    Vec3 r_eme = B_e * r_gcrf;
+    return r_eme;
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 39
-  Vec6 EME2GCRF(Real t_tai, const Vec6& rv_eme) {
-    (void)t_tai;
+  Vec6 EME2GCRF(const Vec6& rv_eme) {
     Mat3d B_e = RotGCRF2EME();
     Vec3 r_eme = rv_eme.head(3);
     Vec3 v_eme = rv_eme.tail(3);
@@ -189,12 +210,23 @@ namespace lupnt {
     rv_gcrf << r_gcrf, v_gcrf;
     return rv_gcrf;
   }
+  Vec3 EME2GCRF(const Vec3& r_eme) {
+    Mat3d B_e = RotGCRF2EME();
+    Mat3d B_e_inv = B_e.transpose();
+    Vec3 r_gcrf = B_e_inv * r_eme;
+    return r_gcrf;
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 39
   Vec6 GCRF2ICRF(Real t_tai, const Vec6& rv_gcrf) {
     Vec6 rv_ssb2earth = GetBodyPosVel(t_tai, NaifId::SSB, NaifId::EARTH, Frame::GCRF);
     Vec6 rv_icrf = rv_gcrf + rv_ssb2earth;
     return rv_icrf;
+  }
+  Vec3 GCRF2ICRF(Real t_tai, const Vec3& r_gcrf) {
+    Vec3 r_ssb2earth = GetBodyPos(t_tai, NaifId::SSB, NaifId::EARTH, Frame::GCRF);
+    Vec3 r_icrf = r_gcrf + r_ssb2earth;
+    return r_icrf;
   }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 40
@@ -203,12 +235,22 @@ namespace lupnt {
     Vec6 rv_gcrf = rv_icrf - rv_ssb2earth;
     return rv_gcrf;
   }
+  Vec3 ICRF2GCRF(Real t_tai, const Vec3& r_icrf) {
+    Vec3 r_ssb2earth = GetBodyPos(t_tai, NaifId::SSB, NaifId::EARTH, Frame::GCRF);
+    Vec3 r_gcrf = r_icrf - r_ssb2earth;
+    return r_gcrf;
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 40
   Vec6 GCRF2MoonCI(Real t_tai, const Vec6& rv_gcrf) {
     Vec6 rv_earth2moon = GetBodyPosVel(t_tai, NaifId::EARTH, NaifId::MOON, Frame::GCRF);
     Vec6 rv_mi = rv_gcrf - rv_earth2moon;
     return rv_mi;
+  }
+  Vec3 GCRF2MoonCI(Real t_tai, const Vec3& r_gcrf) {
+    Vec3 r_earth2moon = GetBodyPos(t_tai, NaifId::EARTH, NaifId::MOON, Frame::GCRF);
+    Vec3 r_mi = r_gcrf - r_earth2moon;
+    return r_mi;
   }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 40
@@ -217,25 +259,58 @@ namespace lupnt {
     Vec6 rv_gcrf = rv_mi + rv_earth2moon;
     return rv_gcrf;
   }
+  Vec3 MoonCI2GCRF(Real t_tai, const Vec3& r_mi) {
+    Vec3 r_earth2moon = GetBodyPos(t_tai, NaifId::EARTH, NaifId::MOON, Frame::GCRF);
+    Vec3 r_gcrf = r_mi + r_earth2moon;
+    return r_gcrf;
+  }
+
+  struct CacheRotMoonCI2MoonPA {
+    Real t_tai = NAN;
+    Mat3 R_mi2pa;
+    Mat3 R_mi2pa_dot;
+    bool compute_vel;
+  };
+  static CacheRotMoonCI2MoonPA cache_rot_moon_ci2pa;
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 42
-  std::pair<Mat3, Mat3> RotMoonCI2MoonPA(Real t_tai) {
-    (void)t_tai;
-    Vec6 lunar_mantle = GetLunarMantleData(t_tai);
+  Mat3 RotMoonCI2MoonPA(Real t_tai, Mat3* R_mi2pa_dot) {
+    bool compute_vel = (R_mi2pa_dot != nullptr);
+    // Check cache
+    if (abs(t_tai - cache_rot_moon_ci2pa.t_tai) < EPS
+        && cache_rot_moon_ci2pa.compute_vel == compute_vel) {
+      if (compute_vel) *R_mi2pa_dot = cache_rot_moon_ci2pa.R_mi2pa_dot;
+      return cache_rot_moon_ci2pa.R_mi2pa;
+    }
+
+    Vec6 lunar_mantle = GetLunarMantleData(t_tai, compute_vel);
     auto [phi, theta, psi, phi_dot, theta_dot, psi_dot] = unpack(lunar_mantle);
 
-    Real spsi = sin(psi);
-    Real cpsi = cos(psi);
-    Mat3 mat{
-        {-psi_dot * spsi, psi_dot * cpsi, 0}, {-psi_dot * cpsi, -psi_dot * spsi, 0}, {0, 0, 0}};
-    Mat3 R_mi2pa = RotZ(psi) * RotX(theta) * RotZ(phi);
-    Mat3 R_mi2pa_dot = mat * RotX(theta) * RotZ(phi);
-    return {R_mi2pa, R_mi2pa_dot};
+    Mat3 R_z_phi = RotZ(phi), R_x_theta = RotX(theta), R_z_psi = RotZ(psi);
+    Mat3 R_mi2pa = R_z_psi * R_x_theta * R_z_phi;
+
+    if (compute_vel) {
+      Real spsi = sin(psi);
+      Real cpsi = cos(psi);
+      Mat3 mat{
+          {-psi_dot * spsi, psi_dot * cpsi, 0}, {-psi_dot * cpsi, -psi_dot * spsi, 0}, {0, 0, 0}};
+      *R_mi2pa_dot = mat * R_x_theta * R_z_phi;
+      cache_rot_moon_ci2pa.R_mi2pa_dot = *R_mi2pa_dot;
+    }
+
+    // Update cache
+    cache_rot_moon_ci2pa.t_tai = t_tai;
+    cache_rot_moon_ci2pa.R_mi2pa = R_mi2pa;
+    cache_rot_moon_ci2pa.compute_vel = compute_vel;
+    if (compute_vel) cache_rot_moon_ci2pa.R_mi2pa_dot = *R_mi2pa_dot;
+
+    return R_mi2pa;
   }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 42
   Vec6 MoonCI2MoonPA(Real t_tai, const Vec6& rv_mi) {
-    auto [R_mi2pa, R_mi2pa_dot] = RotMoonCI2MoonPA(t_tai);
+    Mat3 R_mi2pa_dot;
+    Mat3 R_mi2pa = RotMoonCI2MoonPA(t_tai, &R_mi2pa_dot);
 
     Vec3 r_mi = rv_mi.head(3);
     Vec3 v_mi = rv_mi.tail(3);
@@ -247,10 +322,16 @@ namespace lupnt {
     rv_pa << r_pa, v_pa;
     return rv_pa;
   }
+  Vec3 MoonCI2MoonPA(Real t_tai, const Vec3& r_mi) {
+    Mat3 R_mi2pa = RotMoonCI2MoonPA(t_tai);
+    Vec3 r_pa = R_mi2pa * r_mi;
+    return r_pa;
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 42
   Vec6 MoonPA2MoonCI(Real t_tai, const Vec6& rv_pa) {
-    auto [R_mi2pa, R_mi2pa_dot] = RotMoonCI2MoonPA(t_tai);
+    Mat3 R_mi2pa_dot;
+    Mat3 R_mi2pa = RotMoonCI2MoonPA(t_tai, &R_mi2pa_dot);
 
     Vec3 r_pa = rv_pa.head(3);
     Vec3 v_pa = rv_pa.tail(3);
@@ -261,6 +342,11 @@ namespace lupnt {
     rv_mi << r_mi, v_mi;
     return rv_mi;
   }
+  Vec3 MoonPA2MoonCI(Real t_tai, const Vec3& r_pa) {
+    Mat3 R_mi2pa = RotMoonCI2MoonPA(t_tai);
+    Vec3 r_mi = R_mi2pa.transpose() * r_pa;
+    return r_mi;
+  }
 
   Mat3d RotMoonPA2MoonME() {
     Mat3d B_moon
@@ -269,8 +355,7 @@ namespace lupnt {
   }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 43
-  Vec6 MoonPA2MoonME(Real t_tai, const Vec6& rv_pa) {
-    (void)t_tai;
+  Vec6 MoonPA2MoonME(const Vec6& rv_pa) {
     Mat3d B_moon = RotMoonPA2MoonME();
     Vec3 r_pa = rv_pa.head(3);
     Vec3 v_pa = rv_pa.tail(3);
@@ -282,10 +367,14 @@ namespace lupnt {
     rv_me << r_me, v_me;
     return rv_me;
   }
+  Vec3 MoonPA2MoonME(const Vec3& r_pa) {
+    Mat3d B_moon = RotMoonPA2MoonME();
+    Vec3 r_me = B_moon * r_pa;
+    return r_me;
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 43
-  Vec6 MoonME2MoonPA(Real t_tai, const Vec6& rv_me) {
-    (void)t_tai;
+  Vec6 MoonME2MoonPA(const Vec6& rv_me) {
     Mat3d B_moon = RotMoonPA2MoonME();
     Vec3 r_me = rv_me.head(3);
     Vec3 v_me = rv_me.tail(3);
@@ -298,6 +387,12 @@ namespace lupnt {
     rv_pa << r_pa, v_pa;
     return rv_pa;
   }
+  Vec3 MoonME2MoonPA(const Vec3& r_me) {
+    Mat3d B_moon = RotMoonPA2MoonME();
+    Mat3d B_moon_inv = B_moon.transpose();
+    Vec3 r_pa = B_moon_inv * r_me;
+    return r_pa;
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 48
   Vec6 GCRF2EMR(Real t_tai, const Vec6& rv_gcrf) {
@@ -305,12 +400,26 @@ namespace lupnt {
     Vec6 rv_emr = Inertial2Synodic(rv_earth2emb, rv_gcrf);
     return rv_emr;
   }
+  Vec3 GCRF2EMR(Real t_tai, const Vec3& r_gcrf) {
+    Vec6 rv_earth2emb = GetBodyPosVel(t_tai, NaifId::EARTH, NaifId::EMB, Frame::GCRF);
+    Vec6 rv_gcrf;
+    rv_gcrf << r_gcrf, Vec3::Zero();
+    Vec6 rv_emr = Inertial2Synodic(rv_earth2emb, rv_gcrf);
+    return rv_emr.head(3);
+  }
 
   /// @note Astrodynamics Convention & Modeling Reference, Version 1.1, Page 48
   Vec6 EMR2GCRF(Real t_tai, const Vec6& rv_emr) {
     Vec6 rv_earth2emb = GetBodyPosVel(t_tai, NaifId::EARTH, NaifId::EMB, Frame::GCRF);
     Vec6 rv_gcrf = Synodic2Intertial(rv_earth2emb, rv_emr);
     return rv_gcrf;
+  }
+  Vec3 EMR2GCRF(Real t_tai, const Vec3& r_emr) {
+    Vec6 rv_earth2emb = GetBodyPosVel(t_tai, NaifId::EARTH, NaifId::EMB, Frame::GCRF);
+    Vec6 rv_emr;
+    rv_emr << r_emr, Vec3::Zero();
+    Vec6 rv_gcrf = Synodic2Intertial(rv_earth2emb, rv_emr);
+    return rv_gcrf.head(3);
   }
 
   /// @note
@@ -348,9 +457,13 @@ namespace lupnt {
     rv_op << r_op, v_op;
     return rv_op;
   }
+  Vec3 MoonCI2MoonOP(Real t_tai, const Vec3& r_ci) {
+    Mat3 R_ci2op = RotOP2CI(t_tai).transpose();
+    Vec3 r_op = R_ci2op * r_ci;
+    return r_op;
+  }
 
   /// @brief
-  /// @param t_tai
   /// @param rv_op
   /// @return Vec6
   /// @note
@@ -363,6 +476,11 @@ namespace lupnt {
     Vec6 rv_ci;
     rv_ci << r_ci, v_ci;
     return rv_ci;
+  }
+  Vec3 MoonOP2MoonCI(Real t_tai, const Vec3& r_op) {
+    Mat3 R_op2ci = RotOP2CI(t_tai);
+    Vec3 r_ci = R_op2ci * r_op;
+    return r_ci;
   }
 
 }  // namespace lupnt

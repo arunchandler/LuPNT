@@ -66,14 +66,14 @@ namespace lupnt {
     void InitializeQZSSTransmitter();
 
     // Get transmitter orientatiion
-    std::vector<Vec3d> GetTransmitterOrientation(double t, Vec3d& rv_tx_gcrf);
+    std::vector<Vec3> GetTransmitterOrientation(Real t, const Vec3& rv_tx_gcrf);
 
-    double GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override;
-    double GetTransmitterAntennaGainFreq(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf,
-                                         std::string freq);
+    Real GetTransmitterAntennaGain(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf) override;
+    Real GetTransmitterAntennaGainFreq(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf,
+                                       const std::string& freq);
 
     // Get the Transmittion Information
-    GnssTransmission GenerateTransmission(double t);
+    GnssTransmission GenerateTransmission(Real t);
 
     // Getters and Setters
     void SetChannel(const Ptr<SpaceChannel> ch) override {
@@ -81,10 +81,10 @@ namespace lupnt {
     };
     int GetPRN() { return prn_; };
     GnssType GetGnssType() { return gnss_type_; };
-    Real ComputeGain(Vec3d direction, std::string freq) {
+    Real ComputeGain(Vec3d direction, const std::string& freq) {
       return antenna_[freq].ComputeGain(direction);
     };
-    Real ComputeGain(Real theta, Real phi, std::string freq) {
+    Real ComputeGain(Real theta, Real phi, const std::string& freq) {
       return antenna_[freq].ComputeGain(theta, phi);
     };
 

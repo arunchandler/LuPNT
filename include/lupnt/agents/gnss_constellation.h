@@ -27,14 +27,9 @@ namespace lupnt {
     std::vector<Ptr<Spacecraft>> satellites_;
     Ptr<IDynamics> dynamics_;
     Ptr<GnssChannel> channel_;
-    double epoch_;  // in TAI
+    Real epoch_;
     bool is_first_sat = true;
     std::vector<GnssType> gnss_types_;
-
-    // Setters
-    void SetChannel(Ptr<GnssChannel> ch) { channel_ = ch; }
-
-    void LoadTleFile(GnssType gnss_type, std::string filename);
 
   public:
     GnssConstellation() { is_first_sat = true; }
@@ -46,7 +41,11 @@ namespace lupnt {
       LoadTleFile(gnss_type, tle_filename);
     }
 
-    double GetEpoch() { return epoch_; }
+    void SetChannel(Ptr<GnssChannel> ch) { channel_ = ch; }
+
+    void LoadTleFile(GnssType gnss_type, std::string filename);
+
+    Real GetEpoch() { return epoch_; }
 
     void SetEpoch(double ep) {
       epoch_ = ep;
@@ -73,7 +72,7 @@ namespace lupnt {
     Ptr<IDynamics> GetDynamics() { return dynamics_; }
 
     // Methods
-    void Propagate(double epoch) {
+    void Propagate(Real epoch) {
       if (epoch == epoch_) return;
       for (auto sat : satellites_) sat->Propagate(epoch);
       epoch_ = epoch;

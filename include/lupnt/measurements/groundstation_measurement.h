@@ -37,30 +37,30 @@ namespace lupnt {
 
     /********************** One way Down Link ***************************/
     Real GetOneWayRangeMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
-                                   Vec2 clk_tx, Vec2 clk_rx, MatXd &H_ow_rx, Real additional_delay,
-                                   bool with_noise, bool with_jacobian);
+                                   Vec2 clk_tx, Vec2 clk_rx, Real additional_delay, bool with_noise,
+                                   MatXd *H_ow_rx = nullptr);
 
     Real GetOneWayRangeRateMeasurement(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx,
-                                       Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx, MatXd &H_ow_rx,
-                                       Real additional_delay, bool with_noise, bool with_jacobian);
+                                       Vec6 rv_rx, Vec2 clk_tx, Vec2 clk_rx, Real additional_delay,
+                                       bool with_noise, MatXd *H_ow_rx = nullptr);
 
     /********************** Two way Link ***************************/
     Real GetTwoWayRangeMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver, Vec6 rv_target,
-                                   Vec2 clk_receiver, Vec2 clk_target, MatXd &H_tw_range,
-                                   Real hardware_delay, bool with_noise, bool with_jacobian);
+                                   Vec2 clk_receiver, Vec2 clk_target, Real hardware_delay,
+                                   bool with_noise, MatXd *H_tw_range = nullptr);
 
     Real GetTwoWayRangeRateMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_receiver,
                                        Vec6 rv_target, Vec2 clk_receiver, Vec2 clk_target,
-                                       MatXd &H_tw_rr, Real hardware_delay, bool with_noise,
-                                       bool with_jacobian);
+                                       Real hardware_delay, bool with_noise,
+                                       MatXd *H_tw_rr = nullptr);
 
     /******** Delta DOR *****************/
     void GenerateDORLink(Real epoch_tx, std::shared_ptr<Transmitter> &tx,
                          std::shared_ptr<Receiver> &rx1, std::shared_ptr<Receiver> &rx2);
 
     Real GetDeltaDORMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_rx1, Vec6 rv_rx2, Vec6 rv_tx,
-                                Vec2 clk_rx1, Vec2 clk_rx2, Vec2 clk_tx, MatXd &H_dor,
-                                Real hardware_delay, bool with_noise, bool with_jacobian);
+                                Vec2 clk_rx1, Vec2 clk_rx2, Vec2 clk_tx, Real hardware_delay,
+                                bool with_noise, MatXd *H_dor = nullptr);
   };
 
 }  // namespace lupnt

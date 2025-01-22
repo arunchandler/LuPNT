@@ -208,96 +208,12 @@ namespace lupnt {
     }
   }
 
-  double J0Bessel(double x) {
-    // Bessel function of the first kind of order 0
-    // Reference: https://en.wikipedia.org/wiki/Bessel_function
-    // double J0 = 0.0;
-    double y = 1.0;
-    double sum = 1.0;
-    for (int i = 1; i < 10; i++) {
-      y = y * x * x / (4 * i * i);
-      sum += y;
-    }
-
-    return sum;
-  }
-
-  double J1Bessel(double x) {
-    // Bessel function of the first kind of order 1
-    // Reference: https://en.wikipedia.org/wiki/Bessel_function
-    // double J1 = 0.0;
-    double y = 1.0;
-    double sum = 1.0;
-    for (int i = 1; i < 10; i++) {
-      y = y * x / (2 * i * (2 * i + 1));
-      sum += y;
-    }
-
-    return sum;
-  }
-
-  /// @brief Compute the root mean square of a vector
-  /// @param x Input vector
-  /// @return Root mean square of the vector
-  Real RootMeanSquare(VecX x) { return sqrt(x.array().pow(2).sum() / x.size()); }
-  double RootMeanSquareD(VecXd x) { return sqrt(x.array().pow(2).sum() / x.size()); }
-
-  /// @brief Compute the pth percentile of a vector
-  /// @param x Input vector
-  /// @param p Percentile value
-  Real Percentile(VecX x, double p) {
-    Real* start = x.data();
-    Real* end = x.data() + x.size();
-    std::sort(start, end);
-    int index = std::ceil(p * x.size());
-    if (index > (x.size() - 1)) {
-      index = x.size() - 1;
-    }
-    return x(index);
-  }
-
-  double PercentileD(VecXd x, double p) {
-    double* start = x.data();
-    double* end = x.data() + x.size();
-    std::sort(start, end);
-    int index = std::ceil(p * x.size());
-    if (index > (x.size() - 1)) {
-      index = x.size() - 1;
-    }
-    return x(index);
-  }
-
-  /// @brief Compute the standard deviation of a vector
-  /// @param x Input vector
-  /// @return Standard deviation of the vector
-  Real Std(VecX x) {
-    Real mean = x.sum() / x.size();
-    Real sq_sum = 0.0;
-    for (int i = 0; i < x.size(); i++) {
-      sq_sum += (x(i) - mean) * (x(i) - mean);
-    }
-    return sqrt(sq_sum / x.size());
-  }
-
-  double StdD(VecXd x) {
-    double mean = x.sum() / x.size();
-    double sq_sum = 0.0;
-    for (int i = 0; i < x.size(); i++) {
-      sq_sum += (x(i) - mean) * (x(i) - mean);
-    }
-    return sqrt(sq_sum / x.size());
-  }
-
-  double erfc(double x) { return 1 - erf(x); }
-
-  double qfunc(double x) { return 0.5 * erfc(x / sqrt(2)); }
-
   /// @brief Sample from a multivariate normal distribution
   /// @param mean Mean vector
   /// @param covar Covariance matrix
   /// @param nn Number of samples
   /// @param seed Random seed
-  MatX SampleMVN(const VecX mean, const MatX covar, int nn, int seed) {
+  MatX SampleMVN(const VecX& mean, const MatX& covar, int nn, int seed) {
     // Define random generator with Gaussian distribution
     int xsize = mean.size();
     auto generator = std::mt19937(seed);
@@ -327,30 +243,10 @@ namespace lupnt {
     return samples;
   };
 
-  double SampleRandNormal(double mean, double std, int seed) {
+  Real SampleRandNormal(Real mean, Real std, int seed) {
     auto generator = std::mt19937(seed);
-    auto dist = std::bind(std::normal_distribution<double>{mean, std}, generator);
+    auto dist = std::bind(std::normal_distribution<double>{mean.val(), std.val()}, generator);
     return dist();
-  }
-
-  /// @brief Create a block diagonal matrix from two matrices
-  /// @param A First matrix
-  /// @param B Second matrix
-  /// @return Block diagonal matrix
-  MatX BlkDiag(const MatX& A, const MatX& B) {
-    MatX C(A.rows() + B.rows(), A.cols() + B.cols());
-    C << A, MatX::Zero(A.rows(), B.cols()), MatX::Zero(B.rows(), A.cols()), B;
-    return C;
-  }
-
-  MatXd BlkDiagD(const MatXd& A, const MatXd& B) {
-    int rows = A.rows() + B.rows();
-
-    MatXd C(rows, rows);
-    C = MatXd::Zero(rows, rows);
-    C.block(0, 0, A.rows(), A.cols()) = A;
-    C.block(A.rows(), A.cols(), B.rows(), B.cols()) = B;
-    return C;
   }
 
   /// @brief Passive rotation matrix about the x-axis
@@ -538,9 +434,7 @@ namespace lupnt {
   VecX arange(Real start, Real stop, Real step) {
     int n = static_cast<int>((stop - start) / step);
     VecX v(n);
-    for (int i = 0; i < n; i++) {
-      v(i) = start + i * step;
-    }
+    for (int i = 0; i < n; i++) v(i) = start + i * step;
     return v;
   }
 
