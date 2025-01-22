@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orbit_states.h"
+#include "orbit_state.h"
 
 namespace lupnt {
 

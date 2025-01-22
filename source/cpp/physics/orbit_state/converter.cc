@@ -8,7 +8,7 @@
 
 #include "lupnt/numerics/graphs.h"
 #include "lupnt/physics/orbit_state/conversions.h"
-#include "lupnt/physics/orbit_state/orbit_states.h"
+#include "lupnt/physics/orbit_state/orbit_state.h"
 
 #define ABSOLUTE_CONVERSION(from, to, func)        \
   {{OrbitStateRepres::from, OrbitStateRepres::to}, \

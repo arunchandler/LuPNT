@@ -28,7 +28,7 @@ namespace lupnt {
 
     void SetOrbitState(Ptr<OrbitState> orbit_state) {
       orbit_state_ = orbit_state;
-      std::shared_ptr<IState> state = std::static_pointer_cast<OrbitState>(orbit_state);
+      Ptr<IState> state = std::static_pointer_cast<OrbitState>(orbit_state);
       Agent::SetRvState(state);
       orbit_state_set_ = true;
     }

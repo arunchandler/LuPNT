@@ -62,9 +62,8 @@ namespace lupnt {
     int GetNumSatellites() { return satellites_.size(); }
     int GetNumSatellites(GnssType gnss_type) {
       int count = 0;
-      for (auto type : gnss_types_) {
+      for (auto type : gnss_types_)
         if (type == gnss_type) count++;
-      }
       return count;
     }
     Ptr<Spacecraft> GetSatellite(int i) { return satellites_[i]; }
@@ -74,6 +73,7 @@ namespace lupnt {
     // Methods
     void Propagate(Real epoch) {
       if (epoch == epoch_) return;
+#pragma omp parallel for
       for (auto sat : satellites_) sat->Propagate(epoch);
       epoch_ = epoch;
     }

@@ -189,7 +189,7 @@ int main() {
   iparams.abstol = 1e-12;
   iparams.reltol = 1e-12;
 
-  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+  auto dyn_earth_tb = MakePtr<CartesianTwoBodyDynamics>(
       GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
   auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
   auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics

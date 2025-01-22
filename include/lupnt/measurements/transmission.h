@@ -46,10 +46,6 @@ namespace lupnt {
     Real AP;
     Real RP;
 
-    // Transmitter and receiver
-    std::shared_ptr<Transmitter> tx;
-    std::shared_ptr<Receiver> rx;
-
     // Agents
     bool is_tx_gs;
     bool is_rx_gs;

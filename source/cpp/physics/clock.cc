@@ -121,7 +121,7 @@ namespace lupnt {
     if (clk_state == nullptr) {
       throw std::runtime_error("Invalid state type");
     }
-    return std::make_shared<ClockState>(PropagateState(*clk_state, t0, tf, stm));
+    return MakePtr<ClockState>(PropagateState(*clk_state, t0, tf, stm));
   }
 
   Vec2 ClockDynamics::Propagate(const Vec2& x0, Real t0, Real tf, Mat2* stm) {

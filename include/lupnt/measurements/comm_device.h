@@ -23,7 +23,7 @@ namespace lupnt {
 
   class Agent;
 
-  class ICommDevice {
+  class ICommDevice : public std::enable_shared_from_this<ICommDevice> {
   public:
     virtual ~ICommDevice() = default;
     std::string txrx = "none";

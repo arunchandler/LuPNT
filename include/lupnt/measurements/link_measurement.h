@@ -36,15 +36,15 @@ namespace lupnt {
     Real turnaround_ratio;       // Transponder turnaround ratio
     Real elevation;              // Elevation angle [rad]
 
-    // Agent Parameters
-    Ptr<Agent> tx_agent;  // Transmitter (target) agent
-    Ptr<Agent> rx_agent;  // Receiver agent
-
     Real CN0_linear;  // Carrier-to-noise density [dB-Hz]
   };
 
   class LinkMeasurement {
   private:
+    // Agent Parameters
+    Ptr<Agent> tx_agent_;  // Transmitter (target) agent
+    Ptr<Agent> rx_agent_;  // Receiver agent
+
     // state size
     int state_size_ow_ = 16;  // One way link state size (target rv + clock,  receiver rv + clock)
     int state_size_tw_ = 16;  // Two way link state size (target rv + receiver rv)

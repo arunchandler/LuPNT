@@ -1,24 +1,7 @@
 #include "lupnt/physics/orbit_state.h"
 
+#include <magic_enum/magic_enum.hpp>
 namespace lupnt {
-
-  std::ostream &operator<<(std::ostream &os, const OrbitStateRepres &repres) {
-    switch (repres) {
-      case OrbitStateRepres::CARTESIAN: os << "CARTESIAN"; break;
-      case OrbitStateRepres::CLASSICAL_OE: os << "CLASSICAL_OE"; break;
-      case OrbitStateRepres::QUASI_NONSINGULAR_OE: os << "QUASI_NONSINGULAR_OE"; break;
-      case OrbitStateRepres::SINGULAR_ROE: os << "SINGULAR_ROE"; break;
-      case OrbitStateRepres::NONSINGULAR_OE: os << "NONSINGULAR_OE"; break;
-      case OrbitStateRepres::EQUINOCTIAL_OE: os << "EQUINOCTIAL_OE"; break;
-      case OrbitStateRepres::DELAUNAY_OE: os << "DELAUNAY_OE"; break;
-      case OrbitStateRepres::ABSOLUTE_RELATIVE_SEPARATOR:
-        os << "ABSOLUTE_RELATIVE_SEPARATOR";
-        break;
-      case OrbitStateRepres::RTN: os << "RTN"; break;
-      case OrbitStateRepres::QUASINONSINGULAR_ROE: os << "QUASINONSINGULAR_ROE"; break;
-    }
-    return os;
-  }
 
   // ****************************************************************************
   // OrbitState
@@ -51,12 +34,19 @@ namespace lupnt {
 
   Real OrbitState::operator()(int idx) const { return x_(idx); }
   std::ostream &OrbitState::operator<<(std::ostream &os) const {
-    os << "<OrbitState(" << x_.transpose() << ", " << frame_ << ", " << repres_ << ")>";
+    os << "<OrbitState(" << x_.transpose() << ", " << frame_ << ", "
+       << magic_enum::enum_name(repres_) << ")>";
     return os;
   }
 
   // ****************************************************************************
   // CartesianOrbitState
   // ****************************************************************************
+
+  void CheckOrbitStateRepres(const OrbitState &state, OrbitStateRepres repres) {
+    if (state.GetOrbitStateRepres() != repres)
+      throw std::runtime_error("OrbitState type must be "
+                               + std::string(magic_enum::enum_name(repres)));
+  }
 
 }  // namespace lupnt

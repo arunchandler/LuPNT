@@ -30,6 +30,7 @@ namespace lupnt {
   FilterProcessNoiseFunction ProcessNoiseLinearPosVel(double sigma_acc) {
     FilterProcessNoiseFunction proc_noise_func
         = [sigma_acc](const VecX x, Real t_curr, Real t_end) -> MatXd {
+      (void)x;
       double dt = (t_end - t_curr).val();
       Mat6d Q_rv = Mat6d::Zero();
       for (int i = 0; i < 3; i++) {
@@ -47,6 +48,7 @@ namespace lupnt {
   FilterProcessNoiseFunction ProcessNoiseClock(ClockModel clock_model, int clock_state_size) {
     FilterProcessNoiseFunction proc_noise_func
         = [clock_model, clock_state_size](const VecX x, Real t_curr, Real t_end) -> MatXd {
+      (void)x;
       double dt = (t_end - t_curr).val();
       MatXd Q_clk(2, 2);
 

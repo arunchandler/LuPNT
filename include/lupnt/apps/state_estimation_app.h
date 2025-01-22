@@ -106,7 +106,6 @@ namespace lupnt {
     double GetCurrentEpoch() { return epoch_; };
     double GetCurrrentTime() { return t_; };
 
-    void Setup();
-    void Step(double t_end);  // execute to step t
+    void Step(Real t_end) override;
   };
 };  // namespace lupnt

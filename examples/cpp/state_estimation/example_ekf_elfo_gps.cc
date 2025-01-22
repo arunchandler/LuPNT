@@ -145,10 +145,9 @@ MatXd ConstructInitCovariance(double pos_err, double vel_err, double clk_bias_er
   return P0;
 };
 
-void AddStateEstimationData(const std::shared_ptr<DataHistory> data_history,
-                            const std::shared_ptr<Spacecraft> sat, EKF* ekf,
-                            GnssConstellation* gnss_const, GnssMeasurement* meas, double t,
-                            double epoch) {
+void AddStateEstimationData(const Ptr<DataHistory> data_history, const Ptr<Spacecraft> sat,
+                            EKF* ekf, GnssConstellation* gnss_const, GnssMeasurement* meas,
+                            double t, double epoch) {
   VecXd z_true = ekf->GetTrueMeasurement();
   VecXd z_prior = ekf->GetPredictedMeasurement();
   VecXd x_prior = ekf->GetStatePrior().cast<double>();
@@ -378,8 +377,7 @@ void PrintEstimationStatistics(VecXd num_meas, MatXd error_mat, double data_rati
   std::cout << "  " << std::endl;
 }
 
-void Plot3DTrajectory(const std::shared_ptr<DataHistory> data_history,
-                      std::string state_type = "true") {
+void Plot3DTrajectory(const Ptr<DataHistory> data_history, std::string state_type = "true") {
   using namespace matplot;
 
   // Plot trajectory
@@ -416,7 +414,7 @@ void Plot3DTrajectory(const std::shared_ptr<DataHistory> data_history,
   show();
 };
 
-void PlotState(const std::shared_ptr<DataHistory> data_history, std::string state_type = "true") {
+void PlotState(const Ptr<DataHistory> data_history, std::string state_type = "true") {
   using namespace matplot;
 
   if (state_type != "true" && state_type != "est") {
@@ -615,7 +613,7 @@ int main() {
 
   auto dyn_est = MakePtr<NBodyDynamics<Real>>(IntegratorType::RKF45);     // Filter Dynamics
   auto dyn_true = MakePtr<NBodyDynamics<double>>(IntegratorType::RKF45);  // true dynamics
-  auto dyn_earth_tb = std::make_shared<CartesianTwoBodyDynamics>(
+  auto dyn_earth_tb = MakePtr<CartesianTwoBodyDynamics>(
       GM_EARTH);  // use 2d earth dynamics to propagate GPS constellation
 
   dyn_true->SetIntegratorParams(iparams);
@@ -653,7 +651,7 @@ int main() {
 
   // GNSS Constellation ----------------------------------------------------
   GnssConstellation gnss_const = GnssConstellation();
-  Ptr<GnssChannel> channel = std::make_shared<GnssChannel>();
+  Ptr<GnssChannel> channel = MakePtr<GnssChannel>();
 
   // GPS constellation
   gnss_const.InitializeWithTle(GnssType::GPS, gps_tle, dyn_earth_tb, channel,
@@ -808,7 +806,7 @@ int main() {
   }
 
   // Output
-  auto data_history = std::make_shared<DataHistory>();
+  auto data_history = MakePtr<DataHistory>();
   std::string constellation_config = "_GPS";
   if (use_galileo) {
     constellation_config += "_GALILEO";

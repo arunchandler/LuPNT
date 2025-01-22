@@ -103,7 +103,8 @@ namespace lupnt {
    */
   GnssMeasurement GnssReceiver::GetMeasurement(Real t) {
     // Revieve Gnss signals
-    std::vector<GnssTransmission> transmissions = gnss_channel_->Receive(*this, t);
+    auto receiver = std::static_pointer_cast<GnssReceiver>(shared_from_this());
+    std::vector<GnssTransmission> transmissions = gnss_channel_->Receive(receiver, t);
 
     // Generate a measurement from the Gnss transmissions
     if (transmissions.size() == 0) {

@@ -7,12 +7,6 @@
 #include "lupnt/physics/body.h"
 
 namespace lupnt {
-  /// @brief Plot a 3D line
-  /// @param x x-coordinates
-  /// @param y y-coordinates
-  /// @param z z-coordinates
-  /// @param line_spec Line specification
-  /// @return Line handle
   matplot::line_handle Plot3(const VecX &x, const VecX &y, const VecX &z,
                              std::string_view line_spec, double scale) {
     scale = pow(10, scale);
@@ -37,26 +31,8 @@ namespace lupnt {
     return Plot3(x, y, z, line_spec, scale);
   }
 
-  /// @brief Plot a 2D line
-  /// @param x x-coordinates
-  /// @param y y-coordinates
-  /// @param line_spec Line specification
-  /// @return Line handle
   matplot::line_handle Plot(const VecX &x, const VecX &y, std::string_view line_spec) {
     return matplot::plot(ToDouble(x), ToDouble(y), line_spec);
-  }
-
-  /// @brief Plot a 3D scatter plot
-  /// @param x x-coordinates
-  /// @param y y-coordinates
-  /// @param z z-coordinates
-  /// @param sizes Marker sizes
-  /// @param marker Marker style
-  /// @return Line handle
-  matplot::line_handle Scatter3(const VecX &x, const VecX &y, const VecX &z, const VecX &sizes,
-                                const VecX &colors, std::string_view marker, double scale) {
-    return matplot::scatter3(ToDouble(x / scale), ToDouble(y / scale), ToDouble(z / scale),
-                             ToDouble(sizes), marker);
   }
 
   std::vector<matplot::line_handle> PlotFrame(const Vec3 &center, const Mat3 &R, double scale) {

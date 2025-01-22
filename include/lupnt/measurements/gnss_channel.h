@@ -28,7 +28,7 @@ namespace lupnt {
 
     void AddReceiver(Ptr<GnssReceiver> &dev) { rx_devices.push_back(dev); }
 
-    std::vector<GnssTransmission> Receive(GnssReceiver &rx, Real t);
+    std::vector<GnssTransmission> Receive(Ptr<GnssReceiver> &rx, Real t);
 
     std::vector<Ptr<GnssReceiver>> rx_devices;
     std::vector<Ptr<GnssTransmitter>> tx_devices;

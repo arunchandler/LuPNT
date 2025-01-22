@@ -85,7 +85,6 @@ private:
 public:
   LeaderElectionSyncRingApp(shared_ptr<RingAgent> agent) : agent_(agent), id_(agent->GetId()) {}
   Real GetFrequency() override { return 1.0; }
-  void Setup() override {}
   void Step(Real t) override {
     if (id_received_ == -1) {
       cout << "[Agent " << id_ << "] Sending " << id_ << " at t = " << t << endl;
@@ -145,9 +144,7 @@ int main() {
   // Schedule applications
   Real t_start = 0.0;
   Real freq = 1.0;
-  for (int i = 0; i < n; i++) {
-    Scheduler::ScheduleApplication(*apps[i], t_start, freq);
-  }
+  for (int i = 0; i < n; i++) Scheduler::ScheduleApplication(*apps[i], t_start);
 
   // Run simulation
   Scheduler::RunSimulation(4.0);

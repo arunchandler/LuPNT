@@ -1,76 +1,70 @@
 #include <lupnt/lupnt.h>
 
 using namespace lupnt;
+using std::cout;
+using std::endl;
+using std::format;
+using std::left;
+using std::right;
+using std::setw;
 
 void PrintProgressHeader() {
-  std::cout << " " << std::endl;
-  std::cout << std::string(80, '-') << std::endl;
-  std::cout << "Time [min]  | Pos Err [m]         | Vel Err [mm/s]         | Clk Bias Err [m]      "
-               "   | Num GPS Tracked"
-            << std::endl;
-  std::cout << std::string(80, '-') << std::endl;
+  std::string hline = std::string(80, '-');
+  std::string sep = " | ";
+
+  cout << endl << hline << endl;
+  cout << left << setw(12) << "Time [min]";
+  auto labels = {"Pos Err (3σ) [m]", "Vel Err (3σ) [mm/s]", "Clk Bias Err (3σ) [m]", "Satellites"};
+  for (auto label : labels) cout << left << setw(24) << label;
+  cout << endl << hline << endl;
 }
 
 VecXd ComputeEstimationErrors(const Ptr<Spacecraft> sat, EKF* ekf) {
   auto x_est = ekf->GetState();
   auto x_true = sat->GetStateVec();
 
-  double r_err = 1000 * (x_true.segment(0, 3) - x_est.segment(0, 3)).norm().val();
-  double v_err = 1e6 * (x_true.segment(3, 3) - x_est.segment(3, 3)).norm().val();
-  double b_err = 1e3 * abs((x_true(6) - x_est(6)).val());
-  double d_err = 1e3 * abs((x_true(7) - x_est(7)).val());
+  double r_err = M_KM * (x_true.segment(0, 3) - x_est.segment(0, 3)).norm().val();   // [m]
+  double v_err = MM_KM * (x_true.segment(3, 3) - x_est.segment(3, 3)).norm().val();  // [mm/s]
+  double b_err = M_KM * C * abs((x_true(6) - x_est(6)).val());                       // [m]
+  double d_err = MM_KM * C * abs((x_true(7) - x_est(7)).val());                      // [mm/s]
 
   VecXd x_err(4);
   x_err << r_err, v_err, b_err, d_err;
   return x_err;
 }
 
-void PrintProgress(Real t, Vec4 x_err, MatXd P, int num_sat, int num_used_meas) {
-  std::cout.precision(5);
+void PrintProgress(Real t, Real tf, Vec4d x_err, MatXd P, int num_sat, int num_used_meas) {
+  cout.precision(5);
 
   int N_sigma = 3;
-  Real sigma_r = 1e3 * sqrt(P(0, 0) + P(1, 1) + P(2, 2));  // [m]
-  Real sigma_v = 1e6 * sqrt(P(3, 3) + P(4, 4) + P(5, 5));  // [mm/s]
-  Real sigma_b = 1e3 * sqrt(P(6, 6));                      // [m]
+  double sigma_r = M_KM * sqrt(P(0, 0) + P(1, 1) + P(2, 2));   // [m]
+  double sigma_v = MM_KM * sqrt(P(3, 3) + P(4, 4) + P(5, 5));  // [mm/s]
+  double sigma_b = M_KM * C * sqrt(P(6, 6));                   // [m]
+  std::vector<double> sigmas = {sigma_r, sigma_v, sigma_b};
 
-  std::cout << std::left << std::setw(12) << t / 60 << " ";
-  std::cout << std::left << std::setw(8) << x_err(0);
-  std::cout << " (" << std::setw(7) << N_sigma * sigma_r << ")     ";
-  std::cout << std::left << std::setw(10) << x_err(1);
-  std::cout << " (" << std::setw(7) << N_sigma * sigma_v << ")     ";
-  std::cout << std::left << std::setw(12) << x_err(2);
-  std::cout << " (" << std::setw(7) << N_sigma * sigma_b << ")     ";
-  std::cout << std::left << std::setw(4) << num_sat;
-  std::cout << " (used meas:" << num_used_meas << ")";
-  std::cout << std::endl;
+  double t_min = t.val() / SECS_MINUTE, tf_min = tf.val() / SECS_MINUTE;
+  cout << left << setw(12) << std::format("{:.0f}/{:.0f}", t_min, tf_min);
+  for (int i = 0; i < 3; i++) {
+    cout << right << setw(12) << format("{:.2f} ", x_err(i));
+    cout << right << setw(12) << format("({:.2f})", N_sigma * sigmas[i]);
+  }
+  cout << right << setw(20) << format("{:2d} ({:2d} meas)", num_sat, num_used_meas);
+  cout << endl;
 };
 
-/**
- * @brief Print Estimation Errors
- *
- * @param num_meas (n_time,)   Number of GPS measurements
- * @param error_mat (4, n_time)  Error Mat (Position, Velocity, Clock Bias,
- * Clock Drift)
- */
-void PrintEstimationStatistics(VecXd num_meas, MatXd error_mat, double data_ratio = 1.0) {
-  int n_time = num_meas.size();
+void PrintEstimationStatistics(VecXd N_meas, MatXd error_mat, double data_ratio = 1.0) {
+  int n_time = N_meas.size();
   Vec4d rms, means, stds, p68, p95, p99;
 
-  if (error_mat.rows() != 4) {
-    std::cout << "Wrong Mat Size, Error Mat size must be (4 x timestep)" << std::endl;
-    return;
-  }
+  int i_start = (int)((1.0 - data_ratio) * n_time);
+  int i_end = n_time - 1;
+  int n_range = i_end - i_start;
 
-  // extract statistics range data
-  int start_idx = (int)((1.0 - data_ratio) * n_time);
-  int end_idx = n_time - 1;
-  int n_range = end_idx - start_idx;
-
-  VecXd num_meas_range(n_range);
+  VecXd N_meas_range(n_range);
   MatXd error_mat_range(4, n_range);
 
-  num_meas_range = num_meas.segment(start_idx, n_range);
-  error_mat_range = error_mat.block(0, start_idx, 4, n_range);
+  N_meas_range = N_meas.segment(i_start, n_range);
+  error_mat_range = error_mat.block(0, i_start, 4, n_range);
 
   // compute statistics ----------------------------------------------------
   // rms
@@ -83,34 +77,46 @@ void PrintEstimationStatistics(VecXd num_meas, MatXd error_mat, double data_rati
     p99(i) = Percentile(error_mat_range.row(i), 0.99);
   }
 
-  std::cout << " " << std::endl;
-  std::cout << " " << std::endl;
-  std::cout << "< Simulation Statistics (Last " << data_ratio * 100 << "%)>" << std::endl;
-  std::cout << " " << std::endl;
-  std::cout << "Statistics  | Position [m]  | Velocity [mm/s] | Clock Bias [ns] "
-               "| Clk Drift [ns/s] "
-            << std::endl;
-  std::cout << std::string(80, '-') << std::endl;
-
-  std::cout.precision(5);
-  std::cout << "RMS         | " << std::left << std::setw(16) << rms(0) << "  " << std::left
-            << std::setw(16) << rms(1) << "   " << std::left << std::setw(16) << rms(2) << std::left
-            << std::setw(16) << rms(3) << std::endl;
-  std::cout << "Mean+-Std   | " << std::left << means(0) << "+-" << std::left << stds(0) << "  "
-            << std::left << means(1) << "+-" << std::left << stds(1) << "   " << std::left
-            << means(2) << "+-" << std::left << stds(2) << "   " << std::left << means(3) << "+-"
-            << std::left << stds(3) << std::endl;
-  std::cout << "68%         | " << std::left << std::setw(16) << p68(0) << "  " << std::left
-            << std::setw(16) << p68(1) << "   " << std::left << std::setw(16) << p68(2) << std::left
-            << std::setw(16) << p68(3) << std::endl;
-  std::cout << "95%         | " << std::left << std::setw(16) << p95(0) << "  " << std::left
-            << std::setw(16) << p95(1) << "   " << std::left << std::setw(16) << p95(2) << std::left
-            << std::setw(16) << p95(3) << std::endl;
-  std::cout << "99%         | " << std::left << std::setw(16) << p99(0) << "  " << std::left
-            << std::setw(16) << p99(1) << "   " << std::left << std::setw(16) << p99(2) << std::left
-            << std::setw(16) << p99(3) << std::endl;
-  std::cout << "  " << std::endl;
+  cout << std::format("\n\nSimulation Statistics (Last {:.2f}%)\n", data_ratio * 100);
+  std::string hline = std::string(100, '-');
+  std::string sep = " | ";
+  int w1 = 12, w2 = 16;
+  cout << hline << endl;
+  cout << left << setw(w1) << "Statistics" << sep;
+  auto labels = {"Position [m]", "Velocity [mm/s]", "Clk Bias [m]", "Clk Drift [mm/s]"};
+  for (auto label : labels) cout << left << setw(w2) << label << sep;
+  cout << endl << hline << endl << left << setw(w1) << "RMS" << sep;
+  for (int i = 0; i < 4; i++) cout << left << setw(w2) << format("{:.2f}", rms(i)) << sep;
+  cout << endl << left << setw(w1) << "Mean (Std)" << sep;
+  for (int i = 0; i < 4; i++)
+    cout << left << setw(w2) << format("{:2.2f} ({:2.2f})", means(i), stds(i)) << sep;
+  cout << endl << left << setw(w1) << "68%" << sep;
+  for (int i = 0; i < 4; i++) cout << left << setw(w2) << format("{:2.2f}", p68(i)) << sep;
+  cout << endl << left << setw(w1) << "95%" << sep;
+  for (int i = 0; i < 4; i++) cout << left << setw(w2) << format("{:2.2f}", p95(i)) << sep;
+  cout << endl << left << setw(w1) << "99%" << sep;
+  for (int i = 0; i < 4; i++) cout << left << setw(w2) << format("{:2.2f}", p99(i)) << sep;
+  cout << endl << hline << endl;
 }
+
+class MyApp : public Application {
+protected:
+  double epoch0_;  // start epoch in TAI
+  double epoch_;   // curent epoch
+  double t_;       // Current time [s]
+
+  Ptr<IFilter> filter_;
+  FilterDynamicsFunction dynamics_func_;
+  FilterMeasurementFunction meas_func_;
+  JointState state_vec_;
+
+public:
+  double GetInitialEpoch() { return epoch0_; };
+  double GetCurrentEpoch() { return epoch_; };
+  double GetCurrrentTime() { return t_; };
+
+  void Step(Real t_end) override;
+};
 
 int main() {
   // Time
@@ -145,7 +151,8 @@ int main() {
 
   int N_orbit = 3;
   double period = GetOrbitalPeriod(a, GM_MOON).val();
-  double tf_tai = t0_tai + N_orbit * period;
+  double tf = N_orbit * period;
+  double tf_tai = t0_tai + tf;
   int Nt = int((tf_tai - t0_tai) / dt_sim) + 1;
 
   auto clk_model = ClockModel::kMiniRafs;
@@ -292,7 +299,6 @@ int main() {
     int n_meas_sat = int(z.size() / meas_types.size());
     VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types).cast<double>();
 
-    // ADD signal in space URE
     int z_idx = 0;
     if (use_range) {
       for (int idx = 0; idx < n_meas_sat; idx++) {
@@ -332,7 +338,7 @@ int main() {
 
   // Storage
   MatXd error_mat(4, Nt);
-  VecXd num_meas(Nt);
+  VecXd N_meas(Nt);
 
   // Initilization
   VecX x_est = SampleMVN(joint_state.GetJointStateValue(), P0, 1, seed);
@@ -363,8 +369,9 @@ int main() {
   /***********************************************
    * Main loop
    **********************************************/
-  Real t_tai = t0_tai;
-  int time_index = 0;
+  double t = 0;
+  double t_tai = t0_tai;
+  int t_idx = 0;
   int num_sat = 0;
   // tf = 50 * dt_sim;
 
@@ -372,21 +379,22 @@ int main() {
   est_err = ComputeEstimationErrors(moon_sat, &ekf);  // pos, vel, clkb, clkd error
 
   PrintProgressHeader();
-  PrintProgress((t_tai - t0_tai), est_err, ekf.GetCovariance(), num_sat, 0);
+  PrintProgress(t, tf, est_err, ekf.GetCovariance(), num_sat, 0);
 
   while (t_tai < tf_tai) {
+    t += dt_sim;
     t_tai += dt_sim;
-    time_index += 1;
+    t_idx += 1;
 
-    moon_sat->Propagate(t_tai);
-    gnss_const.Propagate(t_tai);
+    // moon_sat->Propagate(t_tai);
+    // gnss_const.Propagate(t_tai);
 
     VecX z_true;
     auto measall = receiver->GetMeasurement(t_tai);
     auto meas_L1 = measall.ExtractSignal(signals);
     auto meas = meas_L1.ApplyIonoMask();
     num_sat = meas.GetTrackedSignalNum();
-    num_meas(time_index) = num_sat;
+    N_meas(t_idx) = num_sat;
 
     bool with_noise = true;
     z_true = meas.GetGnssMeasurement(meas_types, with_noise, seed);
@@ -397,13 +405,13 @@ int main() {
     ekf.Update(z_true);
 
     est_err = ComputeEstimationErrors(moon_sat, &ekf);
-    error_mat.col(time_index) = est_err;
+    error_mat.col(t_idx) = est_err;
 
     int num_used_meas = ekf.GetMeasurementResidual().size();
-    if (fmod((t_tai - t0_tai).val(), dt_print) < 1e-3) {
-      PrintProgress((t_tai - t0_tai), est_err, ekf.GetCovariancePost(), num_sat, num_used_meas);
+    if (fmod(t, dt_print) < 1e-3) {
+      PrintProgress(t, tf, est_err, ekf.GetCovariancePost(), num_sat, num_used_meas);
     }
   }
 
-  PrintEstimationStatistics(num_meas, error_mat, double(1.0 / N_orbit));  // use last 30%
+  PrintEstimationStatistics(N_meas, error_mat, double(1.0 / N_orbit));  // use last 30%
 }

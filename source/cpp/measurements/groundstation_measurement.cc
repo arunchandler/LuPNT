@@ -63,9 +63,8 @@ namespace lupnt {
     return H_tw_rx_tmp(0, 8);
   }
 
-  void GroundStationMeasurement::GenerateDORLink(Real epoch_tx, std::shared_ptr<Transmitter> &tx,
-                                                 std::shared_ptr<Receiver> &rx1,
-                                                 std::shared_ptr<Receiver> &rx2) {
+  void GroundStationMeasurement::GenerateDORLink(Real epoch_tx, Ptr<Transmitter> &tx,
+                                                 Ptr<Receiver> &rx1, Ptr<Receiver> &rx2) {
     // Generate the one way link
     Real tx_clk_bias = tx->GetAgent()->GetClockStateVecAtEpoch(epoch_tx)(0);
     Real epoch_tx_local = epoch_tx + tx_clk_bias;

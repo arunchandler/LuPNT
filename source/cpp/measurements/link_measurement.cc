@@ -40,12 +40,6 @@ namespace lupnt {
       trans_u = trans_tw_[0];  // Uplink
     }
 
-    // Link Parameters
-    Ptr<Agent> tx_agent = trans.tx->GetAgent();
-    Ptr<Agent> rx_agent = trans.rx->GetAgent();
-    linkparams_.tx_agent = tx_agent;
-    linkparams_.rx_agent = rx_agent;
-
     // Signal parameters
     ReceiverParam rx_param = trans.rx->rx_param_;
     linkparams_.freq = trans.tx->freq_tx;
@@ -76,13 +70,13 @@ namespace lupnt {
     if (txrx == "rx") {
       t_rx_d = epoch_local
                - rx->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0);  // true received time
-      trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_rx_d, "rx", compute_cn0);
+      trans_ow_ = sc.ComputeLinkBudget(tx.get(), rx.get(), t_rx_d, "rx", compute_cn0);
       t_tx_d = trans_ow_.t_tx;  // true transmission time
       epoch_tx_recorded_ = t_tx_d + tx->GetAgent()->GetClockStateVecAtEpoch(t_tx_d)(0);
     } else if (txrx == "tx") {
       t_tx_d = epoch_local
                - tx->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0);  // true transmission time
-      trans_ow_ = sc.ComputeLinkBudget(tx, rx, t_tx_d, "tx", compute_cn0);
+      trans_ow_ = sc.ComputeLinkBudget(tx.get(), rx.get(), t_tx_d, "tx", compute_cn0);
       t_rx_d = trans_ow_.t_rx;  // true received time
       epoch_rx_recorded_
           = rx->GetAgent()->GetClockStateVecAtEpoch(t_rx_d)(0);  // recorded received time
@@ -112,10 +106,10 @@ namespace lupnt {
       return VecX::Zero(0);
     }
 
-    VecX rv_tx = linkparams_.tx_agent->GetRvStateAtEpoch(epoch_rx_true_);
-    VecX rv_rx = linkparams_.rx_agent->GetRvStateAtEpoch(epoch_rx_true_);
-    VecX clk_tx = linkparams_.tx_agent->GetClockStateVecAtEpoch(epoch_rx_true_);
-    VecX clk_rx = linkparams_.rx_agent->GetClockStateVecAtEpoch(epoch_rx_true_);
+    VecX rv_tx = tx_agent_->GetRvStateAtEpoch(epoch_rx_true_);
+    VecX rv_rx = rx_agent_->GetRvStateAtEpoch(epoch_rx_true_);
+    VecX clk_tx = tx_agent_->GetClockStateVecAtEpoch(epoch_rx_true_);
+    VecX clk_rx = rx_agent_->GetClockStateVecAtEpoch(epoch_rx_true_);
 
     VecX y = GetOneWayLinkMeasurement(epoch_rx_recorded_, epoch_rx_true_, rv_tx, rv_rx, clk_tx,
                                       clk_rx, 0.0, meas_types, true);
@@ -186,8 +180,7 @@ namespace lupnt {
                     const Vec6 rv_tx_in, const Vec2 clk_tx_in, const Vec6 rv_rx_in,
                     const Vec2 clk_rx_in) {
       Real owr = ComputeOneWayRangeLTR(epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in, clk_tx_in,
-                                       clk_rx_in, linkparams_.tx_agent, linkparams_.rx_agent,
-                                       additional_delay, false);
+                                       clk_rx_in, tx_agent_, rx_agent_, additional_delay, false);
       return owr;
     };
 
@@ -233,9 +226,9 @@ namespace lupnt {
     auto func = [epoch_rx_recorded, epoch_ref, rv_tx, clk_tx, hardware_delay, this](
                     const Vec6 rv_tx_in, const Vec2 clk_tx_in, const Vec6 rv_rx_in,
                     const Vec2 clk_rx_in) {
-      Real owrr = ComputeOneWayRangeRateLTR(
-          epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in, clk_tx_in, clk_rx_in,
-          linkparams_.tx_agent, linkparams_.rx_agent, hardware_delay, linkparams_.T_I_doppler);
+      Real owrr = ComputeOneWayRangeRateLTR(epoch_rx_recorded, epoch_ref, rv_tx_in, rv_rx_in,
+                                            clk_tx_in, clk_rx_in, tx_agent_, rx_agent_,
+                                            hardware_delay, linkparams_.T_I_doppler);
       return owrr;
     };
 
@@ -355,10 +348,10 @@ namespace lupnt {
     if (txrx == "rx") {
       Real delay_rx_d = tr_receiver->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0);
       t_rx_d = epoch_local - delay_rx_d;  // true received time
-      trans_d = sc.ComputeLinkBudget(tx_d, rx_d, t_rx_d, "rx", compute_cn0);
+      trans_d = sc.ComputeLinkBudget(tx_d.get(), rx_d.get(), t_rx_d, "rx", compute_cn0);
       t_tx_d = trans_d.t_tx;
       t_rx_u = t_tx_d - hardware_delay_;  // true received time
-      trans_u = sc.ComputeLinkBudget(tx_u, rx_u, t_rx_u, "rx", compute_cn0);
+      trans_u = sc.ComputeLinkBudget(tx_u.get(), rx_u.get(), t_rx_u, "rx", compute_cn0);
       t_tx_u = trans_u.t_tx;  // true transmission time
 
       // recorded time
@@ -369,10 +362,10 @@ namespace lupnt {
     } else if (txrx == "tx") {
       Real delay_tx_u = tr_receiver->GetAgent()->GetClockStateVecAtEpoch(epoch_local)(0);
       t_tx_u = epoch_local - delay_tx_u;  // true transmission
-      trans_u = sc.ComputeLinkBudget(tx_u, rx_u, t_tx_u, "tx", compute_cn0);
+      trans_u = sc.ComputeLinkBudget(tx_u.get(), rx_u.get(), t_tx_u, "tx", compute_cn0);
       t_rx_u = trans_d.t_rx;
       t_tx_d = t_rx_u - hardware_delay_;
-      trans_d = sc.ComputeLinkBudget(tx_d, rx_d, t_tx_d, "tx", compute_cn0);
+      trans_d = sc.ComputeLinkBudget(tx_d.get(), rx_d.get(), t_tx_d, "tx", compute_cn0);
       t_rx_d = trans_d.t_rx;
 
       // recoreded time
@@ -415,10 +408,10 @@ namespace lupnt {
       return VecX::Zero(0);
     }
 
-    VecX rv_receiver = linkparams_.rx_agent->GetRvStateAtEpoch(epoch_rx_true_);
-    VecX rv_target = linkparams_.tx_agent->GetRvStateAtEpoch(epoch_rx_true_);
-    Vec2 clk_receiver = linkparams_.rx_agent->GetClockStateVecAtEpoch(epoch_rx_true_);
-    Vec2 clk_target = linkparams_.tx_agent->GetClockStateVecAtEpoch(epoch_rx_true_);
+    VecX rv_receiver = rx_agent_->GetRvStateAtEpoch(epoch_rx_true_);
+    VecX rv_target = tx_agent_->GetRvStateAtEpoch(epoch_rx_true_);
+    Vec2 clk_receiver = rx_agent_->GetClockStateVecAtEpoch(epoch_rx_true_);
+    Vec2 clk_target = tx_agent_->GetClockStateVecAtEpoch(epoch_rx_true_);
 
     VecX y = GetTwoWayLinkMeasurement(epoch_rx_recorded_, epoch_rx_true_, rv_receiver, rv_target,
                                       clk_receiver, clk_target, hardware_delay_, meas_types, true);
@@ -492,9 +485,9 @@ namespace lupnt {
     auto func = [epoch_ref, epoch_rx, hardware_delay, this](
                     const Vec6 rv_target_in, const Vec2 clk_target_in, const Vec6 rv_receiver_in,
                     const Vec2 clk_receiver_in) {
-      Real twr = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_in, rv_receiver_in,
-                                       clk_target_in, clk_receiver_in, linkparams_.tx_agent,
-                                       linkparams_.rx_agent, hardware_delay, 0.0);
+      Real twr
+          = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_in, rv_receiver_in, clk_target_in,
+                                  clk_receiver_in, tx_agent_, rx_agent_, hardware_delay, 0.0);
       return twr;
     };
 
@@ -541,9 +534,9 @@ namespace lupnt {
     auto func = [epoch_rx, epoch_ref, rv_target, hardware_delay, this](
                     const Vec6 rv_target_in, const Vec2 clk_target_in, const Vec6 rv_receiver_in,
                     const Vec2 clk_receiver_in) {
-      Real owrr = ComputeTwoWayRangeRateLTR(
-          epoch_rx, epoch_ref, rv_target_in, rv_receiver_in, clk_target_in, clk_receiver_in,
-          linkparams_.tx_agent, linkparams_.rx_agent, hardware_delay, linkparams_.T_I_doppler);
+      Real owrr = ComputeTwoWayRangeRateLTR(epoch_rx, epoch_ref, rv_target_in, rv_receiver_in,
+                                            clk_target_in, clk_receiver_in, tx_agent_, rx_agent_,
+                                            hardware_delay, linkparams_.T_I_doppler);
       return owrr;
     };
 

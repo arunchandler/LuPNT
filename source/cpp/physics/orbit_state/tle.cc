@@ -18,7 +18,7 @@
 #include <string>
 
 #include "lupnt/numerics/string_utils.h"
-#include "lupnt/physics/orbit_state/orbit_states.h"
+#include "lupnt/physics/orbit_state/orbit_state.h"
 #include "lupnt/physics/spice_interface.h"
 #include "lupnt/physics/time_converter.h"
 

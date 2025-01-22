@@ -64,7 +64,7 @@ namespace lupnt {
       // Create body for corresponding body_id
       BodyData body_data = GetBodyData(body_id_);
 
-      SetDynamics(std::make_shared<SurfaceStaticDynamics>(body_id_, body_data.fixed_frame));
+      SetDynamics(MakePtr<SurfaceStaticDynamics>(body_id_, body_data.fixed_frame));
 
       // convert (lat, lon) to ECEF
       Vec3 lla = {latitude_, longitude_, altitude_};
@@ -75,7 +75,7 @@ namespace lupnt {
       frame_ = frame;
 
       Vec6 rv = {pos_f(0), pos_f(1), pos_f(2), 0.0, 0.0, 0.0};
-      SetRvState(std::make_shared<CartesianOrbitState>(rv, frame));
+      SetRvState(MakePtr<CartesianOrbitState>(rv, frame));
       SetDynamicsFrame(frame);
     };
 

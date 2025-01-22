@@ -70,5 +70,6 @@ namespace lupnt {
 
     // convert to the frequency of interest
     iono_delay = iono_delay * std::pow(L1_FREQ / freq_Hz, 2);
+    return iono_delay;
   }
 }  // namespace lupnt

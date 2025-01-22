@@ -24,7 +24,6 @@ namespace lupnt {
   public:
     virtual ~Application() {};
 
-    virtual void Setup() = 0;
     virtual void Step(Real t) = 0;
     virtual Real GetFrequency() = 0;
     void SetAgent(Ptr<Agent> agent) { this->agent_ = agent; }

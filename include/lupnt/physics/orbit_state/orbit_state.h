@@ -40,8 +40,6 @@ namespace lupnt {
     QUASINONSINGULAR_ROE,
   };
 
-  std::ostream &operator<<(std::ostream &os, const OrbitStateRepres &repres);
-
   // Base class for orbit states
   class OrbitState : public IState {
   private:
@@ -268,8 +266,6 @@ namespace lupnt {
     GETSET_ELEM(adiy, 5);
   };
 
-  static void CheckOrbitStateRepres(const OrbitState &state, OrbitStateRepres repres) {
-    if (state.GetOrbitStateRepres() != repres) throw std::runtime_error("OrbitState type must be");
-  }
+  void CheckOrbitStateRepres(const OrbitState &state, OrbitStateRepres repres);
 
 }  // namespace lupnt

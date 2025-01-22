@@ -55,8 +55,8 @@ namespace lupnt {
                                        MatXd *H_tw_rr = nullptr);
 
     /******** Delta DOR *****************/
-    void GenerateDORLink(Real epoch_tx, std::shared_ptr<Transmitter> &tx,
-                         std::shared_ptr<Receiver> &rx1, std::shared_ptr<Receiver> &rx2);
+    void GenerateDORLink(Real epoch_tx, Ptr<Transmitter> &tx, Ptr<Receiver> &rx1,
+                         Ptr<Receiver> &rx2);
 
     Real GetDeltaDORMeasurement(Real epoch_rx, Real epoch_ref, Vec6 rv_rx1, Vec6 rv_rx2, Vec6 rv_tx,
                                 Vec2 clk_rx1, Vec2 clk_rx2, Vec2 clk_tx, Real hardware_delay,

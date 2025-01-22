@@ -23,14 +23,9 @@
 
 namespace lupnt {
 
-  ITransmission SpaceChannel::ComputeLinkBudget(std::shared_ptr<Transmitter> &tx,
-                                                std::shared_ptr<Receiver> &rx, Real t,
+  ITransmission SpaceChannel::ComputeLinkBudget(Transmitter *tx, Receiver *rx, Real t,
                                                 std::string time_fixed, bool compute_cn0) {
     ITransmission trans;  // create an empty vector
-
-    // Register the transmitter and receiver
-    trans.tx = tx;
-    trans.rx = rx;
 
     // Transmitter and receiver positions and velocities
     Real tau = 0.0;  // light time delay
@@ -111,56 +106,45 @@ namespace lupnt {
     return trans;
   }
 
-  Real SpaceChannel::SolveLightTimeDelayRx(std::shared_ptr<Transmitter> &tx,
-                                           std::shared_ptr<Receiver> &rx, Real t_rx) {
-    // Transmitter and receiver positions and velocities
-    Real tau = 0.0;  // light time delay
+  Real SpaceChannel::SolveLightTimeDelayRx(Transmitter *tx, Receiver *rx, Real t_rx) {
+    Real tau = 0.0;
     auto rv_rx_gcrf = rx->GetAgent()->GetCartesianGCRFStateAtEpoch(t_rx);
     auto rv_tx_gcrf = tx->GetAgent()->GetCartesianGCRFStateAtEpoch(t_rx - tau);
 
-    // Compute Light time delay
-    Real tau_prev = 0.0;  // propagation time
+    Real tau_prev = 0.0;
+    Real rho = 0.0;
     int max_iter = 100;
-    double rho = 0.0;
 
     for (int n_iter = 0; n_iter < max_iter; n_iter++) {
       rv_tx_gcrf = tx->GetAgent()->GetCartesianGCRFStateAtEpoch(t_rx - tau);
       rho = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
       tau = rho / C;
-      if (fabs(tau.val() - tau_prev.val()) < 1e-12)
+      if (abs(tau - tau_prev) < 1e-12)
         break;
-      else {
+      else
         tau_prev = tau;
-      }
     }
-
     return tau;
   }
 
-  Real SpaceChannel::SolveLightTimeDelayTx(std::shared_ptr<Transmitter> &tx,
-                                           std::shared_ptr<Receiver> &rx, Real t_tx) {
-    // Transmitter and receiver positions and velocities
-    Real tau = 0.0;  // light time delay
+  Real SpaceChannel::SolveLightTimeDelayTx(Transmitter *tx, Receiver *rx, Real t_tx) {
+    Real tau = 0.0;
     auto rv_rx_gcrf = rx->GetAgent()->GetCartesianGCRFStateAtEpoch(t_tx + tau);
     auto rv_tx_gcrf = tx->GetAgent()->GetCartesianGCRFStateAtEpoch(t_tx);
 
-    // Compute Light time delay
-    Real tau_prev = 0.0;  // propagation time
-    // int n_iter = 0;
+    Real tau_prev = 0.0;
+    Real rho = 0.0;
     int max_iter = 100;
-    double rho = 0.0;
 
     for (int n_iter = 0; n_iter < max_iter; n_iter++) {
       rv_rx_gcrf = rx->GetAgent()->GetCartesianGCRFStateAtEpoch(t_tx + tau);
-      rho = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
+      rho = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm();
       tau = rho / C;
-      if (fabs(tau.val() - tau_prev.val()) < 1e-12)
+      if (abs(tau - tau_prev) < 1e-12)
         break;
-      else {
+      else
         tau_prev = tau;
-      }
     }
-
     return tau;
   }
 

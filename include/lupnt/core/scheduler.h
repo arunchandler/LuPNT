@@ -32,8 +32,7 @@ namespace lupnt {
       ScheduleEvent(Event(time, func, freq));
     }
 
-    static void ScheduleApplication(Application &app, Real time = 0.0, Real freq = SINGLE_EVENT) {
-      app.Setup();
+    static void ScheduleApplication(Application &app, Real time = 0.0) {
       ScheduleEvent(Event(time, [&app](Real t) { app.Step(t); }, app.GetFrequency()));
     }
 

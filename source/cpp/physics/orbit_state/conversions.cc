@@ -5,7 +5,7 @@
 #include "lupnt/core/constants.h"
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/physics/orbit_state/anomaly.h"
-#include "lupnt/physics/orbit_state/orbit_states.h"
+#include "lupnt/physics/orbit_state/orbit_state.h"
 
 namespace lupnt {
 

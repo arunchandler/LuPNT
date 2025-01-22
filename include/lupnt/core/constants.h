@@ -46,8 +46,12 @@ namespace lupnt {
   static constexpr double INCH_M = 0.0254;    // [in/m]
   static constexpr double FOOT_M = 0.3048;    // [ft/m]
   static constexpr double MILE_M = 1609.344;  // [mile/m]
-  static constexpr double KM_M = 0.001;       // [km/m]
-  static constexpr double M_KM = 1000.0;      // [m/km]
+  static constexpr double KM_M = 1e-3;        // [km/m]
+  static constexpr double M_KM = 1e3;         // [m/km]
+  static constexpr double MM_KM = 1.0e6;      // [mm/km]
+  static constexpr double KM_MM = 1.0e-6;     // [km/mm]
+  static constexpr double MM_M = 1e3;         // [mm/m]
+  static constexpr double M_MM = 1e-3;        // [m/mm]
 
   // Time system constants ******************************************************
   static constexpr double SECS_DAY = 86400.0;         // [s/day]
@@ -132,16 +136,16 @@ namespace lupnt {
   static constexpr double NEPUTUNE_F = 0.01708;  // [-]
 
   // Sideral Rotation rate
-  static constexpr double OMEGA_SUN = 2.903e-6;        // [rad/s]
-  static constexpr double OMEGA_MERCURY = 1.244e-5;     // [rad/s]
-  static constexpr double OMEGA_VENUS = -1.9521515e-7;  // [rad/s]
+  static constexpr double OMEGA_SUN = 2.903e-6;           // [rad/s]
+  static constexpr double OMEGA_MERCURY = 1.244e-5;       // [rad/s]
+  static constexpr double OMEGA_VENUS = -1.9521515e-7;    // [rad/s]
   static constexpr double OMEGA_EARTH = 7.2921151467e-5;  // [rad/s]
-  static constexpr double OMEGA_MOON = 2.6617e-6;      // [rad/s]
-  static constexpr double OMEGA_MARS = 7.0882185e-5;   // [rad/s]
-  static constexpr double OMEGA_JUPITER = 1.758e-4;    // [rad/s]
-  static constexpr double OMEGA_SATURN = 1.624e-4;     // [rad/s]
-  static constexpr double OMEGA_URANUS = -1.036e-4;    // [rad/s]
-  static constexpr double OMEGA_NEPTUNE = 1.083e-4;    // [rad/s]
+  static constexpr double OMEGA_MOON = 2.6617e-6;         // [rad/s]
+  static constexpr double OMEGA_MARS = 7.0882185e-5;      // [rad/s]
+  static constexpr double OMEGA_JUPITER = 1.758e-4;       // [rad/s]
+  static constexpr double OMEGA_SATURN = 1.624e-4;        // [rad/s]
+  static constexpr double OMEGA_URANUS = -1.036e-4;       // [rad/s]
+  static constexpr double OMEGA_NEPTUNE = 1.083e-4;       // [rad/s]
 
   // Spherical harmonics
   static constexpr double J2_EARTH = 1.08262668e-3;
@@ -204,7 +208,6 @@ namespace lupnt {
   };
 
   double GetBodyRadius(NaifId body);
-  const std::ostream& operator<<(std::ostream& os, NaifId id);
 
   enum class Time {
     UT1,    // Universal Time 1

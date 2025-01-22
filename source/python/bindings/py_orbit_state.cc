@@ -7,6 +7,8 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 
+#include <magic_enum/magic_enum.hpp>
+
 namespace py = pybind11;
 using namespace lupnt;
 
@@ -58,7 +60,7 @@ void init_orbit_state(py::module &m) {
       .def("__repr__", [](const OrbitState &s) {
         std::stringstream ss;
         ss << "<pylupnt.OrbitState(" << s.GetVec().transpose() << ", " << s.GetFrame() << ", "
-           << s.GetOrbitStateRepres() << ")>";
+           << magic_enum::enum_name(s.GetOrbitStateRepres()) << ")>";
         return ss.str();
       });
 

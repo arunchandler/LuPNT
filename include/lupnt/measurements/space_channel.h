@@ -60,8 +60,7 @@ namespace lupnt {
      * @param time_fixed  time fixed at transmitter or receiver (tx or rx)
      * @param transmission  transmission object
      */
-    ITransmission ComputeLinkBudget(std::shared_ptr<Transmitter> &txDevice,
-                                    std::shared_ptr<Receiver> &rxDevice, Real t,
+    ITransmission ComputeLinkBudget(Transmitter *txDevice, Receiver *rxDevice, Real t,
                                     std::string time_fixed, bool compute_cn0 = true);
 
     /**
@@ -73,8 +72,7 @@ namespace lupnt {
      * @param time_fixed
      * @return ITransmission
      */
-    ITransmission ComputeLinkBudgetDR(std::shared_ptr<Transmitter> &txDevice,
-                                      std::shared_ptr<Receiver> &rxDevice, Real t,
+    ITransmission ComputeLinkBudgetDR(Transmitter *txDevice, Receiver *rxDevice, Real t,
                                       std::string time_fixed, double data_rate);
 
     /**
@@ -85,8 +83,7 @@ namespace lupnt {
      * @param t_rx  receiver time
      * @return Real light time delay
      */
-    Real SolveLightTimeDelayRx(std::shared_ptr<Transmitter> &tx, std::shared_ptr<Receiver> &rx,
-                               Real t_rx);
+    Real SolveLightTimeDelayRx(Transmitter *tx, Receiver *rx, Real t_rx);
 
     /**
      * @brief Solve the light time delay at the transmitter
@@ -95,8 +92,7 @@ namespace lupnt {
      * @param t_tx   transmitter time
      * @return double   light time delay
      */
-    Real SolveLightTimeDelayTx(std::shared_ptr<Transmitter> &tx, std::shared_ptr<Receiver> &rx,
-                               Real t_tx);
+    Real SolveLightTimeDelayTx(Transmitter *tx, Receiver *rx, Real t_tx);
 
     /**
      * @brief Compute the free space loss

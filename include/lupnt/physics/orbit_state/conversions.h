@@ -1,6 +1,6 @@
 #pragma once
 #include "lupnt/numerics/vector_macros.h"
-#include "orbit_states.h"
+#include "orbit_state.h"
 #include "tle.h"
 
 namespace lupnt {
