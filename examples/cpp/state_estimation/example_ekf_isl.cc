@@ -22,14 +22,14 @@ VecX ExtractSatState(const VecX& x, int sat_idx, int state_per_sat) {
 
 class ISLTransmitter : public Transmitter {
 public:
-  double GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override {
+  Real GetTransmitterAntennaGain(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf) override {
     return 0.0;
   };
 };
 
 class ISLReceiver : public Receiver {
 public:
-  double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) override {
+  Real GetReceiverAntennaGain(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf) override {
     return 0.0;
   };
 };
@@ -64,7 +64,7 @@ Ptr<Spacecraft> SetISLTransponder(Ptr<Spacecraft> sat) {
   return sat;
 }
 
-void PrintEKFProgressPVCVis(double t, const VecXd& est_err, int n_sat, std::vector<bool> vis_isl) {
+void PrintEKFProgressPVCVis(Real t, const VecXd& est_err, int n_sat, std::vector<bool> vis_isl) {
   std::cout.precision(5);
   std::cout << std::left << std::setw(12) << t / 60 << " ";
   // for each satellite
@@ -85,11 +85,11 @@ int main() {
    * ********************************************/
   // Time
   Real epoch0 = spice::String2TAI("2035/02/01 00:00:00.000 UTC");
-  double t0 = epoch0.val();
-  double dt = 1.0;   // Integration time step [s]
-  double Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
-  double print_every = 60.0;
-  double save_every = Dt;
+  Real t0 = epoch0;
+  Real dt = 1.0;   // Integration time step [s]
+  Real Dt = 10.0;  // Propagation time step [s]  (= Measurement time step)
+  Real print_every = 60.0;
+  Real save_every = Dt;
 
   // Simulation seed
   int seed = 1;
@@ -112,9 +112,9 @@ int main() {
   oe.col(2) = sat3_oe;
 
   // Set simulation to 1 orbit
-  int n_orbit = 3;  // number of orbits to simulate
-  Real period = 2.0 * M_PI * sqrt(pow(a, 3) / GM_MOON);
-  double tf = t0 + n_orbit * period.val();
+  int n_orbit = 3;                             // number of orbits to simulate
+  Real period = GetOrbitalPeriod(a, GM_MOON);  // [s] Orbital period
+  Real tf = t0 + n_orbit * period;
   int time_step_num = int((tf - t0) / Dt) + 1;
   tf = t0 + (time_step_num - 1) * Dt;
 
@@ -251,9 +251,8 @@ int main() {
     moon_sat->SetBodyId(NaifId::MOON);
     moon_sat->SetClockDynamics(dyn_clk_true);
 
-    auto proc_noise_rv
-        = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
-    auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionClock(cmodel, 2));
+    auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseLinearPosVel(sigma_acc));
+    auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseClock(cmodel, 2));
     joint_state.PushBackStateAndDynamics(cart_state, dyn_est, proc_noise_rv);
     joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state),
                                          MakePtr<ClockDynamics>(dyn_clk_est));
@@ -336,11 +335,9 @@ int main() {
       MatXd Htmp(mtot, 16), H(mtot, state_size);
 
       bool with_noise = false;
-      bool with_jac = true;
       zi = link_meas_vec[i]->GetTwoWayLinkMeasurement(
           link_meas_vec[i]->GetRecordedEpochRx(), epoch_ref, sat_rx.head(6), sat_target.head(6),
-          sat_rx.tail(2), sat_target.tail(2), Htmp, hardware_delay, meas_types, with_noise,
-          with_jac);
+          sat_rx.tail(2), sat_target.tail(2), hardware_delay, meas_types, with_noise, &Htmp);
 
       // column index for target and receiver satellite
       int col_idx_target = sat_target_idx * state_size;
@@ -351,7 +348,7 @@ int main() {
       H.block(0, col_idx_rx, mtot, state_size) = Htmp.block(0, 8, mtot, 8);  // last 8 columns -> rx
 
       // Get the Measurement Noise
-      VecXd noise_std_vec = link_meas_vec[i]->GetTwoWayLinkNoise(meas_types);
+      VecXd noise_std_vec = link_meas_vec[i]->GetTwoWayLinkNoise(meas_types).cast<double>();
 
       // stack z, H, and noise
       z_stack_vec.push_back(zi);
@@ -486,7 +483,7 @@ int main() {
     est_err = ComputeEstimationErrorPVC(moon_sats, &ekf);
     error_mat.col(time_index) = est_err;
 
-    if (fmod(time_index, print_every) < 1e-3) {
+    if (mod(time_index, print_every) < 1e-3) {
       PrintEKFProgressPVCVis((t - t0).val(), est_err, nsat, vis_isl);
     }
   }

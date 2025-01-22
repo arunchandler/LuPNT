@@ -59,30 +59,15 @@ int main() {
     times_d.push_back(end - start);
   }
 
-  // Real-double
-  cout << endl << " Order   CPU Time [s]" << endl << endl;
-  vector<double> times_rd;
-  for (int n = 0; n <= n_max; n += n_step) {
-    double start = omp_get_wtime();
-#pragma omp parallel for
-    for (int i = 0; i < N_Step; i++) {
-      Vec3 a = AccelarationGravityField(r, grav_d.GM, grav_d.R, grav_d.CS, n, n);
-    }
-    double end = omp_get_wtime();
-    cout << setw(4) << n << setprecision(2) << fixed << setw(13) << (end - start) << endl;
-    times_rd.push_back(end - start);
-  }
-
   // Plot
   figure();
   plot(ns, times, "-o");
   hold(on);
   plot(ns, times_d, "-o");
-  plot(ns, times_rd, "-o");
   xlabel("Degree");
   ylabel("CPU Time [s]");
   title("Gravity Field Computation (" + to_string(N_Step) + " evaluations)");
-  matplot::legend({"Real", "Double", "Real-Double"});
+  matplot::legend({"Real", "Double"});
   grid(on);
   show();
 

@@ -55,8 +55,8 @@ public:
   Vec6 Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm = nullptr) override {
     PYBIND11_OVERRIDE_PURE(Vec6, T, Propagate, x0, t0, tf, stm);
   }
-  MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress = false) override {
-    PYBIND11_OVERRIDE_PURE(MatX6, T, Propagate, x0, t0, tf, progress);
+  MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf) override {
+    PYBIND11_OVERRIDE_PURE(MatX6, T, Propagate, x0, t0, tf);
   }
   // Implementations
   MatX6 Propagate(const MatX6 &x0, Real t0, Real tf) { return T::Propagate(x0, t0, tf); }
@@ -66,8 +66,8 @@ template <class T = IAnalyticalOrbitDynamics> class PyIAnOrbDyn : public PyIOrbD
 public:
   using PyIOrbDyn<T>::PyIOrbDyn;
   // Overrides
-  MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress = false) override {
-    PYBIND11_OVERRIDE(MatX6, T, Propagate, x0, t0, tf, progress);
+  MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf) override {
+    PYBIND11_OVERRIDE(MatX6, T, Propagate, x0, t0, tf);
   }
   // Interface
   OrbitState PropagateState(const OrbitState &state, Real t0, Real tf,
@@ -99,8 +99,8 @@ public:
   Vec6 Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm = nullptr) override {
     PYBIND11_OVERRIDE(Vec6, T, Propagate, x0, t0, tf, stm);
   }
-  MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress = false) override {
-    PYBIND11_OVERRIDE(MatX6, T, Propagate, x0, t0, tf, progress);
+  MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf) override {
+    PYBIND11_OVERRIDE(MatX6, T, Propagate, x0, t0, tf);
   }
   // Interface
   OrbitState PropagateState(const OrbitState &state, Real t0, Real tf,
@@ -166,22 +166,22 @@ public:
           py::arg("x0"), py::arg("t0"), py::arg("tf"))                                            \
       .def(                                                                                       \
           "propagate",                                                                            \
-          [](class &dyn, const Vec6d &x0, double t0, VecXd tf, bool progress) -> MatX6d {         \
+          [](class &dyn, const Vec6d &x0, double t0, VecXd tf) -> MatX6d {                        \
             Vec6 x0_ = x0.cast<Real>();                                                           \
             Real t0_ = Real(t0);                                                                  \
             return dyn.Propagate(x0_, t0_, tf.cast<Real>()).cast<double>();                       \
           },                                                                                      \
           py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),             \
-          py::arg("x0"), py::arg("t0"), py::arg("tf"), py::arg("progress") = false)               \
+          py::arg("x0"), py::arg("t0"), py::arg("tf"))                                            \
       .def(                                                                                       \
           "propagate",                                                                            \
-          [](class &dyn, const RowVec6d &x0, double t0, VecXd tf, bool progress) -> MatX6d {      \
+          [](class &dyn, const RowVec6d &x0, double t0, VecXd tf) -> MatX6d {                     \
             Vec6 x0_ = x0.transpose().cast<Real>();                                               \
             Real t0_ = Real(t0);                                                                  \
             return dyn.Propagate(x0_, t0_, tf.cast<Real>()).cast<double>();                       \
           },                                                                                      \
           py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),             \
-          py::arg("x0"), py::arg("t0"), py::arg("tf"), py::arg("progress") = false)               \
+          py::arg("x0"), py::arg("t0"), py::arg("tf"))                                            \
       .def(                                                                                       \
           "propagate_state",                                                                      \
           [](class &dyn, const OrbitState &state, double t0, double tf, bool stm) -> py::object { \
