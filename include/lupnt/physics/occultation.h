@@ -39,7 +39,7 @@ namespace lupnt {
      * @return std::map<std::string, bool>
      */
     static std::map<std::string, bool> ComputeOccultationGnss(
-        const Vec3d tx_eci, const Vec3d tx_mci, const Vec3d rx_eci, const Vec3d rx_mci,
+        const Vec3& tx_eci, const Vec3& tx_mci, const Vec3& rx_eci, const Vec3& rx_mci,
         const std::string tx_planet, const double min_elevation);
 
     /**

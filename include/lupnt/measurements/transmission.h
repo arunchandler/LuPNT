@@ -21,30 +21,30 @@ namespace lupnt {
 
   struct ITransmission {
     // Clock time [s]
-    double t_tx;
-    double t_rx;
+    Real t_tx;
+    Real t_rx;
 
     // frequency [Hz]
-    double freq;
+    Real freq;
     std::string freq_label;
 
     // Position and velocity
-    Vec3d r_tx, v_tx;
-    Vec3d r_rx, v_rx;
+    Vec3 r_tx, v_tx;
+    Vec3 r_rx, v_rx;
 
     // Clock offset [s]
-    double dt_tx, dt_rx;
-    double dt_tx_dot, dt_rx_dot;
+    Real dt_tx, dt_rx;
+    Real dt_tx_dot, dt_rx_dot;
 
     // link budget
-    double EIRP;        // Equivalent isotropic radiated power [dBW]
-    double G_T;         // Transmit antenna gain / Noise temperature [dB/K]
-    double CN0;         // Carrier-to-noise density [dB-Hz]
-    double CN0_linear;  // Carrier-to-noise density [dB-Hz]
+    Real EIRP;        // Equivalent isotropic radiated power [dBW]
+    Real G_T;         // Transmit antenna gain / Noise temperature [dB/K]
+    Real CN0;         // Carrier-to-noise density [dB-Hz]
+    Real CN0_linear;  // Carrier-to-noise density [dB-Hz]
 
     // Signal power [W]
-    double AP;
-    double RP;
+    Real AP;
+    Real RP;
 
     // Transmitter and receiver
     std::shared_ptr<Transmitter> tx;
@@ -68,8 +68,8 @@ namespace lupnt {
     int ID_tx;
 
     // Channel
-    double I_rx;  // ionospheric delay [s]
-    double T_rx;  // tropospheric delay [s]
+    Real I_rx;  // ionospheric delay [s]
+    Real T_rx;  // tropospheric delay [s]
     bool vis_atmos;
     bool vis_ionos;
     bool vis_earth;
@@ -77,7 +77,7 @@ namespace lupnt {
     bool vis_antenna;
 
     // receiver chip param
-    double chip_rate;  // receiver chip rate [Hz]
+    Real chip_rate;  // receiver chip rate [Hz]
     GnssReceiverParam gnssr_param;
   };
 

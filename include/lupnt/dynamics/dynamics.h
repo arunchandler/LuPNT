@@ -27,14 +27,15 @@ namespace lupnt {
   // Dynamics Interface
   class IDynamics {
   protected:
+    bool print_progress_ = false;
     DynamicsParam params_ = {};  // empty initialization
 
   public:
     virtual ~IDynamics() = default;
 
     // Parameter
+    void SetPrintProgress(bool print) { print_progress_ = print; }
     bool ParamsEmpty() const { return params_.empty(); }
-
     void AddParam(std::string key, VecX value) { params_[key] = value; }
 
     void SetParam(std::string key, VecX value) {
@@ -80,7 +81,7 @@ namespace lupnt {
                                       Mat6d *stm = nullptr)
         = 0;
     virtual Vec6 Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm = nullptr) = 0;
-    virtual MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress = false) = 0;
+    virtual MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf) = 0;
 
     // Implementations
     MatX6 Propagate(const MatX6 &x0, Real t0, Real tf);
@@ -93,7 +94,7 @@ namespace lupnt {
 
     // Overrides
     using IOrbitDynamics::Propagate;
-    MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress = false) override;
+    MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf) override;
 
     // Interface
     virtual OrbitState PropagateState(const OrbitState &state, Real t0, Real tf,
@@ -120,7 +121,7 @@ namespace lupnt {
     // Overrides
     using IOrbitDynamics::Propagate;
     Vec6 Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm = nullptr) override;
-    MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress = false) override;
+    MatX6 Propagate(const Vec6 &x0, Real t0, const VecX &tf) override;
 
     // Interface
     virtual Vec6 ComputeRates(Real t, const Vec6 &x) const = 0;

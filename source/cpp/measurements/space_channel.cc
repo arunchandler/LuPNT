@@ -77,18 +77,17 @@ namespace lupnt {
 
     // Link Budget
     if (compute_cn0) {
-      double At = tx->GetTransmitterAntennaGain(t_tx.val(), trans.r_tx, trans.r_rx);
-      double Ar = rx->GetReceiverAntennaGain(t_rx.val(), trans.r_tx, trans.r_rx);
+      Real At = tx->GetTransmitterAntennaGain(t_tx.val(), trans.r_tx, trans.r_rx);
+      Real Ar = rx->GetReceiverAntennaGain(t_rx.val(), trans.r_tx, trans.r_rx);
 
-      double dist = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm().val();
-      double lambda = C / tx->freq_tx;
-      double fsl_loss_dB = ComputeFreeSpaceLossdB(dist, lambda);
+      Real dist = (rv_tx_gcrf.r() - rv_rx_gcrf.r()).norm();
+      Real lambda = C / tx->freq_tx;
+      Real fsl_loss_dB = ComputeFreeSpaceLossdB(dist, lambda);
 
-      double EIRP_dB = tx->P_tx + At;
-      double G_T_rx_dB = Ar - 10.0 * log10(rx->rx_param_.Tsys);
-      double loss
-          = rx->rx_param_.Ae + rx->rx_param_.As + rx->rx_param_.L;  // sum of lossess (minus)
-      double CN0 = EIRP_dB - fsl_loss_dB + 228.6 + G_T_rx_dB + loss;
+      Real EIRP_dB = tx->P_tx + At;
+      Real G_T_rx_dB = Ar - 10.0 * log10(rx->rx_param_.Tsys);
+      Real loss = rx->rx_param_.Ae + rx->rx_param_.As + rx->rx_param_.L;  // sum of lossess (minus)
+      Real CN0 = EIRP_dB - fsl_loss_dB + 228.6 + G_T_rx_dB + loss;
       // double CN = CN0 - 10.0 * log10(tx->bandwidth);
       // double RP = CN0 - 228.6 + 10.0 * log10(rx->rx_param_.Tsys);  // Received Power
       // double RP_N0 = RP - 10.0 * log10(rx->rx_param_.Tsys);        // Received Power Noise
@@ -165,9 +164,9 @@ namespace lupnt {
     return tau;
   }
 
-  double SpaceChannel::ComputeFreeSpaceLossdB(double dist, double lambda) {
-    double path_loss = pow(4 * PI * dist / lambda, 2);
-    double path_loss_dB = 10 * log10(path_loss);
+  Real SpaceChannel::ComputeFreeSpaceLossdB(Real dist, Real lambda) {
+    Real path_loss = pow(4 * PI * dist / lambda, 2);
+    Real path_loss_dB = 10 * log10(path_loss);
     return path_loss_dB;
   }
 

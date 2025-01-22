@@ -17,7 +17,7 @@ namespace lupnt {
   Real True2MeanAnomaly(Real f, Real e);
 
   // Vector definitions
-  VEC_DEF_REAL_REAL(GetPeriod);
+  VEC_DEF_REAL_REAL(GetOrbitalPeriod);
   VEC_DEF_REAL_REAL(Ecc2TrueAnomaly);
   VEC_DEF_REAL_REAL(Ecc2MeanAnomaly);
   VEC_DEF_REAL_REAL(Mean2EccAnomaly);

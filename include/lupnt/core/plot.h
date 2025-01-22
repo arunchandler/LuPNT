@@ -9,10 +9,15 @@ namespace lupnt {
 
   matplot::line_handle Plot3(const VecX& x, const VecX& y, const VecX& z,
                              std::string_view line_spec = "", double scale = default_scale);
-  matplot::line_handle Plot3(const Vec3& xyz, std::string_view line_spec = "",
+  matplot::line_handle Plot3(const MatX& xyz, std::string_view line_spec,
                              double scale = default_scale);
-  matplot::line_handle PlotArrow3(const Vec3& xyz, std::string_view line_spec = "",
+  matplot::line_handle Scatter3(const Vec3& xyz, std::string_view line_spec = "",
+                                double scale = default_scale);
+  matplot::line_handle PlotArrow3(const Vec3& center, const Vec3& dir, std::string_view line_spec,
                                   double scale = default_scale);
+
+  std::vector<matplot::line_handle> PlotFrame(const Vec3& center, const Mat3& R,
+                                              double scale = default_scale);
   matplot::line_handle Plot(const VecX& x, const VecX& y, std::string_view line_spec = "");
 
   matplot::surface_handle PlotBody(NaifId body, Vec3 r_body = Vec3::Zero(),

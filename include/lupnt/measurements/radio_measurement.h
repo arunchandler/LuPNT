@@ -27,7 +27,7 @@ namespace lupnt {
    * @param offset  Measurement offset
    * @return Real   One-way range
    */
-  Real ComputeOneWayRange(VecX r_tx, VecX r_rx, Real offset);
+  Real ComputeOneWayRange(const VecX& r_tx, const VecX& r_rx, Real offset);
 
   /**
    * @brief Compute the pseudorange between two points
@@ -39,7 +39,7 @@ namespace lupnt {
    * @param offset  Measurement offset
    * @return Real  Pseudorange
    */
-  Real ComputePseudorange(VecX r_tx, VecX r_rx, Real dt_tx, Real dt_rx, Real offset);
+  Real ComputePseudorange(const VecX& r_tx, const VecX& r_rx, Real dt_tx, Real dt_rx, Real offset);
 
   /**
    * @brief Compute the pseudorangerate between two points
@@ -53,8 +53,8 @@ namespace lupnt {
    * @param offset  Measurement offset
    * @return Real   Pseudorangerate
    */
-  Real ComputePseudorangerate(VecX r_tx, VecX r_rx, VecX v_tx, VecX v_rx, Real dt_tx_dot,
-                              Real dt_rx_dot, Real offset);
+  Real ComputePseudorangerate(const VecX& r_tx, const VecX& r_rx, const VecX& v_tx,
+                              const VecX& v_rx, Real dt_tx_dot, Real dt_rx_dot, Real offset);
 
   /**
    * @brief Compute the Doppler shift between two points
@@ -68,8 +68,8 @@ namespace lupnt {
    * @param offset  Measurement offset
    * @return Real  Doppler shift [Hz]
    */
-  Real ComputeDopplerShift(VecX r_tx, VecX r_rx, VecX v_tx, VecX v_rx, Real dt_tx_dot,
-                           Real dt_rx_dot, Real f, Real offset);
+  Real ComputeDopplerShift(const VecX& r_tx, const VecX& r_rx, const VecX& v_tx, const VecX& v_rx,
+                           Real dt_tx_dot, Real dt_rx_dot, Real f, Real offset);
 
   /**
    * @brief Compute the one-way range between two points considering light time
@@ -90,9 +90,10 @@ namespace lupnt {
    * @param use_pure_range  Flag to indicate if the pure range is used (no clock bias)
    * @return Real      One-way pseudorange at t_R (clock offset error included)
    */
-  Real ComputeOneWayRangeLTR(Real epoch_rx_recorded, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
-                             Vec2 dt_tx, Vec2 dt_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
-                             Real addional_delay, bool use_pure_range);
+  Real ComputeOneWayRangeLTR(Real epoch_rx_recorded, Real epoch_ref, const Vec6& rv_tx,
+                             const Vec6& rv_rx, const Vec2& dt_tx, const Vec2& dt_rx,
+                             Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real addional_delay,
+                             bool use_pure_range);
 
   /**
    * @brief Compute the one-way range between two points considering light time
@@ -114,10 +115,10 @@ namespace lupnt {
    * @param use_pure_range  Flag to indicate if the pure range is used (no clock bias)
    * @return Real      One-way pseudorange at t_R (clock offset error included)
    */
-  Real ComputeTwoWayRangeLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target, Vec6 rv_rx,
-                             Vec2 clk_target, Vec2 clk_receiver, Ptr<Agent> agent_target,
-                             Ptr<Agent> agent_rx, Real hardware_delay_target,
-                             Real additional_delay = 0.0);
+  Real ComputeTwoWayRangeLTR(Real epoch_rx, Real epoch_ref, const Vec6& rv_target,
+                             const Vec6& rv_rx, const Vec2& clk_target, const Vec2& clk_receiver,
+                             Ptr<Agent> agent_target, Ptr<Agent> agent_rx,
+                             Real hardware_delay_target, Real additional_delay = 0.0);
 
   /**
    * @brief Compute the one-way range rate between two points considering light
@@ -138,9 +139,10 @@ namespace lupnt {
    * @param T_I  Integration time [s]
    * @return Real
    */
-  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr,
-                                 Vec2 clk_tx, Vec2 clk_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
-                                 Real hardware_delay, double T_I);
+  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, const Vec6& rv_tx_tr,
+                                 const Vec6& rv_rx_tr, const Vec2& clk_tx, const Vec2& clk_rx,
+                                 Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real hardware_delay,
+                                 Real T_I);
 
   /**
    * @brief Compute the two-way range rate between two points considering light
@@ -157,9 +159,10 @@ namespace lupnt {
    * @param T_I             Integration time [s]
    * @return Real
    */
-  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                                 Vec2 clk_target, Vec2 clk_rx, Ptr<Agent> agent_target,
-                                 Ptr<Agent> agent_receiver, Real hardware_delay, double T_I);
+  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, const Vec6& rv_target_tr,
+                                 const Vec6& rv_rx_tr, const Vec2& clk_target, const Vec2& clk_rx,
+                                 Ptr<Agent> agent_target, Ptr<Agent> agent_receiver,
+                                 Real hardware_delay, Real T_I);
 
   /**
    * @brief Compute the PN regenerative range error for chip tracking loop
@@ -170,10 +173,10 @@ namespace lupnt {
    * @param B_L_CTL      One-sided Chip tracking Loop noise bandwidth
    * (usually around 1Hz, 0.5Hz)
    * @param T_c       Chip period [s] = = 1/ (2 f_RC)
-   * @return double range error [m]
+   * @return Real range error [m]
    */
-  double ComputePnRangeErrorCTL(double PRC_N0, double B_L_CTL, double T_c,
-                                Modulation modulation_type = Modulation::BPSK);
+  Real ComputePnRangeErrorCTL(Real PRC_N0, Real B_L_CTL, Real T_c,
+                              Modulation modulation_type = Modulation::BPSK);
 
   /**
    *
@@ -184,10 +187,10 @@ namespace lupnt {
    * @param PRC_N0 Carrier-to-noise ratio for the range clock (linear)
    * @param T_I Integration time
    * @param T_c Chip period [s] = 1/ (2 f_RC)
-   * @return double   range error [m]
+   * @return Real   range error [m]
    */
-  double ComputePnRangeErrorOL(double PRC_N0, double T_I, double T_c,
-                               Modulation modulation_type = Modulation::BPSK);
+  Real ComputePnRangeErrorOL(Real PRC_N0, Real T_I, Real T_c,
+                             Modulation modulation_type = Modulation::BPSK);
 
   /**
    * @brief Compute range rate error
@@ -199,12 +202,11 @@ namespace lupnt {
    * @param T_I   integration time [s]
    * @param sigma_y_1s  Allan deviation of the receiver clock at 1s
    * @param PT_N0  [Hz]
-   * @return double  range rate error [m/s]
+   * @return Real  range rate error [m/s]
    */
-  double ComputeRangeRateErrorOneWay(double B_L_carrier, double f_C, double T_s, double T_I,
-                                     double PT_N0, double sigma_y_1s,
-                                     Modulation modulation_type = Modulation::BPSK,
-                                     double m_R = 0.0);
+  Real ComputeRangeRateErrorOneWay(Real B_L_carrier, Real f_C, Real T_s, Real T_I, Real PT_N0,
+                                   Real sigma_y_1s, Modulation modulation_type = Modulation::BPSK,
+                                   Real m_R = 0.0);
 
   /**
    * @brief Compute range rate error for two-way ranging
@@ -218,11 +220,10 @@ namespace lupnt {
    * @param G     transponder turnaround ratio
    * @param PT_N0  downlink total signal power to noise spectral density ratio
    * [Hz]
-   * @return double  range rate error [m/s]
+   * @return Real  range rate error [m/s]
    */
-  double ComputeRangeRateErrorTwoWay(double B_L_carrier, double f_C, double T_s, double T_I,
-                                     double PT_N0, double sigma_y_1s, double G,
-                                     Modulation modulation_type = Modulation::BPSK,
-                                     double m_R = 0.0);
+  Real ComputeRangeRateErrorTwoWay(Real B_L_carrier, Real f_C, Real T_s, Real T_I, Real PT_N0,
+                                   Real sigma_y_1s, Real G,
+                                   Modulation modulation_type = Modulation::BPSK, Real m_R = 0.0);
 
 }  // namespace lupnt

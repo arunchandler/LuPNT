@@ -105,7 +105,7 @@ namespace lupnt {
      * @param lambda Wavelength of the signal [km]
      * @return double Free space loss [dB]
      */
-    double ComputeFreeSpaceLossdB(double dist, double lambda);
+    Real ComputeFreeSpaceLossdB(Real dist, Real lambda);
   };
 
 }  // namespace lupnt

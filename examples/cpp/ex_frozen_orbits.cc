@@ -184,7 +184,7 @@ int main() {
   // Propagate
   MatX6 rv_case1_op;
   if (config.recompute_part1 || !file_part1.exist("/rv_case1_op")) {
-    rv_case1_op = dyn_3body_circ.Propagate(rv0_op, t0, tfs, true);
+    rv_case1_op = dyn_3body_circ.Propagate(rv0_op, t0, tfs);
     dump(file_part1, "/rv_case1_op", rv_case1_op.cast<double>(), H5Easy::DumpMode::Overwrite);
   } else {
     rv_case1_op = H5Easy::load<MatX6d>(file_part1, "/rv_case1_op");
@@ -253,7 +253,7 @@ int main() {
   // Propagate
   MatX6 rv_case2_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case2_ci")) {
-    rv_case2_ci = dyn_3body.Propagate(rv0_ci, t0, tfs, true);
+    rv_case2_ci = dyn_3body.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case2_ci", rv_case2_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
@@ -279,7 +279,7 @@ int main() {
   // Propagate
   MatX6 rv_case3_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case3_ci")) {
-    rv_case3_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs, true);
+    rv_case3_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case3_ci", rv_case3_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
@@ -311,7 +311,7 @@ int main() {
   // Propagate
   MatX6 rv_case5_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case5_ci")) {
-    rv_case5_ci = dyn_nbody50.Propagate(rv0_ci, t0, tfs, true);
+    rv_case5_ci = dyn_nbody50.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case5_ci", rv_case5_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
@@ -343,7 +343,7 @@ int main() {
   // Propagate
   MatX6 rv_case6_ci;
   if (config.recompute_part1 || !file_part1.exist("/rv_case6_ci")) {
-    rv_case6_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs, true);
+    rv_case6_ci = dyn_nbody.Propagate(rv0_ci, t0, tfs);
     H5Easy::dump(file_part1, "/rv_case6_ci", rv_case6_ci.cast<double>(),
                  H5Easy::DumpMode::Overwrite);
   } else {
@@ -419,7 +419,7 @@ int main() {
       Vec6 coe0_op_ = coes0_op[i];
       Vec6 rv0_op_ = Classical2Cart(coe0_op_, GM_MOON);
       Vec6 rv0_ci_ = ConvertFrame(t0, rv0_op_, Frame::MOON_OP, Frame::MOON_CI);
-      rvs_ci.push_back(dyn_nbody.Propagate(rv0_ci_, t0, tfs, true));
+      rvs_ci.push_back(dyn_nbody.Propagate(rv0_ci_, t0, tfs));
       H5Easy::dump(file_part2, "/rvs_ci" + to_string(i), rvs_ci[i].cast<double>(),
                    H5Easy::DumpMode::Overwrite);
     } else {
@@ -469,7 +469,7 @@ int main() {
       Vec6 coe0_op_ = coes0_op_adjusted[i];
       Vec6 rv0_op_i = Classical2Cart(coe0_op_, GM_MOON);
       Vec6 rv0_ci_i = ConvertFrame(t0, rv0_op_i, Frame::MOON_OP, Frame::MOON_CI);
-      rvs_ci_adjusted.push_back(dyn_nbody.Propagate(rv0_ci_i, t0, tfs, true));
+      rvs_ci_adjusted.push_back(dyn_nbody.Propagate(rv0_ci_i, t0, tfs));
       H5Easy::dump(file_part2, "/rvs_ci_adjusted" + to_string(i), rvs_ci_adjusted[i].cast<double>(),
                    H5Easy::DumpMode::Overwrite);
     } else {

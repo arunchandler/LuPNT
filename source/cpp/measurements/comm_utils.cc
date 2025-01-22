@@ -5,14 +5,14 @@
 #include "lupnt/numerics/math_utils.h"
 
 namespace lupnt {
-  double ComputeEsN0(double EbN0, Modulation modulation_type, double coding_rate) {
-    double K = BitsPerSymbol(modulation_type);
-    double EsN0 = EbN0 * K * coding_rate;
+  Real ComputeEsN0(Real EbN0, Modulation modulation_type, Real coding_rate) {
+    Real K = BitsPerSymbol(modulation_type);
+    Real EsN0 = EbN0 * K * coding_rate;
     return EsN0;
   }
 
-  double BitsPerSymbol(Modulation modulation_type) {
-    double M = 1.0;
+  Real BitsPerSymbol(Modulation modulation_type) {
+    Real M = 1.0;
     switch (modulation_type) {
       case Modulation::Residual:
       case Modulation::BPSK:
@@ -25,8 +25,8 @@ namespace lupnt {
     return M;
   }
 
-  double ComputeBER(double EbN0, Modulation modulation_type) {
-    double BER = 0.0;
+  Real ComputeBER(Real EbN0, Modulation modulation_type) {
+    Real BER = 0.0;
 
     switch (modulation_type) {
       case Modulation::BPSK:
@@ -41,7 +41,7 @@ namespace lupnt {
     return BER;
   }
 
-  FrequencyBand GetFrequencyBand(double f_C) {
+  FrequencyBand GetFrequencyBand(Real f_C) {
     FrequencyBand fbu = FrequencyBand::S;
 
     // UHF, S, X, Ku, Ka
@@ -66,9 +66,9 @@ namespace lupnt {
     return fbu;
   }
 
-  double GetTransponderTurnAroundRatio(FrequencyBand fbu, FrequencyBand fbd) {
+  Real GetTransponderTurnAroundRatio(FrequencyBand fbu, FrequencyBand fbd) {
     // https://deepspace.jpl.nasa.gov/dsndocs/810-005/201/201B.pdf
-    double G = 1.0;
+    Real G = 1.0;
     // fbu: S, X, Ka,  fbd: fbu: S, X, Ka
     if (fbu == FrequencyBand::S && fbd == FrequencyBand::S) {
       G = 240 / 221;
@@ -93,17 +93,17 @@ namespace lupnt {
     return G;
   }
 
-  double ComputeCarrierLoopSNR(double PT_N0, double B_L_carrier, double T_s,
-                               Modulation modulation_type, double m_R) {
-    double S_L = 1.0;
-    double EsN0 = PT_N0 * T_s;
-    double rho_L = PT_N0 / B_L_carrier;
-    double tmp1, tmp2, tmp3;
+  Real ComputeCarrierLoopSNR(Real PT_N0, Real B_L_carrier, Real T_s, Modulation modulation_type,
+                             Real m_R) {
+    Real S_L = 1.0;
+    Real EsN0 = PT_N0 * T_s;
+    Real rho_L = PT_N0 / B_L_carrier;
+    Real tmp1, tmp2, tmp3;
 
     // Compute carier loop signal-to-noise ratio
     if (modulation_type == Modulation::Residual) {
       // carrier nominal power https://public.ccsds.org/Pubs/401x0b17s.pdf
-      double PC_N0 = PT_N0 * cos(m_R) * pow(J0Bessel(m_R), 2);
+      Real PC_N0 = PT_N0 * cos(m_R) * pow(J0Bessel(m_R), 2);
       rho_L = PC_N0 / B_L_carrier * EsN0 / (1 + 2 * EsN0);
 
     } else {

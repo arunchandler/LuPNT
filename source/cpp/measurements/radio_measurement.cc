@@ -16,36 +16,36 @@
 #include "lupnt/physics/frame_converter.h"
 
 namespace lupnt {
-  Real ComputeOneWayRange(VecX r_tx, VecX r_rx, Real offset) {
+  Real ComputeOneWayRange(const VecX& r_tx, const VecX& r_rx, Real offset) {
     Real rho_rx = (r_tx - r_rx).norm();
     return rho_rx + offset;
   };
 
-  Real ComputePseudorange(VecX r_tx, VecX r_rx, Real dt_tx, Real dt_rx, Real offset) {
+  Real ComputePseudorange(const VecX& r_tx, const VecX& r_rx, Real dt_tx, Real dt_rx, Real offset) {
     // P_rx = rho_rx + c*(dt_rx(t_rx) - dt_tx(t_tx)) + I_rx + T_rx + eps_P
     Real rho_rx = (r_tx - r_rx).norm();
     Real P_rx = rho_rx + C * (dt_rx - dt_tx) + offset;
     return P_rx;
   };
 
-  Real ComputePseudorangerate(VecX r_tx, VecX r_rx, VecX v_tx, VecX v_rx, Real dt_tx_dot,
-                              Real dt_rx_dot, Real offset) {
-    VecX e_rx = (r_tx - r_rx).normalized();
+  Real ComputePseudorangerate(const VecX& r_tx, const VecX& r_rx, const VecX& v_tx,
+                              const VecX& v_rx, Real dt_tx_dot, Real dt_rx_dot, Real offset) {
+    const VecX& e_rx = (r_tx - r_rx).normalized();
     Real prr = e_rx.dot(v_tx - v_rx) + C * (dt_rx_dot - dt_tx_dot) + offset;
     return prr;
   };
 
-  Real ComputeDopplerShift(VecX r_tx, VecX r_rx, VecX v_tx, VecX v_rx, Real dt_tx_dot,
-                           Real dt_rx_dot, Real f, Real offset) {
+  Real ComputeDopplerShift(const VecX& r_tx, const VecX& r_rx, const VecX& v_tx, const VecX& v_rx,
+                           Real dt_tx_dot, Real dt_rx_dot, Real f, Real offset) {
     Real f_D
         = -f / C * ComputePseudorangerate(r_tx, r_rx, v_tx, v_rx, dt_tx_dot, dt_rx_dot, offset);
     return f_D;
   };
 
-  Real ComputeOneWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_tx, Vec6 rv_rx,
-                             Vec2 clk_tx, Vec2 clk_rx, const Ptr<Agent> agent_tx,
-                             const Ptr<Agent> agent_rx, Real additional_delay,
-                             bool use_pure_range = false) {
+  Real ComputeOneWayRangeLTR(Real epoch_rx_local, Real epoch_ref, const Vec6& rv_tx,
+                             const Vec6& rv_rx, const Vec2& clk_tx, const Vec2& clk_rx,
+                             const Ptr<Agent> agent_tx, const Ptr<Agent> agent_rx,
+                             Real additional_delay, bool use_pure_range = false) {
     // solve for tau_d (downlink time)
     int max_iter = 5;
     Real tau_d = 0.0;  // light time
@@ -78,7 +78,7 @@ namespace lupnt {
       rho_ad_norm = rho_ad.norm();
 
       // Compensate for relativistic effects (Shapiro time delay)
-      // double shapiro = 2 * mu_rx / C *
+      // Real shapiro = 2 * mu_rx / C *
       //                  log((r0_p_norm + rid_p_norm + rho_ad_norm) /
       //                      (r0_p_norm + rid_p_norm - rho_ad_norm));
 
@@ -104,10 +104,10 @@ namespace lupnt {
     return rho_d;
   };
 
-  Real ComputeTwoWayRangeLTR(Real epoch_rx_local, Real epoch_ref, Vec6 rv_target, Vec6 rv_rx,
-                             Vec2 clk_target, Vec2 clk_receiver, Ptr<Agent> agent_target,
-                             Ptr<Agent> agent_receiver, Real hardware_delay_target,
-                             Real additional_delay) {
+  Real ComputeTwoWayRangeLTR(Real epoch_rx_local, Real epoch_ref, const Vec6& rv_target,
+                             const Vec6& rv_rx, const Vec2& clk_target, const Vec2& clk_receiver,
+                             Ptr<Agent> agent_target, Ptr<Agent> agent_receiver,
+                             Real hardware_delay_target, Real additional_delay) {
     // solve for tau_d (downlink time, target->rx)
     Real rho_d
         = ComputeOneWayRangeLTR(epoch_rx_local, epoch_ref, rv_target, rv_rx, clk_target,
@@ -127,9 +127,10 @@ namespace lupnt {
     return rho_ud;
   };
 
-  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_tx_tr, Vec6 rv_rx_tr,
-                                 Vec2 clk_tx, Vec2 clk_rx, Ptr<Agent> agent_tx, Ptr<Agent> agent_rx,
-                                 Real additional_delay, double T_I) {
+  Real ComputeOneWayRangeRateLTR(Real epoch_rx, Real epoch_ref, const Vec6& rv_tx_tr,
+                                 const Vec6& rv_rx_tr, const Vec2& clk_tx, const Vec2& clk_rx,
+                                 Ptr<Agent> agent_tx, Ptr<Agent> agent_rx, Real additional_delay,
+                                 Real T_I) {
     Real rho_d = ComputeOneWayRangeLTR(epoch_rx, epoch_ref, rv_tx_tr, rv_rx_tr, clk_tx, clk_rx,
                                        agent_tx, agent_rx, additional_delay, false);
     Real rho_d_past = ComputeOneWayRangeLTR(epoch_rx, epoch_ref, rv_tx_tr, rv_rx_tr, clk_tx, clk_rx,
@@ -140,9 +141,10 @@ namespace lupnt {
     return rho_dot;
   }
 
-  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, Vec6 rv_target_tr, Vec6 rv_rx_tr,
-                                 Vec2 clk_target, Vec2 clk_receiver, Ptr<Agent> agent_target,
-                                 Ptr<Agent> agent_receiver, Real hardware_delay, double T_I) {
+  Real ComputeTwoWayRangeRateLTR(Real epoch_rx, Real epoch_ref, const Vec6& rv_target_tr,
+                                 const Vec6& rv_rx_tr, const Vec2& clk_target,
+                                 const Vec2& clk_receiver, Ptr<Agent> agent_target,
+                                 Ptr<Agent> agent_receiver, Real hardware_delay, Real T_I) {
     Real rho_ud
         = ComputeTwoWayRangeLTR(epoch_rx, epoch_ref, rv_target_tr, rv_rx_tr, clk_target,
                                 clk_receiver, agent_target, agent_receiver, hardware_delay, 0);
@@ -155,10 +157,10 @@ namespace lupnt {
     return rho_dot;
   }
 
-  double ComputePnRangeErrorCTL(double PRC_N0, double B_L, double Tc, Modulation modulation_type) {
+  Real ComputePnRangeErrorCTL(Real PRC_N0, Real B_L, Real Tc, Modulation modulation_type) {
     (void)modulation_type;
-    double sigma = 0.0;
-    double f_RC = 1 / (2 * Tc);
+    Real sigma = 0.0;
+    Real f_RC = 1 / (2 * Tc);
 
     // Thermal noise
     sigma = 1 / sqrt(2) * C / (8 * f_RC) * sqrt(B_L / PRC_N0);
@@ -168,10 +170,10 @@ namespace lupnt {
     return sigma;
   }
 
-  double ComputePnRangeErrorOL(double PRC_N0, double TI, double Tc, Modulation modulation_type) {
+  Real ComputePnRangeErrorOL(Real PRC_N0, Real TI, Real Tc, Modulation modulation_type) {
     (void)modulation_type;
-    double sigma = 0.0;
-    double f_RC = 1 / (2 * Tc);
+    Real sigma = 0.0;
+    Real f_RC = 1 / (2 * Tc);
 
     // Thermal noise
     sigma = 1 / sqrt(32 * PI * PI) * (C / f_RC) * sqrt(1 / PRC_N0 / TI);
@@ -181,45 +183,43 @@ namespace lupnt {
     return sigma;
   }
 
-  double ComputeRangeRateErrorOneWay(double B_L_carrier, double f_C, double T_s, double T_I,
-                                     double PT_N0, double sigma_y_1s, Modulation modulation_type,
-                                     double m_R) {
+  Real ComputeRangeRateErrorOneWay(Real B_L_carrier, Real f_C, Real T_s, Real T_I, Real PT_N0,
+                                   Real sigma_y_1s, Modulation modulation_type, Real m_R) {
     // Thermal noise
-    double rho_L = ComputeCarrierLoopSNR(PT_N0, B_L_carrier, T_s, modulation_type, m_R);
-    double sigma_vn = sqrt(2 / rho_L) * C / (2 * PI * f_C * T_I);
+    Real rho_L = ComputeCarrierLoopSNR(PT_N0, B_L_carrier, T_s, modulation_type, m_R);
+    Real sigma_vn = sqrt(2 / rho_L) * C / (2 * PI * f_C * T_I);
 
     // phase noise contribution
-    double sigma_y_T = sigma_y_1s / sqrt(T_I);
-    double sigma_vf = C * sigma_y_T;
+    Real sigma_y_T = sigma_y_1s / sqrt(T_I);
+    Real sigma_vf = C * sigma_y_T;
 
     // phase scintillation
-    double sigma_vs = 0.0;  // Asssume 0
+    Real sigma_vs = 0.0;  // Asssume 0
 
     // Total Doppler Error
-    double sigma_v = sqrt(pow(sigma_vn, 2) + pow(sigma_vf, 2) + pow(sigma_vs, 2));
+    Real sigma_v = sqrt(pow(sigma_vn, 2) + pow(sigma_vf, 2) + pow(sigma_vs, 2));
 
     return sigma_v;
   }
 
-  double ComputeRangeRateErrorTwoWay(double B_L_carrier, double f_C, double T_s, double T_I,
-                                     double PT_N0, double sigma_y_1s, double G,
-                                     Modulation modulation_type, double m_R) {
+  Real ComputeRangeRateErrorTwoWay(Real B_L_carrier, Real f_C, Real T_s, Real T_I, Real PT_N0,
+                                   Real sigma_y_1s, Real G, Modulation modulation_type, Real m_R) {
     // Thermal noise
-    double rho_L = ComputeCarrierLoopSNR(PT_N0, B_L_carrier, T_s, modulation_type, m_R);
-    double sigma_vnu = sqrt(1 / 2) * (C / (2 * PI * f_C * T_I)) * G / sqrt(rho_L);
-    double sigma_vnd = sqrt(2 / rho_L) * C / (2 * PI * f_C * T_I) / sqrt(rho_L);
+    Real rho_L = ComputeCarrierLoopSNR(PT_N0, B_L_carrier, T_s, modulation_type, m_R);
+    Real sigma_vnu = sqrt(1 / 2) * (C / (2 * PI * f_C * T_I)) * G / sqrt(rho_L);
+    Real sigma_vnd = sqrt(2 / rho_L) * C / (2 * PI * f_C * T_I) / sqrt(rho_L);
 
-    double sigma_vn = sqrt(pow(sigma_vnu, 2) + pow(sigma_vnd, 2));
+    Real sigma_vn = sqrt(pow(sigma_vnu, 2) + pow(sigma_vnd, 2));
 
     // phase noise contribution
-    double sigma_y_T = sigma_y_1s / sqrt(T_I);
-    double sigma_vf = C * sigma_y_T / sqrt(2);
+    Real sigma_y_T = sigma_y_1s / sqrt(T_I);
+    Real sigma_vf = C * sigma_y_T / sqrt(2);
 
     // phase scintillation
-    double sigma_vs = 0.0;  // Asssume 0
+    Real sigma_vs = 0.0;  // Asssume 0
 
     // Total Doppler Error
-    double sigma_v = sqrt(pow(sigma_vn, 2) + pow(sigma_vf, 2) + pow(sigma_vs, 2));
+    Real sigma_v = sqrt(pow(sigma_vn, 2) + pow(sigma_vf, 2) + pow(sigma_vs, 2));
 
     // Error degrade for GMSK + PN
 

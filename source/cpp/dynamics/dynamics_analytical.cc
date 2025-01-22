@@ -18,17 +18,16 @@
 
 namespace lupnt {
 
-  MatX6 IAnalyticalOrbitDynamics::Propagate(const Vec6 &x0, Real t0, const VecX &tf,
-                                            bool progress) {
+  MatX6 IAnalyticalOrbitDynamics::Propagate(const Vec6 &x0, Real t0, const VecX &tf) {
     MatX6 xf = MatX6::Zero(tf.size(), 6);
     ProgressBar pbar(tf.size());
     for (int i = 0; i < tf.size(); i++) {
       Real tf_i = tf(i);
       Vec6 xf_i = Propagate(x0, t0, tf_i);
       xf.row(i) = xf_i;
-      if (progress) pbar.Update(i);
+      if (print_progress_) pbar.Update(i);
     }
-    if (progress) pbar.Finish();
+    if (print_progress_) pbar.Finish();
     return xf;
   }
 

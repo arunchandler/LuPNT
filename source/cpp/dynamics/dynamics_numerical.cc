@@ -35,7 +35,7 @@ namespace lupnt {
     }
   }
 
-  MatX6 NumericalOrbitDynamics::Propagate(const Vec6 &x0, Real t0, const VecX &tf, bool progress) {
+  MatX6 NumericalOrbitDynamics::Propagate(const Vec6 &x0, Real t0, const VecX &tf) {
     MatX6 xf = MatX6::Zero(tf.size(), 6);
     ProgressBar pbar(tf.size());
     pbar.SetDescription("Propagating");
@@ -46,9 +46,9 @@ namespace lupnt {
       Vec6 x0_i = xf.row(i - 1);
       Vec6 xf_i = Propagate(x0_i, t0_i, tf_i);
       xf.row(i) = xf_i;
-      if (progress) pbar.Update(i);
+      if (print_progress_) pbar.Update(i);
     }
-    if (progress) pbar.Finish();
+    if (print_progress_) pbar.Finish();
     return xf;
   }
 

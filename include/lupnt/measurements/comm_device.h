@@ -54,9 +54,11 @@ namespace lupnt {
     Transmitter() { txrx = "tx"; };
     virtual ~Transmitter() = default;
 
-    virtual double GetTransmitterAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) = 0;
-
-    inline void SetAntennaOrientation(Vec3 orientation) { antenna_orientation_body = orientation; };
+    virtual Real GetTransmitterAntennaGain(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf)
+        = 0;
+    inline void SetAntennaOrientation(const Vec3& orientation) {
+      antenna_orientation_body = orientation;
+    };
   };
 
   struct ReceiverParam {
@@ -92,8 +94,10 @@ namespace lupnt {
     Receiver() { txrx = "rx"; };
     virtual ~Receiver() = default;
 
-    virtual double GetReceiverAntennaGain(double t, Vec3d r_tx_gcrf, Vec3d r_rx_gcrf) = 0;
-    inline void SetAntennaOrientation(Vec3 orientation) { antenna_orientation_body = orientation; };
+    virtual Real GetReceiverAntennaGain(Real t, const Vec3& r_tx_gcrf, const Vec3& r_rx_gcrf) = 0;
+    inline void SetAntennaOrientation(const Vec3& orientation) {
+      antenna_orientation_body = orientation;
+    };
   };
 
   class Transponder : public ICommDevice {
@@ -114,8 +118,8 @@ namespace lupnt {
     };
     virtual ~Transponder() = default;
 
-    inline void SetTransmitter(const Ptr<Transmitter> &tx) { tx_ = tx; };
-    inline void SetReceiver(const Ptr<Receiver> &rx) { rx_ = rx; };
+    inline void SetTransmitter(const Ptr<Transmitter>& tx) { tx_ = tx; };
+    inline void SetReceiver(const Ptr<Receiver>& rx) { rx_ = rx; };
     inline void SetAgent(Ptr<Agent> agent) {
       ICommDevice::SetAgent(agent);
       tx_->SetAgent(agent);

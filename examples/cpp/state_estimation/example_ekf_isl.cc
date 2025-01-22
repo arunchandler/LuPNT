@@ -266,7 +266,7 @@ int main() {
    * *****************************************************************************/
 
   // Initial covariance
-  MatXd P0_sat = ConstructInitCovariancePVC(pos_err, vel_err, clk_bias_err, clk_drift_err);
+  MatXd P0_sat = InitialCovariancePosVelClock(pos_err, vel_err, clk_bias_err, clk_drift_err);
   MatXd P0 = MatXd::Zero(state_size * nsat, state_size * nsat);
   for (int i = 0; i < nsat; i++) {
     P0.block(i * state_size, i * state_size, state_size, state_size) = P0_sat;

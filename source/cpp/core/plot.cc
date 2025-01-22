@@ -15,25 +15,26 @@ namespace lupnt {
   /// @return Line handle
   matplot::line_handle Plot3(const VecX &x, const VecX &y, const VecX &z,
                              std::string_view line_spec, double scale) {
-    if (x.size() != y.size() || x.size() != z.size()) {
-      std::string msg = "x (" + std::to_string(x.size()) + "), y (" + std::to_string(y.size())
-                        + "), and z (" + std::to_string(z.size()) + ") must have the same size";
-      throw std::invalid_argument(msg);
-    }
     scale = pow(10, scale);
     return matplot::plot3(ToDouble(x / scale), ToDouble(y / scale), ToDouble(z / scale), line_spec);
   }
 
-  matplot::line_handle Plot3(const Vec3 &xyz, std::string_view line_spec, double scale) {
-    scale = pow(10, scale);
-    Vec1d x(xyz(0).val() / scale), y(xyz(1).val() / scale), z(xyz(2).val() / scale);
-    return matplot::plot3(x, y, z, line_spec);
+  matplot::line_handle Plot3(const MatX &xyz, std::string_view line_spec, double scale) {
+    VecX x = xyz.col(0), y = xyz.col(1), z = xyz.col(2);
+    return Plot3(x, y, z, line_spec, scale);
   }
 
-  matplot::line_handle PlotArrow3(const Vec3 &xyz, std::string_view line_spec, double scale) {
-    scale = pow(10, scale);
-    Vec2d x(0, xyz(0).val() / scale), y(0, xyz(1).val() / scale), z(0, xyz(2).val() / scale);
-    return matplot::plot3(x, y, z, line_spec);
+  matplot::line_handle Scatter3(const Vec3 &xyz, std::string_view line_spec, double scale) {
+    Vec1 x(xyz(0)), y(xyz(1)), z(xyz(2));
+    return Plot3(x, y, z, line_spec, scale);
+  }
+
+  matplot::line_handle PlotArrow3(const Vec3 &center, const Vec3 &dir, std::string_view line_spec,
+                                  double scale) {
+    Vec2 x(center(0), center(0) + dir(0));
+    Vec2 y(center(1), center(1) + dir(1));
+    Vec2 z(center(2), center(2) + dir(2));
+    return Plot3(x, y, z, line_spec, scale);
   }
 
   /// @brief Plot a 2D line
@@ -42,11 +43,6 @@ namespace lupnt {
   /// @param line_spec Line specification
   /// @return Line handle
   matplot::line_handle Plot(const VecX &x, const VecX &y, std::string_view line_spec) {
-    if (x.size() != y.size()) {
-      std::string msg = "x (" + std::to_string(x.size()) + ") and y (" + std::to_string(y.size())
-                        + ") must have the same size";
-      throw std::invalid_argument(msg);
-    }
     return matplot::plot(ToDouble(x), ToDouble(y), line_spec);
   }
 
@@ -59,15 +55,15 @@ namespace lupnt {
   /// @return Line handle
   matplot::line_handle Scatter3(const VecX &x, const VecX &y, const VecX &z, const VecX &sizes,
                                 const VecX &colors, std::string_view marker, double scale) {
-    if (x.size() != y.size() || x.size() != z.size() || x.size() != sizes.size()
-        || x.size() != colors.size()) {
-      std::string msg = "x (" + std::to_string(x.size()) + "), y (" + std::to_string(y.size())
-                        + "), z (" + std::to_string(z.size()) + "), and sizes ("
-                        + std::to_string(sizes.size()) + ") must have the same size";
-      throw std::invalid_argument(msg);
-    }
     return matplot::scatter3(ToDouble(x / scale), ToDouble(y / scale), ToDouble(z / scale),
                              ToDouble(sizes), marker);
+  }
+
+  std::vector<matplot::line_handle> PlotFrame(const Vec3 &center, const Mat3 &R, double scale) {
+    std::vector<std::string> line_specs = {"r-", "g-", "b-"};
+    std::vector<matplot::line_handle> lines;
+    for (int i = 0; i < 3; i++) lines.push_back(PlotArrow3(center, R.row(i), line_specs[i], scale));
+    return lines;
   }
 
   matplot::surface_handle PlotBody(NaifId body, Vec3 r_body, double scale) {
@@ -90,7 +86,7 @@ namespace lupnt {
       return radius * cos(theta) + r_body_(2);
     });
     auto h = surf(X, Y, Z);
-    h->edge_color("none");
+    h->edge_color("gray");
     xlabel("X [1e3 km]");
     ylabel("Y [1e3 km]");
     zlabel("Z [1e3 km]");
