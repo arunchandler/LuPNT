@@ -15,7 +15,27 @@
 
 namespace lupnt {
 
-  GnssMeasurement::GnssMeasurement(const std::vector<GnssTransmission> trans) : trans_store(trans) {
+  GnssMeasurement::GnssMeasurement(const std::vector<GnssTransmission> trans)
+      : trans_store(trans),
+        ID_tx(trans.size()),
+        gnss_types_(trans.size()),
+        vis_earth(trans.size()),
+        vis_moon(trans.size()),
+        vis_antenna(trans.size()),
+        vis_atmos(trans.size()),
+        vis_ionos(trans.size()),
+        dt_tx(trans.size()),
+        I_rx(trans.size()),
+        T_rx(trans.size()),
+        eps_P(trans.size()),
+        N_rx(trans.size()),
+        f(trans.size()),
+        lambda_(trans.size()),
+        r_tx(3, trans.size()),
+        v_tx(3, trans.size()),
+        dt_rx_dot(),
+        dt_tx_dot(trans.size()),
+        CN0(trans.size()) {
     n_meas = trans.size();
 
     // Iterate over received transmissions and update dt_tx, I_rx, and T_rx
@@ -61,7 +81,7 @@ namespace lupnt {
       gnssr_param = tr.gnssr_param;
       chip_rate = tr.chip_rate;
 
-      ID_tx.push_back(tr.ID_tx);
+      ID_tx[i] = tr.ID_tx;
 
       i++;
     }
