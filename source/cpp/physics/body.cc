@@ -24,6 +24,7 @@ namespace lupnt {
     moon.inertial_frame = Frame::MOON_CI;
     moon.GM = GM_MOON;
     moon.R = R_MOON;
+    moon.omega = OMEGA_MOON;
     moon.use_gravity_field = (n_max > 1 && m_max > 1);
     if (moon.use_gravity_field)
       moon.gravity_field = ReadHarmonicGravityField<T>(gravity_file, n_max, m_max, true);
@@ -42,6 +43,7 @@ namespace lupnt {
     earth.inertial_frame = Frame::GCRF;
     earth.GM = GM_EARTH;
     earth.R = R_EARTH;
+    earth.omega = OMEGA_EARTH;
     earth.use_gravity_field = (n_max > 1 && m_max > 1);
     if (earth.use_gravity_field)
       earth.gravity_field = ReadHarmonicGravityField<T>(gravity_file, n_max, m_max, true);
@@ -60,6 +62,7 @@ namespace lupnt {
     sun.inertial_frame = Frame::ICRF;
     sun.GM = GM_SUN;
     sun.R = R_SUN;
+    sun.omega = OMEGA_SUN;
     sun.use_gravity_field = false;
     return sun;
   }
@@ -75,6 +78,7 @@ namespace lupnt {
     mars.fixed_frame = Frame::MARS_FIXED;
     mars.GM = GM_MARS;
     mars.R = R_MARS;
+    mars.omega = OMEGA_MARS;
     mars.gravity_field = ReadHarmonicGravityField<T>(gravity_file, n_max, m_max, true);
     return mars;
   }
@@ -90,6 +94,7 @@ namespace lupnt {
     venus.fixed_frame = Frame::VENUS_FIXED;
     venus.GM = GM_MARS;
     venus.R = R_VENUS;
+    venus.omega = OMEGA_VENUS;
     venus.gravity_field = ReadHarmonicGravityField<T>(gravity_file, n_max, m_max, true);
     return venus;
   }
@@ -103,6 +108,7 @@ namespace lupnt {
     jupiter.fixed_frame = Frame::JUPITER_FIXED;
     jupiter.GM = GM_JUPITER;
     jupiter.R = R_JUPITER;
+    jupiter.omega = OMEGA_JUPITER;
     return jupiter;
   }
   template BodyT<double> BodyT<double>::Jupiter();
@@ -115,6 +121,7 @@ namespace lupnt {
     saturn.fixed_frame = Frame::SATURN_FIXED;
     saturn.GM = GM_SATURN;
     saturn.R = R_SATURN;
+    saturn.omega = OMEGA_SATURN;
     return saturn;
   }
   template BodyT<double> BodyT<double>::Saturn();
@@ -127,6 +134,7 @@ namespace lupnt {
     uranus.fixed_frame = Frame::URANUS_FIXED;
     uranus.GM = GM_URANUS;
     uranus.R = R_URANUS;
+    uranus.omega = OMEGA_URANUS;
     return uranus;
   }
   template BodyT<double> BodyT<double>::Uranus();
@@ -139,6 +147,7 @@ namespace lupnt {
     neptune.fixed_frame = Frame::NEPTUNE_FIXED;
     neptune.GM = GM_NEPTUNE;
     neptune.R = R_NEPTUNE;
+    neptune.omega = OMEGA_NEPTUNE;
     return neptune;
   }
   template BodyT<double> BodyT<double>::Neptune();
@@ -147,35 +156,35 @@ namespace lupnt {
   BodyData GetBodyData(NaifId id) {
     switch (id) {
       case NaifId::SUN:
-        return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF, SUN_F};
+        return {NaifId::SUN, "SUN", GM_SUN, R_SUN, Frame::ICRF, Frame::ICRF, SUN_F, OMEGA_SUN};
       case NaifId::MERCURY:
         return {NaifId::MERCURY,      "MERCURY",         GM_MERCURY, R_MERCURY,
-                Frame::MERCURY_FIXED, Frame::MERCURY_CI, MERCURY_F};
+                Frame::MERCURY_FIXED, Frame::MERCURY_CI, MERCURY_F, OMEGA_MERCURY};
       case NaifId::VENUS:
         return {NaifId::VENUS,      "VENUS",         GM_VENUS, R_VENUS,
-                Frame::VENUS_FIXED, Frame::VENUS_CI, VENUS_F};
+                Frame::VENUS_FIXED, Frame::VENUS_CI, VENUS_F, OMEGA_VENUS};
       case NaifId::EARTH:
-        return {NaifId::EARTH, "EARTH", GM_EARTH, R_EARTH, Frame::ITRF, Frame::GCRF, WGS84_F};
+        return {NaifId::EARTH, "EARTH", GM_EARTH, R_EARTH, Frame::ITRF, Frame::GCRF, WGS84_F, OMEGA_EARTH};
       case NaifId::MOON:
-        return {NaifId::MOON, "MOON", GM_MOON, R_MOON, Frame::MOON_PA, Frame::MOON_CI, MOON_F};
+        return {NaifId::MOON, "MOON", GM_MOON, R_MOON, Frame::MOON_PA, Frame::MOON_CI, MOON_F, OMEGA_MOON};
       case NaifId::MARS:
-        return {NaifId::MARS, "MARS", GM_MARS, R_MARS, Frame::MARS_FIXED, Frame::MARS_CI, MARS_F};
+        return {NaifId::MARS, "MARS", GM_MARS, R_MARS, Frame::MARS_FIXED, Frame::MARS_CI, MARS_F, OMEGA_MARS};
       case NaifId::JUPITER:
         return {NaifId::JUPITER,      "JUPITER",         GM_JUPITER, R_JUPITER,
-                Frame::JUPITER_FIXED, Frame::JUPITER_CI, JUPITER_F};
+                Frame::JUPITER_FIXED, Frame::JUPITER_CI, JUPITER_F, OMEGA_JUPITER};
       case NaifId::SATURN:
         return {NaifId::SATURN,      "SATURN",         GM_SATURN, R_SATURN,
-                Frame::SATURN_FIXED, Frame::SATURN_CI, SATURN_F};
+                Frame::SATURN_FIXED, Frame::SATURN_CI, SATURN_F, OMEGA_SATURN};
       case NaifId::URANUS:
         return {NaifId::URANUS,      "URANUS",         GM_URANUS, R_URANUS,
-                Frame::URANUS_FIXED, Frame::URANUS_CI, URANUS_F};
+                Frame::URANUS_FIXED, Frame::URANUS_CI, URANUS_F, OMEGA_URANUS};
       case NaifId::NEPTUNE:
         return {NaifId::NEPTUNE,      "NEPTUNE",         GM_NEPTUNE, R_NEPTUNE,
-                Frame::NEPTUNE_FIXED, Frame::NEPTUNE_CI, NEPUTUNE_F};
+                Frame::NEPTUNE_FIXED, Frame::NEPTUNE_CI, NEPUTUNE_F, OMEGA_NEPTUNE};
       default: break;
     }
     throw std::runtime_error("Body not found");
-    return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF, SUN_F};
+    return {NaifId::SUN, "SUN", GM_SUN, 696342.0, Frame::ICRF, Frame::ICRF, SUN_F, OMEGA_SUN};
   }
 
   double GetBodyRadius(NaifId body) {
@@ -191,6 +200,11 @@ namespace lupnt {
   double GetBodyFlattening(NaifId body) {
     BodyData data = GetBodyData(body);
     return data.flattening.val();
+  }
+
+  double GetBodyOmega(NaifId body) {
+    BodyData data = GetBodyData(body);
+    return data.omega.val();
   }
 
   std::string GetBodyName(NaifId body) {
