@@ -33,6 +33,9 @@
 #include "lupnt/dynamics/forces.h"
 #include "lupnt/dynamics/propagator.h"
 
+// ephemeris
+#include "lupnt/ephemeris/keplarian_ephemeris.h"
+
 // measurements
 #include "lupnt/measurements/antenna.h"
 #include "lupnt/measurements/comm_device.h"
@@ -56,6 +59,7 @@
 #include "lupnt/numerics/graphs.h"
 #include "lupnt/numerics/integrator.h"
 #include "lupnt/numerics/interpolation.h"
+#include "lupnt/numerics/ipopt_interface.h"
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/numerics/string_utils.h"
 #include "lupnt/numerics/tensor.h"

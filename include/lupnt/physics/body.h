@@ -26,6 +26,7 @@ namespace lupnt {
     Frame fixed_frame;
     Frame inertial_frame;
     Real flattening;
+    Real omega;  // sidereal rotation rate
   };
 
   template <typename T = double> struct GravityField {
@@ -41,8 +42,9 @@ namespace lupnt {
     NaifId id;
     std::string name;
 
-    T GM;
-    T R;
+    T GM;   // Gravitational constant
+    T R;  // Reference radius
+    T omega;  // sidereal rotation rate
 
     Frame fixed_frame;
     Frame inertial_frame;
@@ -69,6 +71,7 @@ namespace lupnt {
   BodyData GetBodyData(NaifId id);
   double GetBodyRadius(NaifId body);
   double GetBodyGM(NaifId body);
+  double GetBodyOmega(NaifId body);
   double GetBodyFlattening(NaifId body);
   std::string GetBodyName(NaifId body);
   Frame GetInertialFrameName(NaifId body);

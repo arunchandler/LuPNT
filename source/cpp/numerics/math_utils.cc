@@ -142,6 +142,11 @@ namespace lupnt {
     return out;
   }
 
+  Real Max(Real x, Real y) { return x.val() > y.val() ? x : y; }
+  Real Min(Real x, Real y) { return x.val() < y.val() ? x : y; }
+  double MaxD(double x, double y) { return x > y ? x : y; }
+  double MinD(double x, double y) { return x < y ? x : y; }
+
   /// @brief Convert decibel value to decimal
   /// @param x Decibel value
   /// @return Decimal value
