@@ -686,8 +686,8 @@ int main() {
   // Joint state and dynamics ------------------------------------------------
   JointState joint_state;
 
-  auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionLinearPV(sigma_acc));
-  auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseFunctionClock(cmodel, 2));
+  auto proc_noise_rv = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseLinearPosVel(sigma_acc));
+  auto proc_noise_clk = MakePtr<FilterProcessNoiseFunction>(ProcessNoiseClock(cmodel, 2));
   joint_state.PushBackStateAndDynamics(cart_state_moon, dyn_est, proc_noise_rv);
   joint_state.PushBackStateAndDynamics(MakePtr<ClockState>(clock_state),
                                        MakePtr<ClockDynamics>(dyn_clk_est), proc_noise_clk);
@@ -719,11 +719,11 @@ int main() {
     VecX x_N = VecX::Zero(mtot);  // a dummy variable for carrier phase
     Frame frame_in = Frame::MOON_CI;
 
-    VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, *H, meas_types,
-                                              frame_in);  // Jacobian with autodiff
+    VecX z = meas.GetPredictedGnssMeasurement(epoch, x.head(6), x.tail(2), x_N, meas_types,
+                                              frame_in, H);
 
     int n_meas_sat = int(z.size() / meas_types.size());
-    VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types);
+    VecXd noise_std_vec = meas.GetGnssNoiseStdVec(meas_types).cast<double>();
 
     // ADD signal in space URE
     int z_idx = 0;

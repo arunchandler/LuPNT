@@ -156,42 +156,4 @@ int main() {
   SetLim(12e3);
   fig->draw();
   fig->show();
-
-  // Setup
-  bool use_range = true;
-  bool use_range_rate = false;
-
-  // Run filter
-  // Set seed
-  int seed = 10;
-  std::srand(seed);
-  vector<VecX> measurements;
-  Vec3d sigma_acc = 1e-8 * Vec3d::Ones();
-
-  for (int t = 0; t < Nt; t++) {
-    Real t_tai = tfs_tai[t];
-    moon_sat->Propagate(t_tai);
-    gnss_const.Propagate(t_tai);
-
-    VecX z_true;
-    auto measall = receiver->GetMeasurement(t_tai);
-    auto meas_L1 = measall.ExtractSignal(signals);
-    auto meas = meas_L1.ApplyIonoMask();
-    int num_sat = meas.GetTrackedSignalNum();
-    num_meas(t) = num_sat;
-
-    z_true = meas.GetGnssMeasurement(meas_types, true, seed);
-
-    int zidx = 0;
-    if (use_range) {
-      z_true(zidx) += SampleRandNormal(0, sis_ure_std, seed);
-      zidx++;
-    }
-    if (use_range_rate) {
-      z_true(zidx) += SampleRandNormal(0, sis_ure_rate_std, seed);
-    }
-
-    ekf.Predict(t + Dt);
-    ekf.Update(z_true);
-  }
 }

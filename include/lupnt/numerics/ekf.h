@@ -42,7 +42,7 @@ namespace lupnt {
   public:
     double outlier_threshold_ = 3.0;
 
-    void Initialize(const double t0, const VecX &x0, const MatXd &P0);
+    void Initialize(const Real t0, const VecX &x0, const MatXd &P0);
 
     void SetOutlierThreshold(double outlier_threshold);
     int RemoveOutliers(int m);

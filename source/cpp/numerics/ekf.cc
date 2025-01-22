@@ -19,7 +19,7 @@ namespace lupnt {
    *   Extended Kalman Filter
    *****************************************************/
 
-  void EKF::Initialize(const double t0, const VecX &x0, const MatXd &P0) {
+  void EKF::Initialize(const Real t0, const VecX &x0, const MatXd &P0) {
     t_ = t0;
     x_ = x0;
     P_ = P0;
@@ -94,7 +94,6 @@ namespace lupnt {
     G = I - K_ * H_;
 
     P_ = G * P_ * G.transpose() + K_ * R_ * K_.transpose();  // Joseph form
-
 
     // covariance inflation
     double lambda = 0.0;

@@ -88,7 +88,7 @@ namespace lupnt {
             = tx->GetTransmitterAntennaGainFreq(t_tx, rv_tx_gcrf.r(), rv_rx_gcrf.r(), freq_name);
         trans.CN0 = At + Ar + Ad + scalars;
 
-        if (At == NAN || occult["earth"] || occult["moon"]
+        if (std::isnan(At.val()) || occult["earth"] || occult["moon"]
             || trans.CN0 < rx.rx_param_.CN0threshold) {
           // not visible
           continue;
