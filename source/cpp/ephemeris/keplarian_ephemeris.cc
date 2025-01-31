@@ -39,8 +39,8 @@ namespace lupnt {
 
         for (int i = 0; i < lent; i++) {
             Vec6 rv_in = fit_arc.row(i).transpose();
-            Vec6 rv_fixed = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b, rotate_only);
-            Vec6 rv_fixed_rot = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b, false);
+            Vec6 rv_fixed = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b);
+            Vec6 rv_fixed_rot = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b);
             fit_arc_pos_bf.row(i) = rv_fixed.head(3);
             fit_arc_rv_bf.row(i) = rv_fixed;
             fit_arc_rv_bf_rot.row(i) = rv_fixed_rot;
