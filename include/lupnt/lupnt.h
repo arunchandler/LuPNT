@@ -59,7 +59,6 @@
 #include "lupnt/numerics/graphs.h"
 #include "lupnt/numerics/integrator.h"
 #include "lupnt/numerics/interpolation.h"
-#include "lupnt/numerics/ipopt_interface.h"
 #include "lupnt/numerics/math_utils.h"
 #include "lupnt/numerics/string_utils.h"
 #include "lupnt/numerics/tensor.h"
