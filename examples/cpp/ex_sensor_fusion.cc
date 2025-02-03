@@ -152,7 +152,7 @@ int main() {
   PlotArrow3(Vec3::Zero(), r_m2s_mci.row(0).normalized() * 3 * R_MOON, "")->line_width(2);  // Sun
   for (int t = 0; t < int(period / dt); t += int(period / dt / 10))
     PlotFrame(rv_m2sc_mci[0].row(t).head(3), R_mci2sc[0][t] * 1 * R_MOON);  // Attitude
-  legend({"Moon", "Orbit", "Sun", "Earth", "x_{sc}", "y_{sc}", "z_{sc}"});
+  matplot::legend({"Moon", "Orbit", "Sun", "Earth", "x_{sc}", "y_{sc}", "z_{sc}"});
   SetLim(12e3);
   fig->draw();
   fig->show();

@@ -472,4 +472,5 @@ namespace lupnt {
     return S_pinv;
   }
 
+ 
 }  // namespace lupnt

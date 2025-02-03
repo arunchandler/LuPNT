@@ -26,6 +26,12 @@ namespace lupnt {
         bool debug = fit_option.debug;
         EphemFitResult fit_result;
 
+        // Get frame center of the frame_arc
+        NaifId frame_arc_center = frame_centers.at(frame_arc);
+        if (frame_arc_center != body_id_) {
+            throw std::runtime_error("Input frame center has to be the same as the body id");
+        }
+
         // Solving the linear problem to fit the ephemeris
         int lent = t_fit.size();
 
@@ -39,8 +45,17 @@ namespace lupnt {
 
         for (int i = 0; i < lent; i++) {
             Vec6 rv_in = fit_arc.row(i).transpose();
-            Vec6 rv_fixed = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b, rotate_only);
-            Vec6 rv_fixed_rot = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b, false);
+            // Todo: change to rotate-only
+            Vec6 rv_fixed_rot = ConvertFrame(t_fit(i), rv_in, frame_arc, frame_b);
+
+            // Get the 3x3 rotation matrix
+            std::pair<Mat3, Vec3> rt = GetFrameRotationTranslation(t_fit(i), frame_arc, frame_b);
+            Mat3 R = rt.first;
+            Mat6 R6 = Mat6::Identity();
+            R6.block(0, 0, 3, 3) = R;
+            R6.block(3, 3, 3, 3) = R;
+
+            Vec6 rv_fixed = R6 * rv_in;
             fit_arc_pos_bf.row(i) = rv_fixed.head(3);
             fit_arc_rv_bf.row(i) = rv_fixed;
             fit_arc_rv_bf_rot.row(i) = rv_fixed_rot;
