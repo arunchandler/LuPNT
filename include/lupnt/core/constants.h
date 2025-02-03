@@ -132,16 +132,16 @@ namespace lupnt {
   static constexpr double NEPUTUNE_F = 0.01708;  // [-]
 
   // Sideral Rotation rate
-  static constexpr double OMEGA_SUN = 2.903e-6;        // [rad/s]
-  static constexpr double OMEGA_MERCURY = 1.244e-5;     // [rad/s]
-  static constexpr double OMEGA_VENUS = -1.9521515e-7;  // [rad/s]
+  static constexpr double OMEGA_SUN = 2.903e-6;           // [rad/s]
+  static constexpr double OMEGA_MERCURY = 1.244e-5;       // [rad/s]
+  static constexpr double OMEGA_VENUS = -1.9521515e-7;    // [rad/s]
   static constexpr double OMEGA_EARTH = 7.2921151467e-5;  // [rad/s]
-  static constexpr double OMEGA_MOON = 2.6617e-6;      // [rad/s]
-  static constexpr double OMEGA_MARS = 7.0882185e-5;   // [rad/s]
-  static constexpr double OMEGA_JUPITER = 1.758e-4;    // [rad/s]
-  static constexpr double OMEGA_SATURN = 1.624e-4;     // [rad/s]
-  static constexpr double OMEGA_URANUS = -1.036e-4;    // [rad/s]
-  static constexpr double OMEGA_NEPTUNE = 1.083e-4;    // [rad/s]
+  static constexpr double OMEGA_MOON = 2.6617e-6;         // [rad/s]
+  static constexpr double OMEGA_MARS = 7.0882185e-5;      // [rad/s]
+  static constexpr double OMEGA_JUPITER = 1.758e-4;       // [rad/s]
+  static constexpr double OMEGA_SATURN = 1.624e-4;        // [rad/s]
+  static constexpr double OMEGA_URANUS = -1.036e-4;       // [rad/s]
+  static constexpr double OMEGA_NEPTUNE = 1.083e-4;       // [rad/s]
 
   // Spherical harmonics
   static constexpr double J2_EARTH = 1.08262668e-3;

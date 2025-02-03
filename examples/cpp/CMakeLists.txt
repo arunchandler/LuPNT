@@ -21,7 +21,7 @@ file(
   *.cc
 )
 
-if (NOT UseTorch)
+if(NOT UseTorch)
   # Remove example_torch.cc from the list to compile
   set(NEW_EXAMPLES "")
   foreach(item IN LISTS examples)

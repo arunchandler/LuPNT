@@ -58,7 +58,7 @@ namespace lupnt {
 
   CartesianTwoBodyDynamics::CartesianTwoBodyDynamics(Real GM, IntegratorType integ)
       : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); }, integ),
-        GM_(GM) {};
+        GM_(GM){};
 
   Vec6 CartesianTwoBodyDynamics::ComputeRates(Real t, const Vec6 &x) const {
     (void)t;
@@ -88,7 +88,7 @@ namespace lupnt {
       : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); }, integ),
         GM_(GM),
         J2_(J2),
-        R_body_(R_body) {};
+        R_body_(R_body){};
 
   Vec6 J2CartTwoBodyDynamics::ComputeRates(Real t, const Vec6 &x) const {
     (void)t;
@@ -127,7 +127,7 @@ namespace lupnt {
       : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); }, integ),
         GM_(GM),
         J2_(J2),
-        R_body_(R_body) {};
+        R_body_(R_body){};
 
   Vec6 J2KeplerianDynamics::ComputeRates(Real t, const Vec6 &x) const {
     (void)t;
@@ -159,7 +159,7 @@ namespace lupnt {
 
   MoonMeanDynamics::MoonMeanDynamics(IntegratorType integ)
       : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); },
-                               integ) {};
+                               integ){};
 
   Vec6 MoonMeanDynamics::ComputeRates(Real t, const Vec6 &x) const {
     (void)t;

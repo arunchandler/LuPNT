@@ -159,25 +159,28 @@ namespace lupnt {
         return {NaifId::SUN, "SUN", GM_SUN, R_SUN, Frame::ICRF, Frame::ICRF, SUN_F, OMEGA_SUN};
       case NaifId::MERCURY:
         return {NaifId::MERCURY,      "MERCURY",         GM_MERCURY, R_MERCURY,
-                Frame::MERCURY_FIXED, Frame::MERCURY_CI, MERCURY_F, OMEGA_MERCURY};
+                Frame::MERCURY_FIXED, Frame::MERCURY_CI, MERCURY_F,  OMEGA_MERCURY};
       case NaifId::VENUS:
         return {NaifId::VENUS,      "VENUS",         GM_VENUS, R_VENUS,
-                Frame::VENUS_FIXED, Frame::VENUS_CI, VENUS_F, OMEGA_VENUS};
+                Frame::VENUS_FIXED, Frame::VENUS_CI, VENUS_F,  OMEGA_VENUS};
       case NaifId::EARTH:
-        return {NaifId::EARTH, "EARTH", GM_EARTH, R_EARTH, Frame::ITRF, Frame::GCRF, WGS84_F, OMEGA_EARTH};
+        return {NaifId::EARTH, "EARTH",     GM_EARTH, R_EARTH,
+                Frame::ITRF,   Frame::GCRF, WGS84_F,  OMEGA_EARTH};
       case NaifId::MOON:
-        return {NaifId::MOON, "MOON", GM_MOON, R_MOON, Frame::MOON_PA, Frame::MOON_CI, MOON_F, OMEGA_MOON};
+        return {NaifId::MOON,   "MOON",         GM_MOON, R_MOON,
+                Frame::MOON_PA, Frame::MOON_CI, MOON_F,  OMEGA_MOON};
       case NaifId::MARS:
-        return {NaifId::MARS, "MARS", GM_MARS, R_MARS, Frame::MARS_FIXED, Frame::MARS_CI, MARS_F, OMEGA_MARS};
+        return {NaifId::MARS,      "MARS",         GM_MARS, R_MARS,
+                Frame::MARS_FIXED, Frame::MARS_CI, MARS_F,  OMEGA_MARS};
       case NaifId::JUPITER:
         return {NaifId::JUPITER,      "JUPITER",         GM_JUPITER, R_JUPITER,
-                Frame::JUPITER_FIXED, Frame::JUPITER_CI, JUPITER_F, OMEGA_JUPITER};
+                Frame::JUPITER_FIXED, Frame::JUPITER_CI, JUPITER_F,  OMEGA_JUPITER};
       case NaifId::SATURN:
         return {NaifId::SATURN,      "SATURN",         GM_SATURN, R_SATURN,
-                Frame::SATURN_FIXED, Frame::SATURN_CI, SATURN_F, OMEGA_SATURN};
+                Frame::SATURN_FIXED, Frame::SATURN_CI, SATURN_F,  OMEGA_SATURN};
       case NaifId::URANUS:
         return {NaifId::URANUS,      "URANUS",         GM_URANUS, R_URANUS,
-                Frame::URANUS_FIXED, Frame::URANUS_CI, URANUS_F, OMEGA_URANUS};
+                Frame::URANUS_FIXED, Frame::URANUS_CI, URANUS_F,  OMEGA_URANUS};
       case NaifId::NEPTUNE:
         return {NaifId::NEPTUNE,      "NEPTUNE",         GM_NEPTUNE, R_NEPTUNE,
                 Frame::NEPTUNE_FIXED, Frame::NEPTUNE_CI, NEPUTUNE_F, OMEGA_NEPTUNE};

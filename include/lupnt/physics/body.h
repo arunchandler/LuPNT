@@ -42,8 +42,8 @@ namespace lupnt {
     NaifId id;
     std::string name;
 
-    T GM;   // Gravitational constant
-    T R;  // Reference radius
+    T GM;     // Gravitational constant
+    T R;      // Reference radius
     T omega;  // sidereal rotation rate
 
     Frame fixed_frame;

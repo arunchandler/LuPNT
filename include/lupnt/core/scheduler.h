@@ -34,7 +34,8 @@ namespace lupnt {
 
     static void ScheduleApplication(Application &app, Real time = 0.0, Real freq = SINGLE_EVENT) {
       app.Setup();
-      ScheduleEvent(Event(time, [&app](Real t) { app.Step(t); }, app.GetFrequency()));
+      ScheduleEvent(Event(
+          time, [&app](Real t) { app.Step(t); }, app.GetFrequency()));
     }
 
     static void RunSimulation(Real endTime = SINGLE_EVENT) {

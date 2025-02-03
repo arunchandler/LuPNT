@@ -98,8 +98,7 @@ namespace lupnt {
 
     // Interface
     virtual OrbitState PropagateState(const OrbitState &state, Real t0, Real tf,
-                                      Mat6d *stm = nullptr) override
-        = 0;
+                                      Mat6d *stm = nullptr) override = 0;
     virtual Vec6 Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm = nullptr) override = 0;
   };
 
@@ -126,8 +125,7 @@ namespace lupnt {
     // Interface
     virtual Vec6 ComputeRates(Real t, const Vec6 &x) const = 0;
     virtual OrbitState PropagateState(const OrbitState &state, Real t0, Real tf,
-                                      Mat6d *stm = nullptr) override
-        = 0;
+                                      Mat6d *stm = nullptr) override = 0;
   };
 
   // ****************************************************************************

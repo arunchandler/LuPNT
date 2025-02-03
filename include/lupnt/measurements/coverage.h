@@ -30,7 +30,7 @@ namespace lupnt {
     std::vector<MatXd> az_target_;
     std::vector<MatXd> el_target_;
 
-    SurfaceCoverage(NaifId body_id) : body_id_(body_id) {};
+    SurfaceCoverage(NaifId body_id) : body_id_(body_id){};
 
     ~SurfaceCoverage() = default;
 

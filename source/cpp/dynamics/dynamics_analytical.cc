@@ -35,7 +35,7 @@ namespace lupnt {
   // KeplerianDynamics
   // ****************************************************************************
 
-  KeplerianDynamics::KeplerianDynamics(Real GM) : GM_(GM) {};
+  KeplerianDynamics::KeplerianDynamics(Real GM) : GM_(GM){};
 
   OrbitState KeplerianDynamics::PropagateState(const OrbitState &state, Real t0, Real tf,
                                                Mat6d *stm) {
@@ -111,7 +111,7 @@ namespace lupnt {
     ClohessyWiltshireDynamics
     ************************************************************************** */
 
-  ClohessyWiltshireDynamics::ClohessyWiltshireDynamics(Real a, Real n) : a_(a), n_(n) {};
+  ClohessyWiltshireDynamics::ClohessyWiltshireDynamics(Real a, Real n) : a_(a), n_(n){};
 
   Vec6 ClohessyWiltshireDynamics::Propagate(const Vec6 &x0, Real t0, Real tf, Mat6d *stm) {
     if (abs(tf - t0) < EPS) {

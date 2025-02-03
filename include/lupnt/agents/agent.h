@@ -56,7 +56,7 @@ namespace lupnt {
     std::vector<Ptr<Application>> applications_;
 
   public:
-    Agent() : id_(id_counter_++), clock_(ClockState(2)) {};
+    Agent() : id_(id_counter_++), clock_(ClockState(2)){};
     virtual ~Agent() = default;
 
     // Getters
