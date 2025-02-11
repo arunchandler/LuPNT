@@ -52,6 +52,64 @@ namespace lupnt {
     return xf;
   }
 
+  NumericalClockDynamics::NumericalClockDynamics(ODE odefunc, IntegratorType integrator)
+      : odefunc_(odefunc), propagator_(integrator) {}
+
+  void NumericalClockDynamics::SetTimeStep(Real dt) { dt_ = dt; }
+  Real NumericalClockDynamics::GetTimeStep() const { return dt_; }
+  void NumericalClockDynamics::SetPlanetaryStates(MatX planetary_states) { planetary_states_ = planetary_states; }
+  MatX NumericalClockDynamics::GetPlanetaryStates() const { return planetary_states_; }
+  void NumericalClockDynamics::SetODEFunction(ODE odefunc) { odefunc_ = odefunc; }
+
+  VecX NumericalClockDynamics::Propagate(const VecX &x0, Real t0, Real tf, MatXd *stm) {
+    if (abs(tf - t0) < EPS) return x0;
+    if (stm == nullptr) {
+      VecX xf = propagator_.Propagate(odefunc_, t0, tf, x0, dt_);
+      return xf;
+    } else {
+      MatXd stm_X(6, 6);
+      VecX xf = propagator_.Propagate(odefunc_, t0, tf, x0, dt_, &stm_X);
+      *stm = stm_X;
+      return xf;
+    }
+  }
+
+  // ****************************************************************************
+  // CircularRestrictedThreeBodyDynamics
+  // ****************************************************************************
+
+  CR3BPDynamics::CR3BPDynamics(Real mu, IntegratorType integ)
+    : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); }, integ),
+      mu_(mu) {}
+
+  Vec6 CR3BPDynamics::ComputeRates(Real t, const Vec6 &x) const {
+    (void)t;
+    Real x_val = x(0);
+    Real y_val = x(1);
+    Real z_val = x(2);
+    Real x_dot = x(3);
+    Real y_dot = x(4);
+    Real z_dot = x(5);
+
+    Real r1 = sqrt(pow(x_val + mu_, 2) + pow(y_val, 2) + pow(z_val, 2));
+    Real r2 = sqrt(pow(x_val - 1 + mu_, 2) + pow(y_val, 2) + pow(z_val, 2));
+
+    Real ax = 2 * y_dot + x_val - (1 - mu_) * (x_val + mu_) / pow(r1, 3) - mu_ * (x_val - 1 + mu_) / pow(r2, 3);
+    Real ay = -2 * x_dot + y_val - (1 - mu_) * y_val / pow(r1, 3) - mu_ * y_val / pow(r2, 3);
+    Real az = -(1 - mu_) * z_val / pow(r1, 3) - mu_ * z_val / pow(r2, 3);
+
+    Vec6 rates;
+    rates << x_dot, y_dot, z_dot, ax, ay, az;
+
+    return rates;
+  }
+
+  OrbitState CR3BPDynamics::PropagateState(const OrbitState &state, Real t0, Real tf, Mat6d *stm) {
+    CheckOrbitStateRepres(state, OrbitStateRepres::CARTESIAN);
+    Vec6 xf = Propagate(state.GetVec(), t0, tf, stm);
+    return CartesianOrbitState(xf, state.GetFrame());
+  }
+
   // ****************************************************************************
   // CartesianTwoBodyDynamics
   // ****************************************************************************
@@ -201,4 +259,40 @@ namespace lupnt {
     Vec6 xf = Propagate(state.GetVec(), t0, tf, stm);
     return CartesianOrbitState(xf, state.GetFrame());
   }
+
+// ****************************************************************************
+// RelativityClockDynamics
+// ****************************************************************************
+
+RelativityClockDynamics::RelativityClockDynamics(IntegratorType integ)
+    : NumericalClockDynamics([this](Real t, const VecX &x) { return ComputeRates(t, x); }, integ) {}
+
+VecX RelativityClockDynamics::ComputeRates(Real t, const VecX &x) const {
+
+    Vec3 pos = x.segment(0, 3);
+    Vec3 vel = x.segment(3, 3);
+
+    MatX planetary_states = GetPlanetaryStates();
+    Real U = 0;
+
+    // Compute the gravitational potential difference U
+    Real r = pos.norm();
+    for (int i = 0; i < planetary_states.cols(); ++i) {
+      Vec3 planet_pos = planetary_states.block<3, 1>(0, i);
+      Real planet_mu = planetary_states(6, i);
+      Real r_planet = (pos - planet_pos).norm();
+      U += -planet_mu / r_planet;
+    }
+    // Compute squared velocity
+    Real V2 = vel.squaredNorm();
+
+    // Compute relativistic clock rate correction
+    Real dT_dtau = 1 + (U / (C * C)) + (0.5 * V2 / (C * C));
+
+    VecX rates;
+    rates << dT_dtau;
+
+    return rates;
+  }
+
 };  // namespace lupnt
