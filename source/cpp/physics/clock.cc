@@ -173,4 +173,57 @@ namespace lupnt {
     }
   }
 
+  //Numerical Clock Dynamics
+  NumericalClockDynamics::NumericalClockDynamics(ODE odefunc, IntegratorType integrator)
+  : odefunc_(odefunc), propagator_(integrator) {}
+
+  void NumericalClockDynamics::SetTimeStep(Real dt) { dt_ = dt; }
+  Real NumericalClockDynamics::GetTimeStep() const { return dt_; }
+  void NumericalClockDynamics::SetPlanetaryStates(MatX planetary_states) { planetary_states_ = planetary_states; }
+  MatX NumericalClockDynamics::GetPlanetaryStates() const { return planetary_states_; }
+  void NumericalClockDynamics::SetODEFunction(ODE odefunc) { odefunc_ = odefunc; }
+
+  VecX NumericalClockDynamics::Propagate(const VecX &x0, Real t0, Real tf, MatXd *stm) {
+    if (abs(tf - t0) < EPS) return x0;
+    if (stm == nullptr) {
+      VecX xf = propagator_.Propagate(odefunc_, t0, tf, x0, dt_);
+      return xf;
+    } else {
+      MatXd stm_X(6, 6);
+      VecX xf = propagator_.Propagate(odefunc_, t0, tf, x0, dt_, &stm_X);
+      *stm = stm_X;
+      return xf;
+    }
+  }
+
+  RelativityClockDynamics::RelativityClockDynamics(IntegratorType integ)
+  : NumericalClockDynamics([this](Real t, const VecX &x) { return ComputeRates(t, x); }, integ) {}
+
+  VecX RelativityClockDynamics::ComputeRates(Real t, const VecX &x) const {
+
+    Vec3 pos = x.segment(0, 3);
+    Vec3 vel = x.segment(3, 3);
+
+    MatX planetary_states = GetPlanetaryStates();
+    Real U = 0;
+
+    // Compute the gravitational potential difference U
+    for (int i = 0; i < planetary_states.cols(); ++i) {
+      Vec3 planet_pos = planetary_states.block<3, 1>(0, i);
+      Real planet_mu = planetary_states(6, i);
+      Real r_planet = (pos - planet_pos).norm();
+      U += planet_mu / abs(r_planet);
+    }
+    // Compute squared velocity
+    Real V2 = vel.squaredNorm();
+
+    // Compute relativistic clock rate correction
+    Real dT_dtau = 1 + (U / (C * C)) + (0.5 * V2 / (C * C));
+
+    VecX rates;
+    rates << dT_dtau;
+
+    return rates;
+}
+
 }  // namespace lupnt
