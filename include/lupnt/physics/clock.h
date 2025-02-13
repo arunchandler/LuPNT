@@ -75,15 +75,6 @@ namespace lupnt {
       NumericalPropagator propagator_;
       Real dt_ = 10.0;
   
-      // In the form [x1,  x2
-                    // y1,  y2
-                    // z1,  z2
-                    // vx1, vx2
-                    // vy1, vy2
-                    // vz1, vz2
-                    // GM1, GM2, ...]
-      MatX planetary_states_;
-  
     public:
       NumericalClockDynamics(ODE odefunc = nullptr, IntegratorType integ = default_integrator);
       void SetTimeStep(Real dt);
@@ -104,6 +95,16 @@ namespace lupnt {
 
   // Relativity Clock Dynamics Interface
   class RelativityClockDynamics : public NumericalClockDynamics {
+    private:
+      // In the form [x1,  x2
+                   // y1,  y2
+                   // z1,  z2
+                   // vx1, vx2
+                   // vy1, vy2
+                   // vz1, vz2
+                   // GM1, GM2, ...]
+      MatX planetary_states_;
+      
     public:
       RelativityClockDynamics(IntegratorType integ = default_integrator);
       VecX ComputeRates(Real t, const VecX &x) const override;

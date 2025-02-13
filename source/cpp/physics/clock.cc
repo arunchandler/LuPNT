@@ -205,14 +205,14 @@ namespace lupnt {
     Vec3 vel = x.segment(3, 3);
 
     MatX planetary_states = GetPlanetaryStates();
-    Real U = 0;
+    Real U = 0.0;
 
     // Compute the gravitational potential difference U
     for (int i = 0; i < planetary_states.cols(); ++i) {
       Vec3 planet_pos = planetary_states.block<3, 1>(0, i);
       Real planet_mu = planetary_states(6, i);
-      Real r_planet = (pos - planet_pos).norm();
-      U += planet_mu / abs(r_planet);
+      Real r = (pos - planet_pos).norm();
+      U += planet_mu / abs(r);
     }
     // Compute squared velocity
     Real V2 = vel.squaredNorm();
@@ -220,10 +220,10 @@ namespace lupnt {
     // Compute relativistic clock rate correction
     Real dT_dtau = 1 + (U / (C * C)) + (0.5 * V2 / (C * C));
 
-    VecX rates;
-    rates << dT_dtau;
+    VecX rates(7);
+    rates << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, dT_dtau;
 
     return rates;
-}
+  }
 
 }  // namespace lupnt
