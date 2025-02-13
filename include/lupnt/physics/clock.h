@@ -79,8 +79,6 @@ namespace lupnt {
       NumericalClockDynamics(ODE odefunc = nullptr, IntegratorType integ = default_integrator);
       void SetTimeStep(Real dt);
       Real GetTimeStep() const;
-      void SetPlanetaryStates(MatX planetary_states);
-      MatX GetPlanetaryStates() const;
       void SetODEFunction(ODE odefunc);
       void SetIntegratorParams(IntegratorParams params) {
         propagator_.integrator->SetIntegratorParams(params);
@@ -104,9 +102,11 @@ namespace lupnt {
                    // vz1, vz2
                    // GM1, GM2, ...]
       MatX planetary_states_;
-      
+
     public:
       RelativityClockDynamics(IntegratorType integ = default_integrator);
+      void SetPlanetaryStates(MatX planetary_states);
+      MatX GetPlanetaryStates() const;
       VecX ComputeRates(Real t, const VecX &x) const override;
   };
 }  // namespace lupnt
