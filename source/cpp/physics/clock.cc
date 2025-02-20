@@ -179,6 +179,8 @@ namespace lupnt {
 
   void NumericalClockDynamics::SetTimeStep(Real dt) { dt_ = dt; }
   Real NumericalClockDynamics::GetTimeStep() const { return dt_; }
+  void NumericalClockDynamics::SetPlanetaryStates(MatX planetary_states) { planetary_states_ = planetary_states; }
+  MatX NumericalClockDynamics::GetPlanetaryStates() const { return planetary_states_; }
   void NumericalClockDynamics::SetODEFunction(ODE odefunc) { odefunc_ = odefunc; }
 
   VecX NumericalClockDynamics::Propagate(const VecX &x0, Real t0, Real tf, MatXd *stm) {
@@ -196,9 +198,6 @@ namespace lupnt {
 
   RelativityClockDynamics::RelativityClockDynamics(IntegratorType integ)
   : NumericalClockDynamics([this](Real t, const VecX &x) { return ComputeRates(t, x); }, integ) {}
-
-  void RelativityClockDynamics::SetPlanetaryStates(MatX planetary_states) { planetary_states_ = planetary_states; }
-  MatX RelativityClockDynamics::GetPlanetaryStates() const { return planetary_states_; }
 
   VecX RelativityClockDynamics::ComputeRates(Real t, const VecX &x) const {
 
