@@ -12,13 +12,50 @@ using namespace matplot;
 
 int main() {
 
+    //initialize dynamics
     ClockOrbitDynamics clock_orbit(integ);
+    Frame frame = Frame::MOON_CI;
+    clock_orbit.SetFrame_COD(frame);
+    clock_orbit.AddBody_COD(Body::Moon());
 
-    clock_orbit.AddBody_COD(Body::Earth());
+    //start with initial orbital elements and time parameters
+    t0 = 0.0;
+    tf = 10.0;
+    dt = 0.1;
+    num_steps = static_cast<int>((tf - t0) / dt) + 1;
+    clock_orbit.SetTimeStep(dt);
 
-    VecX x0(7);
-    x0 << 1.0, 0.0, 0.0, //pos
-          0.0, 0.0, 0.0, //vel
-          0.0; //initial time error
+    Real a = R_MOON + 100.0;
+    Real e = 0.0;
+    Real i = 0.0;
+    Real Omega = 0.0;
+    Real omega = 0.0;
+    Real M0 = 0.0;
+    Vec6 elements = {a, e, i, Omega, omega, M0};
+    Vec6 init_state = Classical2Cart(elements, GM_MOON);
+
+    //propagate state and timing error
+    MatX state_history(num_steps, 7);
+    state_history.row(0) = init_state;
+    Real t = t0;
+    for (int i = 1; i < num_steps; i++) {
+        VecX x = state_history.row(i-1);
+        state_history.row(i) = clock_orbit.Propagate(x, t, t + dt);
+        t += dt;
+    }
+
+    //plot results
+    figure();
+    hold(on);
+    VecX x_vals = state_history.col(0);
+    VecX y_vals = state_history.col(1);
+    VecX z_vals = state_history.col(2);
+    Plot3(x_vals, y_vals, z_vals, "b", 0);
+    PlotBody(NaifId::MOON, Vec3::Zero(), 1);
+    xlabel("X [km]");
+    ylabel("Y [km]");
+    zlabel("Z [km]");
+    title("Relativistic Clock Correction");
+    show();
 
 }
