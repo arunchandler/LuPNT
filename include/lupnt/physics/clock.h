@@ -15,6 +15,7 @@
 
 #include "lupnt/dynamics/dynamics.h"
 #include "lupnt/numerics/math_utils.h"
+
 #include "state.h"
 
 namespace lupnt {
@@ -75,21 +76,10 @@ namespace lupnt {
       NumericalPropagator propagator_;
       Real dt_ = 10.0;
   
-      // In the form [x1,  x2
-                    // y1,  y2
-                    // z1,  z2
-                    // vx1, vx2
-                    // vy1, vy2
-                    // vz1, vz2
-                    // GM1, GM2, ...]
-      MatX planetary_states_;
-  
     public:
       NumericalClockDynamics(ODE odefunc = nullptr, IntegratorType integ = default_integrator);
       void SetTimeStep(Real dt);
       Real GetTimeStep() const;
-      void SetPlanetaryStates(MatX planetary_states);
-      MatX GetPlanetaryStates() const;
       void SetODEFunction(ODE odefunc);
       void SetIntegratorParams(IntegratorParams params) {
         propagator_.integrator->SetIntegratorParams(params);
@@ -102,10 +92,74 @@ namespace lupnt {
       virtual VecX ComputeRates(Real t, const VecX &x) const = 0;
   };
 
-  // Relativity Clock Dynamics Interface
-  class RelativityClockDynamics : public NumericalClockDynamics {
+  // Relativistic Clock Dynamics Interface
+  template <typename T = double> class RelativisticClockDynamics : public NumericalClockDynamics {
+    private:
+      std::vector<BodyT<T>> bodies_;
+      Frame frame_ = Frame::NONE;
+
     public:
-      RelativityClockDynamics(IntegratorType integ = default_integrator);
+      RelativisticClockDynamics(IntegratorType integ = default_integrator);
+
+      void AddBody(const BodyT<T> &body) {
+        for (auto &b : bodies_) {
+          if (b.id == body.id) throw std::runtime_error("Body already added");
+        }
+        bodies_.push_back(body);
+      }
+  
+      std::vector<BodyT<T>> GetBodies() { return bodies_; }
+  
+      void RemoveBody(const BodyT<T> &body) {
+        for (auto it = bodies_.begin(); it != bodies_.end(); ++it) {
+          if (it->id == body.id) {
+            bodies_.erase(it);
+            break;
+          }
+        }
+      }
+
+      // Overrides
       VecX ComputeRates(Real t, const VecX &x) const override;
   };
+
+  class ClockOrbitDynamics : public IDynamics {
+    private:
+      ODE odefunc_;
+      NumericalPropagator propagator_;
+      std::shared_ptr<NBodyDynamics<>> orbitDynamics_;
+      std::shared_ptr<RelativisticClockDynamics<>> clockDynamics_;
+      Real dt_ = 1.0;
+
+    public:
+      ClockOrbitDynamics(IntegratorType integ = default_integrator);
+
+      void AddBody_COD(const BodyT<> &body) {
+        orbitDynamics_->AddBody(body);
+        clockDynamics_->AddBody(body);
+      }
+
+      void RemoveBody_COD(const BodyT<> &body) {
+        orbitDynamics_->RemoveBody(body);
+        clockDynamics_->RemoveBody(body);
+      }
+
+      void SetTimeStep(Real dt) { dt_ = dt; orbitDynamics_->SetTimeStep(dt); clockDynamics_->SetTimeStep(dt); }
+
+      void SetFrame_COD(Frame frame) { orbitDynamics_->SetFrame(frame); }
+
+      std::vector<BodyT<>> GetBodies_COD() {
+        std::vector<BodyT<>> bodies = orbitDynamics_->GetBodies();
+        return bodies;
+      }
+
+      VecX ComputeRates(Real t, const VecX &x) const;
+
+      VecX Propagate(const VecX &x0, Real t0, Real tf, MatXd *stm = nullptr);
+
+      //TODO: Implement this
+      Ptr<IState> PropagateState(const Ptr<IState> &state, Real t0, Real tf, MatXd *stm = nullptr);
+
+  };
+
 }  // namespace lupnt
