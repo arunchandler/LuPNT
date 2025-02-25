@@ -226,13 +226,12 @@ namespace lupnt {
   ClockOrbitDynamics::ClockOrbitDynamics(IntegratorType integ) : 
     orbitDynamics_(std::make_unique<NBodyDynamics<>>(integ)),
     propagator_(integ),
+    odefunc_([this](Real t, const VecX &x) { return ComputeRates(t, x); }),
     clockDynamics_(std::make_unique<RelativisticClockDynamics<>>(integ)) {}
   
   VecX ClockOrbitDynamics::ComputeRates(Real t, const VecX &x) const {
 
-    const int orbit_size = 6;
-
-    Vec6 x_orbit = x.head(orbit_size);
+    Vec6 x_orbit = x.head(6);
 
     Vec6 orbitRates = orbitDynamics_->ComputeRates(t, x_orbit);
     VecX clockRates = clockDynamics_->ComputeRates(t, x);
@@ -247,11 +246,11 @@ namespace lupnt {
   VecX ClockOrbitDynamics::Propagate(const VecX &x0, Real t0, Real tf, MatXd *stm) {
     if (abs(tf - t0) < EPS) return x0;
     if (stm == nullptr) {
-      VecX xf = propagator_.Propagate([this](Real t, const VecX &x) { return ComputeRates(t, x); }, t0, tf, x0, dt_);
+      VecX xf = propagator_.Propagate(odefunc_, t0, tf, x0, dt_);
       return xf;
     } else {
       MatXd stm_X(7, 7);
-      VecX xf = propagator_.Propagate([this](Real t, const VecX &x) { return ComputeRates(t, x); }, t0, tf, x0, dt_, &stm_X);
+      VecX xf = propagator_.Propagate(odefunc_, t0, tf, x0, dt_, &stm_X);
       *stm = stm_X;
       return xf;
     }
