@@ -119,6 +119,9 @@ namespace lupnt {
         }
       }
 
+      void SetFrame(Frame frame) { frame_ = frame; }
+      void GetFrame(Frame &frame) { frame = frame_; }
+
       // Overrides
       VecX ComputeRates(Real t, const VecX &x) const override;
   };
@@ -129,7 +132,7 @@ namespace lupnt {
       NumericalPropagator propagator_;
       std::shared_ptr<NBodyDynamics<>> orbitDynamics_;
       std::shared_ptr<RelativisticClockDynamics<>> clockDynamics_;
-      Real dt_ = 1.0;
+      Real dt_ = 10.0;
 
     public:
       ClockOrbitDynamics(IntegratorType integ = default_integrator);
@@ -146,7 +149,7 @@ namespace lupnt {
 
       void SetTimeStep(Real dt) { dt_ = dt; orbitDynamics_->SetTimeStep(dt); clockDynamics_->SetTimeStep(dt); }
 
-      void SetFrame_COD(Frame frame) { orbitDynamics_->SetFrame(frame); }
+      void SetFrame_COD(Frame frame) { orbitDynamics_->SetFrame(frame); clockDynamics_->SetFrame(frame); }
 
       std::vector<BodyT<>> GetBodies_COD() {
         std::vector<BodyT<>> bodies = orbitDynamics_->GetBodies();

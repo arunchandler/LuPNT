@@ -20,8 +20,8 @@ int main() {
 
     //start with initial orbital elements and time parameters
     Real t0 = 0.0;
-    Real tf = 10.0;
-    Real dt = 0.1;
+    Real tf = SECS_DAY;
+    Real dt = 10.0;
     Real init_t_err = 0.0;
     int num_steps = static_cast<int>((tf - t0) / dt) + 1;
     clock_orbit.SetTimeStep(dt);
@@ -48,19 +48,25 @@ int main() {
         t += dt;
     }
 
-    //plot results
-    figure();
-    hold(on);
-    VecX x_vals = state_history.col(0);
-    VecX y_vals = state_history.col(1);
-    VecX z_vals = state_history.col(2);
-    Plot3(x_vals, y_vals, z_vals, "b", 0);
-    Vec3 r_Moon = GetBodyPos(t, NaifId::MOON, frame);
-    PlotBody(NaifId::MOON, r_Moon, 1);
-    xlabel("X [km]");
-    ylabel("Y [km]");
-    zlabel("Z [km]");
-    title("Relativistic Clock Correction for Lunar Orbit");
-    show();
+    //show results
+    cout << "Relativistic Correction: " << state_history(num_steps-1, 6) - tf << "s" << endl;
+
+    bool plot = true;
+    if (plot) {
+        figure();
+        hold(on);
+        VecX x_vals = state_history.col(0);
+        VecX y_vals = state_history.col(1);
+        VecX z_vals = state_history.col(2);
+        Plot3(x_vals, y_vals, z_vals, "b", 0);
+        Vec3 r_Moon = GetBodyPos(t, NaifId::MOON, frame);
+        PlotBody(NaifId::MOON, r_Moon, 0);
+        xlabel("X [km]");
+        ylabel("Y [km]");
+        zlabel("Z [km]");
+        title("Relativistic Clock Correction for LLO");
+        SetLim(a, 0);
+        show();
+    }
 
 }

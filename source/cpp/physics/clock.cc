@@ -234,10 +234,11 @@ namespace lupnt {
     Vec6 x_orbit = x.head(6);
 
     Vec6 orbitRates = orbitDynamics_->ComputeRates(t, x_orbit);
-    VecX clockRates = clockDynamics_->ComputeRates(t, x);
+    Vec7 clockRates = clockDynamics_->ComputeRates(t, x);
 
-    VecX rates;
-    rates << orbitRates, clockRates(6);
+    VecX rates(7);
+    rates.head(6) = orbitRates;
+    rates(6) = clockRates(6);
 
     return rates;
 

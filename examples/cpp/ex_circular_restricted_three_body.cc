@@ -3,6 +3,7 @@
 * Tests dynamics of CR3BP around the Earth-Moon Lagrange points
 * Position is normalized by the Earth-Moon distance
 * Velocity is normalized by the Earth-Moon distance and the Earth-Moon gravitational parameter
+* Time is normalized by the Earth-Moon distance and the Earth-Moon gravitational parameter
 */
 
 #include <lupnt/lupnt.h>
