@@ -18,10 +18,14 @@ int main() {
     clock_orbit.SetFrame_COD(frame);
     clock_orbit.AddBody_COD(Body::Moon());
 
+    //initialize ground asset
+    // SurfaceStaticDynamics surface_dynamics(NaifId::MOON, frame);
+    // Vec6 init_surface_state = {0.0, 0.0, -R_MOON, 0.0, 0.0, 0.0};
+
     //start with initial orbital elements and time parameters
     Real t0 = 0.0;
     Real tf = SECS_DAY;
-    Real dt = 10.0;
+    Real dt = 100.0;
     Real init_t_err = 0.0;
     int num_steps = static_cast<int>((tf - t0) / dt) + 1;
     clock_orbit.SetTimeStep(dt);
@@ -41,10 +45,14 @@ int main() {
     //propagate state and timing error
     MatX state_history(num_steps, 7);
     state_history.row(0) = init_state;
+    // MatX surface_state_history(num_steps, 6);
+    // surface_state_history.row(0) = init_surface_state;
     Real t = t0;
     for (int i = 1; i < num_steps; i++) {
         VecX x = state_history.row(i-1);
+        // Vec6 x_surface = surface_state_history.row(i-1);
         state_history.row(i) = clock_orbit.Propagate(x, t, t + dt);
+        // surface_state_history.row(i) = surface_dynamics.Propagate(x_surface, t, t + dt);
         t += dt;
     }
 

@@ -35,17 +35,17 @@ int main() {
     // L1 Vertical
     // x0 << 0.861879, 0.0, 0.0, //pos
     //       0.0, 0.085903, 0.432614, //vel
-        //  0.0; //time error 
+    //      0.0; //time error 
 
     // L2 Northern Butterfly
-    // x0 << 1.038394, 0.0, 0.173741, //pos
-    //       0.0, -0.078548, 0.0, //vel
-         //  0.0; //time error
+    x0 << 1.038394, 0.0, 0.173741, //pos
+          0.0, -0.078548, 0.0, //vel
+          0.0; //time error
 
     // L3 Lyaupunov
-    x0 << -0.463824, 0.0, 0.0, //pos
-          0.0, -1.388737, 0.0, //vel
-          0.0; //time error
+    // x0 << -0.463824, 0.0, 0.0, //pos
+    //       0.0, -1.388737, 0.0, //vel
+    //       0.0; //time error
 
     // L4 Short Period
     // x0 << 0.416475, 0.866025, 0.0, //pos
@@ -58,14 +58,14 @@ int main() {
          //  0.0; //time error
 
     // L4 Vertical
-//     x0 << 0.503828, 0.856388, 0.0, //pos
-//           0.059258, -0.034869, 0.366554, //vel
-//           0.0; //time error
+    // x0 << 0.503828, 0.856388, 0.0, //pos
+    //       0.059258, -0.034869, 0.366554, //vel
+    //       0.0; //time error
 
     // L5 Long Period
     // x0 << 0.450191, -0.866025, 0.0, //pos
     //       0.023670, 0.014418, 0.0, //vel
-         //  0.0; //time error
+    //       0.0; //time error
 
     Vec6d earth_state(-mu.val(), 0.0, 0.0,
                     0.0, 0.0, 0.0);      // Earth state in CR3BP
@@ -81,9 +81,9 @@ int main() {
 //     planetary_states(6, 1) = GM_MOON;
     //time_error.SetPlanetaryStates(planetary_states);
 
-    //time parameters
+    //time parameters - normalized
     Real t0 = 0;
-    Real tf = 7;
+    Real tf = 30;
     Real dt = 0.1;
     int num_steps = static_cast<int>((tf - t0) / dt) + 1;
 
