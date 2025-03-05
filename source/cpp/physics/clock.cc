@@ -198,27 +198,34 @@ namespace lupnt {
   RelativisticClockDynamics<T>::RelativisticClockDynamics(IntegratorType integ)
   : NumericalClockDynamics([this](Real t, const VecX &x) { return ComputeRates(t, x); }, integ) {}
 
+
   template <typename T>
   VecX RelativisticClockDynamics<T>::ComputeRates(Real t, const VecX &x) const {
 
-    Vec3 r = x.segment(0, 3);
-    Vec3 v = x.segment(3, 3);
-    Real U = 0.0;
+    Vec3 r_asset = asset_state_.head(3);
+    Vec3 v_asset = asset_state_.tail(3);
+    Vec3 r_sat = x.head(3);
+    Vec3 v_sat = x.tail(3);
 
-    // Compute the gravitational potential difference U
+    //velocity time dilation
+    Real dv = (v_sat-v_asset).norm();
+    Real gamma_v = 1.0/sqrt(1.0-pow(dv/C,2));
+    Real dtdT_v = 1.0/gamma_v;
+
+    //gravitational time dilation - TODO: account for oblateness
+    Real r_asset_norm = r_asset.norm();
+    Real r_sat_norm = r_sat.norm();
+    Real dtdT_u = 1.0;
+
     for (const auto& body : bodies_) {
-      Vec3 r_body = GetBodyPos(t, body.id, frame_);
-      Real GM = body.GM;
-      U += GM / (r - r_body).norm();
-    }
-    // Compute squared velocity
-    Real V2 = v.squaredNorm();
+      Real gamma_u_asset = sqrt(1.0 - 2.0 * body.GM / (r_asset_norm * pow(C, 2)));
+      Real gamma_u_sat = sqrt(1.0 - 2.0 * body.GM / (r_sat_norm * pow(C, 2)));
+      dtdT_u *= gamma_u_sat / gamma_u_asset;
+  }
 
-    // Compute relativistic clock rate correction
-    Real dT_dtau = 1 + (U / (C * C)) + (0.5 * V2 / (C * C));
-
-    VecX rates = VecX::Zero(7);
-    rates(6) = dT_dtau;
+    VecX rates = VecX::Zero(8);
+    rates(6) = dtdT_v;
+    rates(7) = dtdT_u;
 
     return rates;
   }
@@ -234,11 +241,11 @@ namespace lupnt {
     Vec6 x_orbit = x.head(6);
 
     Vec6 orbitRates = orbitDynamics_->ComputeRates(t, x_orbit);
-    Vec7 clockRates = clockDynamics_->ComputeRates(t, x);
+    Vec8 clockRates = clockDynamics_->ComputeRates(t, x);
 
-    VecX rates(7);
+    VecX rates(8);
     rates.head(6) = orbitRates;
-    rates(6) = clockRates(6);
+    rates.tail(2) = clockRates.segment(6, 2);
 
     return rates;
 

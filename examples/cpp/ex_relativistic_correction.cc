@@ -18,48 +18,49 @@ int main() {
     clock_orbit.SetFrame_COD(frame);
     clock_orbit.AddBody_COD(Body::Moon());
 
-    //initialize ground asset
-    // SurfaceStaticDynamics surface_dynamics(NaifId::MOON, frame);
-    // Vec6 init_surface_state = {0.0, 0.0, -R_MOON, 0.0, 0.0, 0.0};
+    //initialize ground station state at south pole of moon
+    SurfaceStaticDynamics ground_asset(NaifId::MOON, frame);
+    Vec6 rv_asset = {0.0, 0.0, -R_MOON, 0.0, 0.0, 0.0}; //position and velocity
+    clock_orbit.SetAssetState_COD(rv_asset);
 
     //start with initial orbital elements and time parameters
-    Real t0 = 0.0;
-    Real tf = SECS_DAY;
-    Real dt = 100.0;
-    Real init_t_err = 0.0;
+    Real t0 = Gregorian2Time(2025, 11, 9, 0, 0, 0);
+    Real tf = t0 + SECS_DAY;
+    Real dt = 10.0;
     int num_steps = static_cast<int>((tf - t0) / dt) + 1;
     clock_orbit.SetTimeStep(dt);
 
     Real a = R_MOON + 100.0;
     Real e = 0.0;
-    Real i = 0.0;
+    Real i = 90.0;
     Real Omega = 0.0;
     Real omega = 0.0;
     Real M0 = 0.0;
     Vec6 elements = {a, e, i, Omega, omega, M0};
     Vec6 state0 = Classical2Cart(elements, GM_MOON);
-    VecX init_state(7);
+    VecX init_state(8);
     init_state.head<6>() = state0;
-    init_state[6] = init_t_err;
+    init_state[6] = 0.0; //velocity time dilation
+    init_state[7] = 0.0; //gravitational time dilation
 
     //propagate state and timing error
-    MatX state_history(num_steps, 7);
+    MatX state_history(num_steps, 8);
     state_history.row(0) = init_state;
-    // MatX surface_state_history(num_steps, 6);
-    // surface_state_history.row(0) = init_surface_state;
+
     Real t = t0;
     for (int i = 1; i < num_steps; i++) {
         VecX x = state_history.row(i-1);
-        // Vec6 x_surface = surface_state_history.row(i-1);
         state_history.row(i) = clock_orbit.Propagate(x, t, t + dt);
-        // surface_state_history.row(i) = surface_dynamics.Propagate(x_surface, t, t + dt);
+        rv_asset = ground_asset.Propagate(rv_asset, t, t + dt);
+        clock_orbit.SetAssetState_COD(rv_asset);
         t += dt;
     }
 
     //show results
-    cout << "Relativistic Correction: " << state_history(num_steps-1, 6) - tf << "s" << endl;
+    cout << "Time Correction from Velocity Time Dilation: " << state_history(num_steps-1, 6) - (tf-t0) << "s" << endl;
+    cout << "Time Correction from Gravitational Time Dilation: " << state_history(num_steps-1, 7) - (tf-t0) << "s" << endl;
 
-    bool plot = true;
+    bool plot = false;
     if (plot) {
         figure();
         hold(on);

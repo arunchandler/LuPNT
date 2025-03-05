@@ -97,6 +97,7 @@ namespace lupnt {
     private:
       std::vector<BodyT<T>> bodies_;
       Frame frame_ = Frame::NONE;
+      Vec6 asset_state_;
 
     public:
       RelativisticClockDynamics(IntegratorType integ = default_integrator);
@@ -121,6 +122,9 @@ namespace lupnt {
 
       void SetFrame(Frame frame) { frame_ = frame; }
       void GetFrame(Frame &frame) { frame = frame_; }
+
+      void SetAssetState(const Vec6 &state) { asset_state_ = state; }
+      Vec6 GetAssetState() { return asset_state_; }
 
       // Overrides
       VecX ComputeRates(Real t, const VecX &x) const override;
@@ -155,6 +159,8 @@ namespace lupnt {
         std::vector<BodyT<>> bodies = orbitDynamics_->GetBodies();
         return bodies;
       }
+
+      void SetAssetState_COD(const Vec6 &state) { clockDynamics_->SetAssetState(state); }
 
       VecX ComputeRates(Real t, const VecX &x) const;
 
