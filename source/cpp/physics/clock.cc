@@ -202,26 +202,41 @@ namespace lupnt {
   template <typename T>
   VecX RelativisticClockDynamics<T>::ComputeRates(Real t, const VecX &x) const {
 
-    Vec3 r_asset = asset_state_.head(3);
-    Vec3 v_asset = asset_state_.tail(3);
+    Vec3 r_observer = observer_state_.head(3);
+    Vec3 v_observer = observer_state_.tail(3);
     Vec3 r_sat = x.head(3);
-    Vec3 v_sat = x.tail(3);
+    Vec3 v_sat = x.segment(3,3);
+    Real r_observer_norm = r_observer.norm();
+    Real r_sat_norm = r_sat.norm();
+    Real dr = abs(r_sat_norm - r_observer_norm);
 
     //velocity time dilation
-    Real dv = (v_sat-v_asset).norm();
+    Real dv = (v_sat-v_observer).norm();
     Real gamma_v = 1.0/sqrt(1.0-pow(dv/C,2));
-    Real dtdT_v = 1.0/gamma_v;
+    Real dtdT_v = gamma_v;
 
-    //gravitational time dilation - TODO: account for oblateness
-    Real r_asset_norm = r_asset.norm();
-    Real r_sat_norm = r_sat.norm();
-    Real dtdT_u = 1.0;
-
+    //gravitational time dilation
+    Real u_observer = 0.0;
+    Real u_sat = 0.0;
+    Vec3 planet_pos = Vec3::Zero();
     for (const auto& body : bodies_) {
-      Real gamma_u_asset = sqrt(1.0 - 2.0 * body.GM / (r_asset_norm * pow(C, 2)));
-      Real gamma_u_sat = sqrt(1.0 - 2.0 * body.GM / (r_sat_norm * pow(C, 2)));
-      dtdT_u *= gamma_u_sat / gamma_u_asset;
-  }
+      planet_pos = GetBodyPos(t, body.id, frame_);
+      u_observer -= body.GM / (r_observer - planet_pos).norm();
+      u_sat -= body.GM / (r_sat - planet_pos).norm();
+    }
+
+    // - personal derived definition
+    // Real gamma_u_observer = sqrt(1.0 - 2.0 * u_observer / pow(C, 2));
+    // Real gamma_u_sat = sqrt(1.0 - 2.0 * u_sat / pow(C, 2));
+    // Real dtdT_u = gamma_u_sat / gamma_u_observer;
+
+    // - GNSS Paper definition
+    Real du = u_sat - u_observer;
+    Real dtdT_u = 1.0 - du/pow(C,2);
+
+    // - Alana Sanchez video definition - only for one body
+    // Real mu = bodies_[0].GM;
+    // Real dtdT_u = sqrt(1.0 - 2.0 * mu / (dr * pow(C, 2)));
 
     VecX rates = VecX::Zero(8);
     rates(6) = dtdT_v;
