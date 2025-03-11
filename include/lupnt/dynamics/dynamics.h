@@ -182,10 +182,15 @@ namespace lupnt {
   // Cartesian Circular Restricted Three-Body Dynamics
   class CR3BPDynamics : public NumericalOrbitDynamics {
   private:
+      // std::vector<BodyT<T>> bodies_;
+      // Frame frame_ = Frame::NONE;
       Real mu_;
+      Real r_scale_;
+      Real v_scale_;
+      Real t_scale_;
 
   public:
-      CR3BPDynamics(Real mu, IntegratorType integ = default_integrator);
+      CR3BPDynamics(Vec2 GMs, IntegratorType integ = default_integrator);
       Vec6 ComputeRates(Real t, const Vec6 &x) const override;
       OrbitState PropagateState(const OrbitState &state, Real t0, Real tf, Mat6d *stm) override;
   };

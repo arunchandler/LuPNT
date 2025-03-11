@@ -56,9 +56,21 @@ namespace lupnt {
   // CircularRestrictedThreeBodyDynamics
   // ****************************************************************************
 
-  CR3BPDynamics::CR3BPDynamics(Real mu, IntegratorType integ)
-    : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); }, integ),
-      mu_(mu) {}
+  CR3BPDynamics::CR3BPDynamics(Vec2 GMs, IntegratorType integ)
+    : NumericalOrbitDynamics([this](Real t, const Vec6 &x) { return ComputeRates(t, x); }, integ) {
+      if (GMs.size() != 2) throw std::runtime_error("CR3BP requires two bodies");
+      Real mu1 = GMs[0];
+      Real mu2 = GMs[1];
+      if (mu1 < mu2) {
+        mu_ = mu1 / (mu1 + mu2);
+      } else {
+        mu_ = mu2 / (mu1 + mu2);
+      }
+      Real dist = D_EARTH_MOON; //TODO: Update for generalization - only works with earth-moon system
+      r_scale_ = dist;
+      v_scale_ = sqrt((mu1 + mu2) / dist);
+      t_scale_ = dist / v_scale_;
+    }
 
   Vec6 CR3BPDynamics::ComputeRates(Real t, const Vec6 &x) const {
     (void)t;

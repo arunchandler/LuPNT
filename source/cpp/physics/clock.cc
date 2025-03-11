@@ -226,13 +226,13 @@ namespace lupnt {
     }
 
     // - personal derived definition
-    // Real gamma_u_observer = sqrt(1.0 - 2.0 * u_observer / pow(C, 2));
-    // Real gamma_u_sat = sqrt(1.0 - 2.0 * u_sat / pow(C, 2));
-    // Real dtdT_u = gamma_u_sat / gamma_u_observer;
+    Real gamma_u_observer = sqrt(1.0 - 2.0 * u_observer / pow(C, 2));
+    Real gamma_u_sat = sqrt(1.0 - 2.0 * u_sat / pow(C, 2));
+    Real dtdT_u = gamma_u_sat / gamma_u_observer;
 
     // - GNSS Paper definition
-    Real du = u_sat - u_observer;
-    Real dtdT_u = 1.0 - du/pow(C,2);
+    // Real du = u_sat - u_observer;
+    // Real dtdT_u = 1.0 - du/pow(C,2);
 
     // - Alana Sanchez video definition - only for one body
     // Real mu = bodies_[0].GM;
