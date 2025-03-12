@@ -1,6 +1,7 @@
 /*
 * ex_lagrange_relativistic.cc
 * Tests relativistic corrections at Lagrange points
+* Warning: This takes a long time to run especially if you are plotting
 */
 
 #include <lupnt/lupnt.h>
@@ -81,18 +82,28 @@ int main(){
     MatX state_history_L3(num_steps, 8);
     MatX state_history_L4(num_steps, 8);
     MatX state_history_L5(num_steps, 8);
+    MatX moon_pos_history(num_steps, 3);
     
     state_history_L1.row(0) = x0_L1;
     state_history_L2.row(0) = x0_L2;
     state_history_L3.row(0) = x0_L3;
     state_history_L4.row(0) = x0_L4;
     state_history_L5.row(0) = x0_L5;
+    moon_pos_history.row(0) = r_moon;
 
     MatX observer_state_history(num_steps, 6);
     observer_state_history.row(0) = rv_observer;
     Real t = t0;
 
+    const Real L1_coeff = 0.8446819150716 + mu;
+    const Real L2_coeff = 1.1495185441167 + mu;
+    const Real L3_coeff = -1.0044288297623 + mu;
+    const Real sqrt3_over_2 = sqrt(3) / 2.0;
+
     for (int i = 1; i < num_steps; i++) {
+
+        Vec3 moon_pos = GetBodyPos(t, NaifId::MOON, frame);
+        moon_pos_history.row(i) = moon_pos;
 
         VecX x_L1 = state_history_L1.row(i - 1);
         VecX x_L2 = state_history_L2.row(i - 1);
@@ -106,16 +117,35 @@ int main(){
         VecX x_L4_temp = clock_orbit.Propagate(x_L4, t, t + dt);
         VecX x_L5_temp = clock_orbit.Propagate(x_L5, t, t + dt);
 
-        state_history_L1.row(i).head(6) = x_L1.head(6);
-        state_history_L1.row(i).tail<2>() = x_L1_temp.tail(2);
-        state_history_L2.row(i).head(6) = x_L2.head(6);
-        state_history_L2.row(i).tail<2>() = x_L2_temp.tail(2);
-        state_history_L3.row(i).head(6) = x_L3.head(6);
-        state_history_L3.row(i).tail<2>() = x_L3_temp.tail(2);
-        state_history_L4.row(i).head(6) = x_L4.head(6);
-        state_history_L4.row(i).tail<2>() = x_L4_temp.tail(2);
-        state_history_L5.row(i).head(6) = x_L5.head(6);
-        state_history_L5.row(i).tail<2>() = x_L5_temp.tail(2);
+        //update with true Lagrange positions - not propagated
+        //only timing is propagated
+        Vec3 L4_offset = sqrt3_over_2 * Vec3(-moon_pos(1), moon_pos(0), 0.0);
+        Vec3 L5_offset = -L4_offset;
+        Vec3 L1_pos = L1_coeff * moon_pos;
+        Vec3 L2_pos = L2_coeff * moon_pos;
+        Vec3 L3_pos = L3_coeff * moon_pos;
+        Vec3 L4_pos = 0.5 * moon_pos + L4_offset;
+        Vec3 L5_pos = 0.5 * moon_pos + L5_offset;
+
+        state_history_L1.row(i).head(3) = L1_pos;
+        state_history_L1.row(i).segment(3, 3) = omega.cross(L1_pos);
+        state_history_L1.row(i).tail(2) = x_L1_temp.tail(2);
+
+        state_history_L2.row(i).head(3) = L2_pos;
+        state_history_L2.row(i).segment(3, 3) = omega.cross(L2_pos);
+        state_history_L2.row(i).tail(2) = x_L2_temp.tail(2);
+
+        state_history_L3.row(i).head(3) = L3_pos;
+        state_history_L3.row(i).segment(3, 3) = omega.cross(L3_pos);
+        state_history_L3.row(i).tail(2) = x_L3_temp.tail(2);
+
+        state_history_L4.row(i).head(3) = L4_pos;
+        state_history_L4.row(i).segment(3, 3) = omega.cross(L4_pos);
+        state_history_L4.row(i).tail(2) = x_L4_temp.tail(2);
+
+        state_history_L5.row(i).head(3) = L5_pos;
+        state_history_L5.row(i).segment(3, 3) = omega.cross(L5_pos);
+        state_history_L5.row(i).tail(2) = x_L5_temp.tail(2);
 
         observer_state_history.row(i) = ground_observer.Propagate(x_observer, t, t + dt);
         clock_orbit.SetObserverState_COD(observer_state_history.row(i));
@@ -146,10 +176,30 @@ int main(){
     if (plot) {
         figure();
         hold(on);
-        VecX x_vals = state_history_L1.col(0);
-        VecX y_vals = state_history_L1.col(1);
-        VecX z_vals = state_history_L1.col(2);
-        Plot3(x_vals, y_vals, z_vals, "b", 0);
+        VecX L1_x_vals = state_history_L1.col(0);
+        VecX L1_y_vals = state_history_L1.col(1);
+        VecX L1_z_vals = state_history_L1.col(2);
+        VecX L2_x_vals = state_history_L2.col(0);
+        VecX L2_y_vals = state_history_L2.col(1);
+        VecX L2_z_vals = state_history_L2.col(2);
+        VecX L3_x_vals = state_history_L3.col(0);
+        VecX L3_y_vals = state_history_L3.col(1);
+        VecX L3_z_vals = state_history_L3.col(2);
+        VecX L4_x_vals = state_history_L4.col(0);
+        VecX L4_y_vals = state_history_L4.col(1);
+        VecX L4_z_vals = state_history_L4.col(2);
+        VecX L5_x_vals = state_history_L5.col(0);
+        VecX L5_y_vals = state_history_L5.col(1);
+        VecX L5_z_vals = state_history_L5.col(2);
+        Plot3(L1_x_vals, L1_y_vals, L1_z_vals, "b", 0);
+        Plot3(L2_x_vals, L2_y_vals, L2_z_vals, "g", 0);
+        Plot3(L3_x_vals, L3_y_vals, L3_z_vals, "y", 0);
+        Plot3(L4_x_vals, L4_y_vals, L4_z_vals, "m", 0);
+        Plot3(L5_x_vals, L5_y_vals, L5_z_vals, "c", 0);
+        VecX moon_x_vals = moon_pos_history.col(0);
+        VecX moon_y_vals = moon_pos_history.col(1);
+        VecX moon_z_vals = moon_pos_history.col(2);
+        Plot3(moon_x_vals, moon_y_vals, moon_z_vals, "r", 0);
         Vec3 r_Earth = GetBodyPos(t, NaifId::EARTH, frame);
         PlotBody(NaifId::EARTH, r_Earth, 0);
         xlabel("X [km]");
