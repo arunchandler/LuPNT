@@ -134,11 +134,11 @@ namespace lupnt {
     private:
       ODE odefunc_;
       NumericalPropagator propagator_;
-      std::shared_ptr<NBodyDynamics<>> orbitDynamics_;
-      std::shared_ptr<RelativisticClockDynamics<>> clockDynamics_;
       Real dt_ = 10.0;
 
     public:
+      std::shared_ptr<NBodyDynamics<>> orbitDynamics_;
+      std::shared_ptr<RelativisticClockDynamics<>> clockDynamics_;
       ClockOrbitDynamics(IntegratorType integ = default_integrator);
 
       void AddBody_COD(const BodyT<> &body) {

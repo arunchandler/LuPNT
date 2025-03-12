@@ -93,7 +93,6 @@ int main() {
         xlabel("X [km]");
         ylabel("Y [km]");
         zlabel("Z [km]");
-        title("Relativistic Clock Correction for LLO");
         SetLim(a, 0);
         show();
     }
