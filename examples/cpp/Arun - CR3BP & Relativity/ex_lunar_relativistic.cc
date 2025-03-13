@@ -38,7 +38,7 @@ int main() {
     // Real i = 90.0;
     // Real Omega = 0.0;
     // Real omega = 0.0;
-    //ELFO - fill these out
+    //ELFO
     Real a = 6541.4;
     Real e = 0.6;
     Real i = 90.0;

@@ -234,7 +234,7 @@ namespace lupnt {
     // Real du = u_sat - u_observer;
     // Real dtdT_u = 1.0 - du/pow(C,2);
 
-    // - Alana Sanchez video definition - only for one body
+    // - Alana Sanchez video definition (only for one body) - THIS IS WRONG
     // Real mu = bodies_[0].GM;
     // Real dtdT_u = sqrt(1.0 - 2.0 * mu / (dr * pow(C, 2)));
 
