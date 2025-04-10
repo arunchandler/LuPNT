@@ -3,6 +3,7 @@
 #include <tuple>
 #include "lupnt/core/progress_bar.h"
 #include "lupnt/physics/orbit_state.h"
+#include "lupnt/numerics/math_utils.h"
 
 namespace lupnt {
 
@@ -221,22 +222,50 @@ namespace lupnt {
     Vec3 planet_pos = Vec3::Zero();
     for (const auto& body : bodies_) {
       planet_pos = GetBodyPos(t, body.id, frame_);
-      u_observer -= body.GM / (r_observer - planet_pos).norm();
-      u_sat -= body.GM / (r_sat - planet_pos).norm();
+      Vec3 r_obs_rel = r_observer - planet_pos;
+      Vec3 r_sat_rel = r_sat - planet_pos;
+      Real r_obs_mag = r_obs_rel.norm();
+      Real r_sat_mag = r_sat_rel.norm();
+      Real GM = body.GM;
+
+      Real lat_obs = asin(r_obs_rel(2) / r_obs_mag); // φ = latitude
+      Real lat_sat = asin(r_sat_rel(2) / r_sat_mag);
+
+      Real lon_obs = atan2(r_obs_rel(1), r_obs_rel(0)); // λ = longitude
+      Real lon_sat = atan2(r_sat_rel(1), r_sat_rel(0));
+
+      const auto& field = body.gravity_field;
+      int n_max = field.n;
+
+      //First order term
+      u_observer -= GM / r_obs_mag;
+      u_sat -= GM / r_sat_mag;
+
+      // Higher order terms
+      for (int n = 2; n <= n_max; ++n) {
+        for (int m = 0; m <= n; ++m) {
+          Real C = field.CS(n, m);
+          Real S = (m == 0) ? 0.0 : field.CS(m - 1, n); // Custom layout
+      
+          Real Pnm_obs = LegendreP(n, m, sin(lat_obs));
+          Real Pnm_sat = LegendreP(n, m, sin(lat_sat));
+      
+          Real factor_obs = pow(field.R / r_obs_mag, n);
+          Real factor_sat = pow(field.R / r_sat_mag, n);
+          
+          Real harmonic_obs = C * cos(m * lon_obs) + S * sin(m * lon_obs);
+          Real harmonic_sat = C * cos(m * lon_sat) + S * sin(m * lon_sat);
+      
+          u_observer -= (GM / r_obs_mag) * factor_obs * Pnm_obs * harmonic_obs;
+          u_sat -= (GM / r_sat_mag) * factor_sat * Pnm_sat * harmonic_sat;
+        }
+      }
+
     }
 
-    // - personal derived definition
     Real gamma_u_observer = sqrt(1.0 - 2.0 * u_observer / pow(C, 2));
     Real gamma_u_sat = sqrt(1.0 - 2.0 * u_sat / pow(C, 2));
     Real dtdT_u = gamma_u_sat / gamma_u_observer;
-
-    // - GNSS Paper definition
-    // Real du = u_sat - u_observer;
-    // Real dtdT_u = 1.0 - du/pow(C,2);
-
-    // - Alana Sanchez video definition (only for one body) - THIS IS WRONG
-    // Real mu = bodies_[0].GM;
-    // Real dtdT_u = sqrt(1.0 - 2.0 * mu / (dr * pow(C, 2)));
 
     VecX rates = VecX::Zero(8);
     rates(6) = dtdT_v;

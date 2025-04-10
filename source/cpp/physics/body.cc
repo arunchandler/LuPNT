@@ -45,7 +45,6 @@ namespace lupnt {
     earth.use_gravity_field = (n_max > 1 && m_max > 1);
     if (earth.use_gravity_field)
       earth.gravity_field = ReadHarmonicGravityField<T>(gravity_file, n_max, m_max, true);
-
     return earth;
   }
   template BodyT<double> BodyT<double>::Earth(int n_max, int m_max, std::string gravity_file);

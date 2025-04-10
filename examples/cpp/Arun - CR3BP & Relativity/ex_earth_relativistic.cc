@@ -16,7 +16,11 @@ int main() {
     ClockOrbitDynamics clock_orbit;
     Frame frame = Frame::ECI;
     clock_orbit.SetFrame_COD(frame);
-    clock_orbit.AddBody_COD(Body::Earth());
+    int n = 2;
+    int m = 2;
+    Body earth = Body::Earth(n, m);
+    clock_orbit.AddBody_COD(earth);
+    cout << earth.gravity_field.CS << endl;
 
     //initialize ground station state
     SurfaceStaticDynamics ground_observer(NaifId::EARTH, frame);

@@ -97,4 +97,6 @@ namespace lupnt {
 
   VecX arange(Real start, Real stop, Real step);
 
+  Real LegendreP(int n, int m, Real x);
+
 }  // namespace lupnt

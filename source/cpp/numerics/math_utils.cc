@@ -542,4 +542,27 @@ namespace lupnt {
     return v;
   }
 
+  /// @brief Legendre polynomial
+  Real LegendreP(int n, int m, Real x) {
+    if (m < 0 || m > n || abs(x) > 1.0) return 0.0;
+
+    MatX P = MatX::Zero(n + 1, m + 1);
+
+    P(0, 0) = 1.0;
+
+    for (int i = 1; i <= m; ++i) {
+        P(i, i) = -(2 * i - 1) * sqrt(1 - x * x) * P(i - 1, i - 1);
+    }
+
+    if (n > m) {
+        P(m + 1, m) = x * (2 * m + 1) * P(m, m);
+    }
+
+    for (int i = m + 2; i <= n; ++i) {
+        P(i, m) = ((2 * i - 1) * x * P(i - 1, m) - (i + m - 1) * P(i - 2, m)) / (i - m);
+    }
+
+    return P(n, m);
+}
+
 }  // namespace lupnt
