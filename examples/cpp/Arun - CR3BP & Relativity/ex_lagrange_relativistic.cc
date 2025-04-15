@@ -1,7 +1,7 @@
 /*
 * ex_lagrange_relativistic.cc
 * Tests relativistic corrections at Lagrange points
-* Warning: This takes a long time to run especially if you are plotting
+* Warning: This takes a long time to run
 */
 
 #include <lupnt/lupnt.h>
@@ -13,12 +13,19 @@ using namespace matplot;
 
 int main(){
 
+    const Real sqrt3_over_2 = sqrt(3) / 2.0;
+
     //initialize dynamics
     ClockOrbitDynamics clock_orbit;
     Frame frame = Frame::ECI;
     clock_orbit.SetFrame_COD(frame);
-    clock_orbit.AddBody_COD(Body::Earth());
-    clock_orbit.AddBody_COD(Body::Moon());
+    int n = 10;
+    int m = n;
+    Body earth = Body::Earth(n,m);
+    Body moon = Body::Moon(n,m);
+    clock_orbit.AddBody_COD(earth);
+    clock_orbit.AddBody_COD(moon);
+
     Real mu = GM_MOON / (GM_EARTH + GM_MOON);
 
     //initialize ground station state
@@ -63,14 +70,16 @@ int main(){
           0.0, 0.0; //time error
 
     // L4
-    Vec3 L4_pos = 0.5 * r_moon + sqrt(3) / 2 * Vec3(-r_moon(1), r_moon(0), 0.0);
+    Vec3 L4_offset = sqrt3_over_2 * Vec3(-r_moon(1), r_moon(0), 0.0);
+    Vec3 L4_pos = 0.5 * r_moon + L4_offset;
     Vec3 L4_vel = omega.cross(L4_pos);
     x0_L4 << L4_pos(0), L4_pos(1), L4_pos(2), //pos
           L4_vel(0), L4_vel(1), L4_vel(2), //vel
           0.0, 0.0; //time error
 
     // L5
-    Vec3 L5_pos = 0.5 * r_moon - sqrt(3) / 2 * Vec3(-r_moon(1), r_moon(0), 0.0);
+    Vec3 L5_offset = -L4_offset;
+    Vec3 L5_pos = 0.5 * r_moon - L5_offset;
     Vec3 L5_vel = omega.cross(L5_pos);
     x0_L5 << L5_pos(0), L5_pos(1), L5_pos(2), //pos
           L5_vel(0), L5_vel(1), L5_vel(2), //vel
@@ -98,7 +107,6 @@ int main(){
     const Real L1_coeff = 0.8446819150716 + mu;
     const Real L2_coeff = 1.1495185441167 + mu;
     const Real L3_coeff = -1.0044288297623 + mu;
-    const Real sqrt3_over_2 = sqrt(3) / 2.0;
 
     for (int i = 1; i < num_steps; i++) {
 
@@ -117,34 +125,39 @@ int main(){
         VecX x_L4_temp = clock_orbit.Propagate(x_L4, t, t + dt);
         VecX x_L5_temp = clock_orbit.Propagate(x_L5, t, t + dt);
 
-        //update with true Lagrange positions - not propagated
+        //update with true Lagrange states - not propagated
         //only timing is propagated
-        Vec3 L4_offset = sqrt3_over_2 * Vec3(-moon_pos(1), moon_pos(0), 0.0);
-        Vec3 L5_offset = -L4_offset;
-        Vec3 L1_pos = L1_coeff * moon_pos;
-        Vec3 L2_pos = L2_coeff * moon_pos;
-        Vec3 L3_pos = L3_coeff * moon_pos;
-        Vec3 L4_pos = 0.5 * moon_pos + L4_offset;
-        Vec3 L5_pos = 0.5 * moon_pos + L5_offset;
+        L4_offset = sqrt3_over_2 * Vec3(-moon_pos(1), moon_pos(0), 0.0);
+        L5_offset = -L4_offset;
+        L1_pos = L1_coeff * moon_pos;
+        L1_vel = omega.cross(L1_pos);
+        L2_pos = L2_coeff * moon_pos;
+        L2_vel = omega.cross(L2_pos);
+        L3_pos = L3_coeff * moon_pos;
+        L3_vel = omega.cross(L3_pos);
+        L4_pos = 0.5 * moon_pos + L4_offset;
+        L4_vel = omega.cross(L4_pos);
+        L5_pos = 0.5 * moon_pos + L5_offset;
+        L5_vel = omega.cross(L5_pos);
 
         state_history_L1.row(i).head(3) = L1_pos;
-        state_history_L1.row(i).segment(3, 3) = omega.cross(L1_pos);
+        state_history_L1.row(i).segment(3, 3) = L1_vel;
         state_history_L1.row(i).tail(2) = x_L1_temp.tail(2);
 
         state_history_L2.row(i).head(3) = L2_pos;
-        state_history_L2.row(i).segment(3, 3) = omega.cross(L2_pos);
+        state_history_L2.row(i).segment(3, 3) = L2_vel;
         state_history_L2.row(i).tail(2) = x_L2_temp.tail(2);
 
         state_history_L3.row(i).head(3) = L3_pos;
-        state_history_L3.row(i).segment(3, 3) = omega.cross(L3_pos);
+        state_history_L3.row(i).segment(3, 3) = L3_vel;
         state_history_L3.row(i).tail(2) = x_L3_temp.tail(2);
 
         state_history_L4.row(i).head(3) = L4_pos;
-        state_history_L4.row(i).segment(3, 3) = omega.cross(L4_pos);
+        state_history_L4.row(i).segment(3, 3) = L4_vel;
         state_history_L4.row(i).tail(2) = x_L4_temp.tail(2);
 
         state_history_L5.row(i).head(3) = L5_pos;
-        state_history_L5.row(i).segment(3, 3) = omega.cross(L5_pos);
+        state_history_L5.row(i).segment(3, 3) = L5_vel;
         state_history_L5.row(i).tail(2) = x_L5_temp.tail(2);
 
         observer_state_history.row(i) = ground_observer.Propagate(x_observer, t, t + dt);
@@ -153,7 +166,7 @@ int main(){
     }
 
     //show results
-    bool partial = false;
+    bool partial = true;
     if (partial) {
         cout << "L1 time correction from velocity time dilation: " << (t_span - state_history_L1(num_steps-1, 6))/num_days << "s/day" << endl;
         cout << "L1 time correction from gravitational time dilation: " << (t_span - state_history_L1(num_steps-1, 7))/num_days << "s/day" << endl;

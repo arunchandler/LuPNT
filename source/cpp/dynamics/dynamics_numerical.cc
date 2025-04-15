@@ -68,8 +68,8 @@ namespace lupnt {
       }
       Real dist = D_EARTH_MOON; //TODO: Update for generalization - only works with earth-moon system
       r_scale_ = dist;
-      v_scale_ = sqrt((mu1 + mu2) / dist);
-      t_scale_ = dist / v_scale_;
+      t_scale_ = sqrt(dist / (mu1 + mu2));
+      v_scale_ = r_scale_ / t_scale_;
     }
 
   Vec6 CR3BPDynamics::ComputeRates(Real t, const Vec6 &x) const {

@@ -16,7 +16,10 @@ int main() {
     ClockOrbitDynamics clock_orbit;
     Frame frame = Frame::MOON_CI;
     clock_orbit.SetFrame_COD(frame);
-    clock_orbit.AddBody_COD(Body::Moon());
+    int n = 10;
+    int m = n;
+    Body moon = Body::Moon(n, m);
+    clock_orbit.AddBody_COD(moon);
 
     //initialize ground station state
     SurfaceStaticDynamics ground_observer(NaifId::MOON, frame);
@@ -44,16 +47,14 @@ int main() {
     Real i = 90.0;
     Real Omega = 0.0;
     Real omega = 90.0;
-    //NRHO - fill these out
-    // Real a = 0.0;
-    // Real e = 0.0;
-    // Real i = 0.0;
-    // Real Omega = 0.0;
-    // Real omega = 0.0;
 
     Real M0 = 0.0;
     Vec6 elements = {a, e, i, Omega, omega, M0};
     Vec6 state0 = Classical2Cart(elements, GM_MOON);
+
+    //NRHO - fill this out
+    // Vec6 state0 = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; 
+
     VecX init_state(8);
     init_state.head<6>() = state0;
     init_state[6] = 0.0; //velocity time dilation

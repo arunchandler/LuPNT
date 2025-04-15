@@ -43,7 +43,14 @@ namespace lupnt {
         // Acceleration (body-fixed) [km/s^2]
         Vec3 a_bf = AccelarationGravityField<T>(r_bf, grav.GM, grav.R, grav.CS, grav.n, grav.m);
         // Acceleration (inertial) [km/s^2]
-        Vec3 ai = ConvertFrame(t_tai, a_bf, body.fixed_frame, frame_);
+        Vec3 ai;
+        if (bodies_.size() == 1) {
+          ai = ConvertFrame(t_tai, a_bf, body.fixed_frame, frame_);
+        } else {
+          Vec3 r_body = GetBodyPos(t_tai, body.id, frame_);
+          ai = AccelerationPointMass(rv.head(3), r_body, body.GM);
+          //std::cerr << "Warning: Using only the first order term for acceleration computation.\n";
+        }
         a += ai;
       } else {
         // Body position w.r.t. the inertial frame origin [km]

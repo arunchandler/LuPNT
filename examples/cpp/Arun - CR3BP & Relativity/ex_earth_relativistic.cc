@@ -16,11 +16,10 @@ int main() {
     ClockOrbitDynamics clock_orbit;
     Frame frame = Frame::ECI;
     clock_orbit.SetFrame_COD(frame);
-    int n = 2;
-    int m = 2;
+    int n = 10;
+    int m = n;
     Body earth = Body::Earth(n, m);
     clock_orbit.AddBody_COD(earth);
-    cout << earth.gravity_field.CS << endl;
 
     //initialize ground station state
     SurfaceStaticDynamics ground_observer(NaifId::EARTH, frame);
@@ -39,11 +38,11 @@ int main() {
     clock_orbit.SetTimeStep(dt);
 
     //GPS
-    // Real a = 26561.8;
-    // Real e = 0.02;
-    // Real i = 55.0;
-    // Real Omega = 0.0;
-    // Real omega = 0.0;
+    Real a = 26561.8;
+    Real e = 0.02;
+    Real i = 55.0;
+    Real Omega = 0.0;
+    Real omega = 0.0;
     //Galileo
     // Real a = 29994;
     // Real e = 0.02;
@@ -51,11 +50,11 @@ int main() {
     // Real Omega = 0.0;
     // Real omega = 0.0;
     //GLONASS
-    Real a = 25510;
-    Real e = 0.02;
-    Real i = 64.8;
-    Real Omega = 0.0;
-    Real omega = 0.0;
+    // Real a = 25510;
+    // Real e = 0.02;
+    // Real i = 64.8;
+    // Real Omega = 0.0;
+    // Real omega = 0.0;
 
     Real M0 = 0.0;
     Vec6 elements = {a, e, i, Omega, omega, M0};

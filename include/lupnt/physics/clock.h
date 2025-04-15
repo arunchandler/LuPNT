@@ -153,7 +153,7 @@ namespace lupnt {
 
       void SetTimeStep(Real dt) { dt_ = dt; orbitDynamics_->SetTimeStep(dt); clockDynamics_->SetTimeStep(dt); }
 
-      void SetFrame_COD(Frame frame) { orbitDynamics_->SetFrame(frame); clockDynamics_->SetFrame(frame); }
+      void SetFrame_COD(const Frame &frame) { orbitDynamics_->SetFrame(frame); clockDynamics_->SetFrame(frame); }
 
       std::vector<BodyT<>> GetBodies_COD() {
         std::vector<BodyT<>> bodies = orbitDynamics_->GetBodies();
