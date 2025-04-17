@@ -79,5 +79,8 @@ namespace lupnt {
   template <typename T> BodyT<T> CreateBody(std::string body_s, int n = 0, int m = 0);
   NaifId GetBodyId(std::string name);
 
+  //TODO: Fill out with current definition and V M definition and compare
+  double ComputeGravitationalPotential_1(Real t_tai, std::vector<BodyT<>> bodies, Vec3 r, Frame frame);
+  double ComputeGravitationalPotential_2(Real t_tai, std::vector<BodyT<>> bodies, Vec3 r, Frame frame);
 
 }  // namespace lupnt

@@ -9,6 +9,8 @@
 
 #include "lupnt/core/file.h"
 #include "lupnt/physics/frame_converter.h"
+#include "lupnt/data/kernels.h"
+#include "lupnt/numerics/math_utils.h"
 
 namespace lupnt {
   template struct BodyT<double>;
@@ -330,6 +332,118 @@ namespace lupnt {
 
     file.close();
     return gravity_field;
+  }
+
+  double ComputeGravitationalPotential_1(Real t_tai, std::vector<BodyT<>> bodies, Vec3 r, Frame frame){
+    Real u = 0.0;
+    Vec3 r_pos = r.head(3);
+    Vec3 planet_pos = Vec3::Zero();
+    for (const auto& body : bodies) {
+      planet_pos = GetBodyPos(t_tai, body.id, frame);
+      Vec3 r_rel = r_pos - planet_pos;
+      Real r_mag = r_rel.norm();
+      Real GM = body.GM;
+      Real R_ref = body.R;
+
+      Real lat = asin(r_rel(2) / r_mag); // φ = latitude
+      Real lon = atan2(r_rel(1), r_rel(0)); // λ = longitude
+
+      const auto& field = body.gravity_field;
+      int n_max = field.n;
+      Matrix<Real, Dynamic, Dynamic> CS = field.CS;
+
+      //First order term
+      u -= GM / r_mag;
+
+      // Higher order terms
+      for (int n = 2; n <= n_max; ++n) {
+        for (int m = 0; m <= n; ++m) {
+          Real C = CS(n, m);
+          Real S = (m == 0) ? 0.0 : CS(m - 1, n); // Custom layout
+      
+          Real Pnm = LegendreP(n, m, sin(lat));
+          Real factor = pow(R_ref / r_mag, n);
+          Real harmonic = C * cos(m * lon) + S * sin(m * lon);
+      
+          u -= (-GM / r_mag) * factor * Pnm * harmonic;
+        }
+      }
+    }
+
+    return static_cast<double>(u);
+  }
+
+  double ComputeGravitationalPotential_2(Real t_tai, std::vector<BodyT<>> bodies, Vec3 r, Frame frame){
+
+    Real u = 0.0;
+    Vec3 r_pos = r.head(3);
+
+    for (const auto& body : bodies) {
+
+      Real R_ref = body.R;
+      Vec3 planet_pos = GetBodyPos(t_tai, body.id, frame);
+      Vec3 r_rel = r_pos - planet_pos;
+      Real GM = body.GM;
+      const auto& field = body.gravity_field;
+      int n_max = field.n;
+      int m_max = field.m;
+      Matrix<Real, Dynamic, Dynamic> CS = field.CS;
+
+      MatrixX<Real> V(n_max + 2, n_max + 2);  // Harmonic functions
+      MatrixX<Real> W(n_max + 2, n_max + 2);  // work array (0..n_max+1,0..n_max+1)
+
+      Real r_sqr = r_rel.squaredNorm();
+      Real r_mag = r_rel.norm();
+      Real rho = R_ref * R_ref / r_sqr;
+
+      // Normalized coordinates
+      Real x0 = R_ref * r_pos(0) / r_sqr;
+      Real y0 = R_ref * r_pos(1) / r_sqr;
+      Real z0 = R_ref * r_pos(2) / r_sqr;
+
+      // Harmonic functions up to degree and order n_max+1
+      //   V_nm = (R_ref/r)^(n+1) * P_nm(sin(phi)) * cos(m*lambda)
+      //   W_nm = (R_ref/r)^(n+1) * P_nm(sin(phi)) * sin(m*lambda)
+
+      // Zonal terms V(n,0); set W(n,0)=0.0
+      V(0, 0) = R_ref / sqrt(r_sqr);
+      V(1, 0) = z0 * V(0, 0);
+      W(0, 0) = 0.0;
+      W(1, 0) = 0.0;
+
+      for (int n = 2; n <= n_max + 1; n++) {
+        V(n, 0) = ((2 * n - 1) * z0 * V(n - 1, 0) - (n - 1) * rho * V(n - 2, 0)) / n;
+        W(n, 0) = 0.0;
+      };
+
+      // Tesseral and sectorial terms
+      for (int m = 1; m <= m_max + 1; m++) {
+        // V(m,m) .. V(n_max+1,m)
+        V(m, m) = (2 * m - 1) * (x0 * V(m - 1, m - 1) - y0 * W(m - 1, m - 1));
+        W(m, m) = (2 * m - 1) * (x0 * W(m - 1, m - 1) + y0 * V(m - 1, m - 1));
+        if (m <= n_max) {
+          V(m + 1, m) = (2 * m + 1) * z0 * V(m, m);
+          W(m + 1, m) = (2 * m + 1) * z0 * W(m, m);
+        };
+
+        for (int n = m + 2; n <= n_max + 1; n++) {
+          V(n, m) = ((2 * n - 1) * z0 * V(n - 1, m) - (n + m - 1) * rho * V(n - 2, m)) / (n - m);
+          W(n, m) = ((2 * n - 1) * z0 * W(n - 1, m) - (n + m - 1) * rho * W(n - 2, m)) / (n - m);
+        };
+      };
+
+      //compute gravitational potential
+      for (int n = 0; n <= n_max; n++){
+        for (int m = 0; m <= n; m++){
+          Real C = CS(n, m);      // C_n,m
+          Real S = CS(m - 1, n);  // S_n,m
+          u -= GM/r_mag * (C * V(n, m) + S * W(n, m));
+        }
+      }
+
+    }
+
+    return static_cast<double>(u);
   }
 
 }  // namespace lupnt
